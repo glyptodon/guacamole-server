@@ -26,6 +26,7 @@ ACLOCAL_AMFLAGS = -I m4
 DIST_SUBDIRS =           \
     src/libguac          \
     src/guacd            \
+    src/common           \
     src/protocols/rdp    \
     src/protocols/ssh    \
     src/protocols/vnc    \
@@ -49,5 +50,4 @@ if ENABLE_VNC
     SUBDIRS += src/protocols/vnc
 endif
 
-EXTRA_DIST = LICENSE doc/Doxyfile
-
+EXTRA_DIST = LICENSE doc/Doxyfile bin src/protocols/rdp/keymaps
