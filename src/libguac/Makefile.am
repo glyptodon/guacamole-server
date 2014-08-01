@@ -56,7 +56,9 @@ libguacinc_HEADERS =                  \
 	guacamole/stream-types.h          \
     guacamole/timestamp.h             \
 	guacamole/timestamp-types.h       \
-    guacamole/unicode.h
+    guacamole/unicode.h               \
+    guacamole/user.h                  \
+	guacamole/user-types.h
 
 noinst_HEADERS =      \
     client-handlers.h \

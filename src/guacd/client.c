@@ -31,6 +31,7 @@
 #include <guacamole/protocol.h>
 #include <guacamole/socket.h>
 #include <guacamole/timestamp.h>
+#include <guacamole/user.h>
 
 #include <pthread.h>
 #include <stdlib.h>
@@ -168,7 +169,7 @@ void* __guacd_client_input_thread(void* data) {
 
 }
 
-int guacd_client_start(guac_client* client) {
+int guacd_client_start(guac_client* client, guac_socket* socket) {
 
     pthread_t input_thread, output_thread;
 
@@ -183,6 +184,9 @@ int guacd_client_start(guac_client* client) {
         pthread_join(output_thread, NULL);
         return -1;
     }
+
+    /* Add socket as user */
+    guac_client_add_user(client, socket);
 
     /* Wait for I/O threads */
     pthread_join(input_thread, NULL);

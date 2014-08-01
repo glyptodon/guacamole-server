@@ -27,6 +27,7 @@
 #include "config.h"
 
 #include <guacamole/client.h>
+#include <guacamole/socket.h>
 
 /**
  * The time to allow between sync responses in milliseconds. If a sync
@@ -73,7 +74,12 @@
  */
 #define GUACD_CLIENT_MAX_CONNECTIONS 65536
 
-int guacd_client_start(guac_client* client);
+/**
+ * Starts the input/output threads of a new client, adding the given socket
+ * as the first user of that client. This function will block until all
+ * users of this client have disconnected.
+ */
+int guacd_client_start(guac_client* client, guac_socket* socket);
 
 #endif
 

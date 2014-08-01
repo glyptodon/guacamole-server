@@ -39,6 +39,7 @@
 #include "stream-types.h"
 #include "timestamp-types.h"
 
+#include <pthread.h>
 #include <stdarg.h>
 
 struct guac_client_info {
@@ -428,6 +429,53 @@ struct guac_client {
      */
     char* connection_id;
 
+    /**
+     * Lock which is acquired when the users list is being manipulated.
+     */
+    pthread_mutex_t __users_lock;
+
+    /**
+     * The first user within the list of all connected users, or NULL if no
+     * users are currently connected.
+     */
+    guac_user* __users;
+
+    /**
+     * Handler for join events, called whenever a new user is joining an
+     * active connection.
+     *
+     * The handler is given a pointer to a newly-allocated guac_user which
+     * must then be initialized, if needed.
+     *
+     * Example:
+     * @code
+     *     int join_handler(guac_client* client, guac_user* user);
+     *
+     *     int guac_client_init(guac_client* client, int argc, char** argv) {
+     *         client->join_handler = join_handler;
+     *     }
+     * @endcode
+     */
+    guac_client_join_handler* join_handler;
+
+    /**
+     * Handler for leave events, called whenever a new user is leaving an
+     * active connection.
+     *
+     * The handler is given a pointer to the leaving guac_user whose custom
+     * data and associated resources must now be freed, if any.
+     *
+     * Example:
+     * @code
+     *     int leave_handler(guac_client* client, guac_user* user);
+     *
+     *     int guac_client_init(guac_client* client, int argc, char** argv) {
+     *         client->leave_handler = leave_handler;
+     *     }
+     * @endcode
+     */
+    guac_client_leave_handler* leave_handler;
+
 };
 
 /**
@@ -598,6 +646,34 @@ guac_stream* guac_client_alloc_stream(guac_client* client);
  * @param stream The stream to return to the pool of available stream.
  */
 void guac_client_free_stream(guac_client* client, guac_stream* stream);
+
+/**
+ * Creates a new user for the given socket, adding it to the internally-tracked
+ * list of connected users. Future writes to the broadcast socket stored within
+ * guac_client will also write to this user. The join handler of this
+ * guac_client will be called.
+ *
+ * Note that, after this function is called, the lifecycle of the
+ * guac_socket will be maintained by guac_client. The socket will
+ * be freed when the user is removed or disconnected.
+ *
+ * @param client The proxy client to allocate the user for.
+ * @param socket The socket to use when communicating with this user
+ *               directly.
+ * @return The newly-allocated user and added user, or NULL if the
+ *         user could not be added.
+ */
+guac_user* guac_client_add_user(guac_client* client, guac_socket* socket);
+
+/**
+ * Removes the given user, removing the user from the internally-tracked list
+ * of connected users, and calling any appropriate leave handler. This function
+ * will automatically free the guac_user's underlying socket.
+ *
+ * @param client The proxy client to return the buffer to.
+ * @param user The user to remove.
+ */
+void guac_client_remove_user(guac_client* client, guac_user* user);
 
 /**
  * The default Guacamole client layer, layer 0.

@@ -32,6 +32,7 @@
 #include "socket.h"
 #include "stream.h"
 #include "timestamp.h"
+#include "user.h"
 
 #ifdef HAVE_OSSP_UUID_H
 #include <ossp/uuid.h>
@@ -39,6 +40,7 @@
 #include <uuid.h>
 #endif
 
+#include <pthread.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -49,6 +51,36 @@ guac_layer __GUAC_DEFAULT_LAYER = {
 };
 
 const guac_layer* GUAC_DEFAULT_LAYER = &__GUAC_DEFAULT_LAYER;
+
+/**
+ * Socket read handler which operates on each of the sockets of all connected
+ * users, unifying the results.
+ */
+static ssize_t __guac_socket_broadcast_read_handler(guac_socket* socket,
+        void* buf, size_t count) {
+    /* STUB */
+    return 0;
+
+}
+
+/**
+ * Socket write handler which operates on each of the sockets of all connected
+ * users, unifying the results.
+ */
+static ssize_t __guac_socket_broadcast_write_handler(guac_socket* socket,
+        const void* buf, size_t count) {
+    /* STUB */
+    return 0;
+}
+
+/**
+ * Socket select handler which operates on each of the sockets of all connected
+ * users, unifying the results.
+ */
+static int __guac_socket_broadcast_select_handler(guac_socket* socket, int usec_timeout) {
+    /* STUB */
+    return 0;
+}
 
 guac_layer* guac_client_alloc_layer(guac_client* client) {
 
@@ -184,6 +216,7 @@ static char* __guac_generate_connection_id() {
 
 guac_client* guac_client_alloc() {
 
+    pthread_mutexattr_t lock_attributes;
     int i;
 
     /* Allocate new client */
@@ -225,11 +258,30 @@ guac_client* guac_client_alloc() {
         client->__output_streams[i].index = GUAC_CLIENT_CLOSED_STREAM_INDEX;
     }
 
+    /* Init locks */
+    pthread_mutexattr_init(&lock_attributes);
+    pthread_mutexattr_setpshared(&lock_attributes, PTHREAD_PROCESS_SHARED);
+
+    pthread_mutex_init(&(client->__users_lock), &lock_attributes);
+
+    /* Set up socket to broadcast to all users */
+    guac_socket* socket = guac_socket_alloc();
+    client->socket = socket;
+    socket->data   = client;
+
+    socket->read_handler   = __guac_socket_broadcast_read_handler;
+    socket->write_handler  = __guac_socket_broadcast_write_handler;
+    socket->select_handler = __guac_socket_broadcast_select_handler;
+
     return client;
 
 }
 
 void guac_client_free(guac_client* client) {
+
+    /* Remove all users */
+    while (client->__users != NULL)
+        guac_client_remove_user(client, client->__users);
 
     if (client->free_handler) {
 
@@ -249,6 +301,7 @@ void guac_client_free(guac_client* client) {
     /* Free stream pool */
     guac_pool_free(client->__stream_pool);
 
+    pthread_mutex_destroy(&(client->__users_lock));
     free(client);
 }
 
@@ -343,6 +396,20 @@ void guac_client_abort(guac_client* client, guac_protocol_status status,
     vguac_client_abort(client, status, format, args);
 
     va_end(args);
+
+}
+
+guac_user* guac_client_add_user(guac_client* client, guac_socket* socket) {
+    /* STUB */
+    return NULL;
+}
+
+void guac_client_remove_user(guac_client* client, guac_user* user) {
+
+    /* STUB */
+
+    /* Close socket */
+    guac_socket_free(user->socket);
 
 }
 

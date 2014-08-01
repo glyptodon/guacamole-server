@@ -193,7 +193,6 @@ static void guacd_handle_connection(guacd_client_map* map, guac_socket* socket) 
         return;
     }
 
-    client->socket = socket;
     client->log_info_handler = guacd_client_log_info;
     client->log_error_handler = guacd_client_log_error;
 
@@ -251,7 +250,7 @@ static void guacd_handle_connection(guacd_client_map* map, guac_socket* socket) 
 
     /* Start client threads */
     guacd_log_info("Starting client");
-    if (guacd_client_start(client))
+    if (guacd_client_start(client, socket))
         guacd_log_error("Client finished abnormally");
     else
         guacd_log_info("Client finished normally");
@@ -273,9 +272,6 @@ static void guacd_handle_connection(guacd_client_map* map, guac_socket* socket) 
     guac_client_free(client);
     if (guac_client_plugin_close(plugin))
         guacd_log_error("Error closing client plugin");
-
-    /* Close socket */
-    guac_socket_free(socket);
 
 }
 

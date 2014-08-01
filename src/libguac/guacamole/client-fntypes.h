@@ -33,6 +33,7 @@
 #include "client-types.h"
 #include "protocol-types.h"
 #include "stream-types.h"
+#include "user-types.h"
 
 #include <stdarg.h>
 
@@ -101,6 +102,18 @@ typedef int guac_client_audio_handler(guac_client* client, char* mimetype);
  * Handler for Guacamole video format events.
  */
 typedef int guac_client_video_handler(guac_client* client, char* mimetype);
+
+/**
+ * Handler for Guacamole join events. A join event is fired by the
+ * guac_client whenever a guac_user joins the connection.
+ */
+typedef int guac_client_join_handler(guac_client* client, guac_user* user);
+
+/**
+ * Handler for Guacamole leave events. A leave event is fired by the
+ * guac_client whenever a guac_user leaves the connection.
+ */
+typedef int guac_client_leave_handler(guac_client* client, guac_user* user);
 
 /**
  * Handler for freeing up any extra data allocated by the client
