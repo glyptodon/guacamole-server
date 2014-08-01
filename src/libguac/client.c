@@ -400,16 +400,57 @@ void guac_client_abort(guac_client* client, guac_protocol_status status,
 }
 
 guac_user* guac_client_add_user(guac_client* client, guac_socket* socket) {
-    /* STUB */
-    return NULL;
+
+    guac_user* user = malloc(sizeof(guac_user));
+    user->socket = socket;
+    user->leave_handler = NULL;
+
+    /* Call handler, if defined */
+    if (client->join_handler)
+        client->join_handler(client, user);
+
+    /* Insert new user as head */
+    pthread_mutex_lock(&(client->__users_lock));
+
+    user->__prev = NULL;
+    user->__next = client->__users;
+
+    if (client->__users != NULL)
+        client->__users->__prev = user;
+
+    client->__users = user;
+
+    pthread_mutex_unlock(&(client->__users_lock));
+
+    return user;
+
 }
 
 void guac_client_remove_user(guac_client* client, guac_user* user) {
 
-    /* STUB */
+    /* Call handler, if defined */
+    if (user->leave_handler)
+        user->leave_handler(client, user);
+    else if (client->leave_handler)
+        client->leave_handler(client, user);
 
-    /* Close socket */
+    pthread_mutex_lock(&(client->__users_lock));
+
+    /* Update prev / head */
+    if (user->__prev != NULL)
+        user->__prev->__next = user->__next;
+    else
+        client->__users = user->__next;
+
+    /* Update next */
+    if (user->__next != NULL)
+        user->__next->__prev = user->__prev;
+
+    pthread_mutex_unlock(&(client->__users_lock));
+
+    /* Clean up user */
     guac_socket_free(user->socket);
+    free(user);
 
 }
 
