@@ -23,7 +23,6 @@
 #include "config.h"
 
 #include "client.h"
-#include "client-handlers.h"
 #include "error.h"
 #include "instruction.h"
 #include "layer.h"
@@ -122,40 +121,6 @@ void guac_client_free_layer(guac_client* client, guac_layer* layer) {
 
 }
 
-guac_stream* guac_client_alloc_stream(guac_client* client) {
-
-    guac_stream* allocd_stream;
-    int stream_index;
-
-    /* Refuse to allocate beyond maximum */
-    if (client->__stream_pool->active == GUAC_CLIENT_MAX_STREAMS)
-        return NULL;
-
-    /* Allocate stream */
-    stream_index = guac_pool_next_int(client->__stream_pool);
-
-    /* Initialize stream */
-    allocd_stream = &(client->__output_streams[stream_index]);
-    allocd_stream->index = stream_index;
-    allocd_stream->data = NULL;
-    allocd_stream->ack_handler = NULL;
-    allocd_stream->blob_handler = NULL;
-    allocd_stream->end_handler = NULL;
-
-    return allocd_stream;
-
-}
-
-void guac_client_free_stream(guac_client* client, guac_stream* stream) {
-
-    /* Release index to pool */
-    guac_pool_free_int(client->__stream_pool, stream->index);
-
-    /* Mark stream as closed */
-    stream->index = GUAC_CLIENT_CLOSED_STREAM_INDEX;
-
-}
-
 /**
  * Returns a newly allocated string containing a guaranteed-unique connection
  * identifier string which is 37 characters long and begins with a '$'
@@ -217,7 +182,6 @@ static char* __guac_generate_connection_id() {
 guac_client* guac_client_alloc() {
 
     pthread_mutexattr_t lock_attributes;
-    int i;
 
     /* Allocate new client */
     guac_client* client = malloc(sizeof(guac_client));
@@ -229,9 +193,6 @@ guac_client* guac_client_alloc() {
 
     /* Init new client */
     memset(client, 0, sizeof(guac_client));
-
-    client->last_received_timestamp =
-        client->last_sent_timestamp = guac_timestamp_current();
 
     client->state = GUAC_CLIENT_RUNNING;
 
@@ -245,18 +206,6 @@ guac_client* guac_client_alloc() {
     /* Allocate buffer and layer pools */
     client->__buffer_pool = guac_pool_alloc(GUAC_BUFFER_POOL_INITIAL_SIZE);
     client->__layer_pool = guac_pool_alloc(GUAC_BUFFER_POOL_INITIAL_SIZE);
-
-    /* Allocate stream pool */
-    client->__stream_pool = guac_pool_alloc(0);
-
-    /* Initialze streams */
-    client->__input_streams = malloc(sizeof(guac_stream) * GUAC_CLIENT_MAX_STREAMS);
-    client->__output_streams = malloc(sizeof(guac_stream) * GUAC_CLIENT_MAX_STREAMS);
-
-    for (i=0; i<GUAC_CLIENT_MAX_STREAMS; i++) {
-        client->__input_streams[i].index = GUAC_CLIENT_CLOSED_STREAM_INDEX;
-        client->__output_streams[i].index = GUAC_CLIENT_CLOSED_STREAM_INDEX;
-    }
 
     /* Init locks */
     pthread_mutexattr_init(&lock_attributes);
@@ -294,33 +243,8 @@ void guac_client_free(guac_client* client) {
     guac_pool_free(client->__buffer_pool);
     guac_pool_free(client->__layer_pool);
 
-    /* Free streams */
-    free(client->__input_streams);
-    free(client->__output_streams);
-
-    /* Free stream pool */
-    guac_pool_free(client->__stream_pool);
-
     pthread_mutex_destroy(&(client->__users_lock));
     free(client);
-}
-
-int guac_client_handle_instruction(guac_client* client, guac_instruction* instruction) {
-
-    /* For each defined instruction */
-    __guac_instruction_handler_mapping* current = __guac_instruction_handler_map;
-    while (current->opcode != NULL) {
-
-        /* If recognized, call handler */
-        if (strcmp(instruction->opcode, current->opcode) == 0)
-            return current->handler(client, instruction);
-
-        current++;
-    }
-
-    /* If unrecognized, ignore */
-    return 0;
-
 }
 
 void vguac_client_log_info(guac_client* client, const char* format,
@@ -401,13 +325,28 @@ void guac_client_abort(guac_client* client, guac_protocol_status status,
 
 guac_user* guac_client_add_user(guac_client* client, guac_socket* socket) {
 
-    guac_user* user = malloc(sizeof(guac_user));
+    guac_user* user = calloc(1, sizeof(guac_user));
+    int i;
+
     user->socket = socket;
-    user->leave_handler = NULL;
+    user->client = client;
+    user->last_received_timestamp = user->last_sent_timestamp = guac_timestamp_current();
+
+    /* Allocate stream pool */
+    user->__stream_pool = guac_pool_alloc(0);
+
+    /* Initialze streams */
+    user->__input_streams = malloc(sizeof(guac_stream) * GUAC_USER_MAX_STREAMS);
+    user->__output_streams = malloc(sizeof(guac_stream) * GUAC_USER_MAX_STREAMS);
+
+    for (i=0; i<GUAC_USER_MAX_STREAMS; i++) {
+        user->__input_streams[i].index = GUAC_USER_CLOSED_STREAM_INDEX;
+        user->__output_streams[i].index = GUAC_USER_CLOSED_STREAM_INDEX;
+    }
 
     /* Call handler, if defined */
     if (client->join_handler)
-        client->join_handler(client, user);
+        client->join_handler(user);
 
     /* Insert new user as head */
     pthread_mutex_lock(&(client->__users_lock));
@@ -430,9 +369,9 @@ void guac_client_remove_user(guac_client* client, guac_user* user) {
 
     /* Call handler, if defined */
     if (user->leave_handler)
-        user->leave_handler(client, user);
+        user->leave_handler(user);
     else if (client->leave_handler)
-        client->leave_handler(client, user);
+        client->leave_handler(user);
 
     pthread_mutex_lock(&(client->__users_lock));
 
@@ -447,6 +386,13 @@ void guac_client_remove_user(guac_client* client, guac_user* user) {
         user->__next->__prev = user->__prev;
 
     pthread_mutex_unlock(&(client->__users_lock));
+
+    /* Free streams */
+    free(user->__input_streams);
+    free(user->__output_streams);
+
+    /* Free stream pool */
+    guac_pool_free(user->__stream_pool);
 
     /* Clean up user */
     guac_socket_free(user->socket);

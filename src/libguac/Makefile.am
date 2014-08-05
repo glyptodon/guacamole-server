@@ -58,17 +58,18 @@ libguacinc_HEADERS =                  \
 	guacamole/timestamp-types.h       \
     guacamole/unicode.h               \
     guacamole/user.h                  \
+    guacamole/user-constants.h        \
+    guacamole/user-fntypes.h          \
 	guacamole/user-types.h
 
 noinst_HEADERS =      \
-    client-handlers.h \
     palette.h         \
+    user-handlers.h   \
     wav_encoder.h
 
+# Temporarily removed audio.c for testing of others
 libguac_la_SOURCES =  \
-    audio.c           \
     client.c          \
-    client-handlers.c \
     error.c           \
     hash.c            \
     instruction.c     \
@@ -81,6 +82,8 @@ libguac_la_SOURCES =  \
     socket-nest.c     \
     timestamp.c       \
     unicode.c         \
+    user.c            \
+    user-handlers.c   \
     wav_encoder.c
 
 # Compile OGG support if available

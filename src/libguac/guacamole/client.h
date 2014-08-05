@@ -36,52 +36,11 @@
 #include "layer-types.h"
 #include "pool-types.h"
 #include "socket-types.h"
-#include "stream-types.h"
-#include "timestamp-types.h"
+#include "user-fntypes.h"
+#include "user-types.h"
 
 #include <pthread.h>
 #include <stdarg.h>
-
-struct guac_client_info {
-
-    /**
-     * The number of pixels the remote client requests for the display width.
-     * This need not be honored by a client plugin implementation, but if the
-     * underlying protocol of the client plugin supports dynamic sizing of the
-     * screen, honoring the display size request is recommended.
-     */
-    int optimal_width;
-
-    /**
-     * The number of pixels the remote client requests for the display height.
-     * This need not be honored by a client plugin implementation, but if the
-     * underlying protocol of the client plugin supports dynamic sizing of the
-     * screen, honoring the display size request is recommended.
-     */
-    int optimal_height;
-
-    /**
-     * NULL-terminated array of client-supported audio mimetypes. If the client
-     * does not support audio at all, this will be NULL.
-     */
-    const char** audio_mimetypes;
-
-    /**
-     * NULL-terminated array of client-supported video mimetypes. If the client
-     * does not support video at all, this will be NULL.
-     */
-    const char** video_mimetypes;
-
-    /**
-     * The DPI of the physical remote display if configured for the optimal
-     * width/height combination described here. This need not be honored by
-     * a client plugin implementation, but if the underlying protocol of the
-     * client plugin supports dynamic sizing of the screen, honoring the
-     * stated resolution of the display size request is recommended.
-     */
-    int optimal_resolution;
-
-};
 
 struct guac_client {
 
@@ -101,24 +60,6 @@ struct guac_client {
      * shutdown, at which point the state becomes GUAC_CLIENT_STOPPING.
      */
     guac_client_state state;
-
-    /**
-     * The time (in milliseconds) of receipt of the last sync message from
-     * the client.
-     */
-    guac_timestamp last_received_timestamp;
-
-    /**
-     * The time (in milliseconds) that the last sync message was sent to the
-     * client.
-     */
-    guac_timestamp last_sent_timestamp;
-
-    /**
-     * Information structure containing properties exposed by the remote
-     * client during the initial handshake process.
-     */
-    guac_client_info info;
 
     /**
      * Arbitrary reference to proxy client-specific data. Implementors of a
@@ -142,183 +83,6 @@ struct guac_client {
      * @endcode
      */
     guac_client_handle_messages* handle_messages;
-
-    /**
-     * Handler for mouse events sent by the Gaucamole web-client.
-     *
-     * The handler takes the integer mouse X and Y coordinates, as well as
-     * a button mask containing the bitwise OR of all button values currently
-     * being pressed. Those values are:
-     *
-     * <table>
-     *     <tr><th>Button</th>          <th>Value</th></tr>
-     *     <tr><td>Left</td>            <td>1</td></tr>
-     *     <tr><td>Middle</td>          <td>2</td></tr>
-     *     <tr><td>Right</td>           <td>4</td></tr>
-     *     <tr><td>Scrollwheel Up</td>  <td>8</td></tr>
-     *     <tr><td>Scrollwheel Down</td><td>16</td></tr>
-     * </table>
-
-     * Example:
-     * @code
-     *     int mouse_handler(guac_client* client, int x, int y, int button_mask);
-     *
-     *     int guac_client_init(guac_client* client, int argc, char** argv) {
-     *         client->mouse_handler = mouse_handler;
-     *     }
-     * @endcode
-     */
-    guac_client_mouse_handler* mouse_handler;
-
-    /**
-     * Handler for key events sent by the Guacamole web-client.
-     *
-     * The handler takes the integer X11 keysym associated with the key
-     * being pressed/released, and an integer representing whether the key
-     * is being pressed (1) or released (0).
-     *
-     * Example:
-     * @code
-     *     int key_handler(guac_client* client, int keysym, int pressed);
-     *
-     *     int guac_client_init(guac_client* client, int argc, char** argv) {
-     *         client->key_handler = key_handler;
-     *     }
-     * @endcode
-     */
-    guac_client_key_handler* key_handler;
-
-    /**
-     * Handler for clipboard events sent by the Guacamole web-client. This
-     * handler will be called whenever the web-client sets the data of the
-     * clipboard.
-     *
-     * The handler takes a guac_stream, which contains the stream index and
-     * will persist through the duration of the transfer, and the mimetype
-     * of the data being transferred.
-     *
-     * Example:
-     * @code
-     *     int clipboard_handler(guac_client* client, guac_stream* stream,
-     *             char* mimetype);
-     *
-     *     int guac_client_init(guac_client* client, int argc, char** argv) {
-     *         client->clipboard_handler = clipboard_handler;
-     *     }
-     * @endcode
-     */
-    guac_client_clipboard_handler* clipboard_handler;
-
-    /**
-     * Handler for size events sent by the Guacamole web-client.
-     *
-     * The handler takes an integer width and integer height, representing
-     * the current visible screen area of the client.
-     *
-     * Example:
-     * @code
-     *     int size_handler(guac_client* client, int width, int height);
-     *
-     *     int guac_client_init(guac_client* client, int argc, char** argv) {
-     *         client->size_handler = size_handler;
-     *     }
-     * @endcode
-     */
-    guac_client_size_handler* size_handler;
-
-    /**
-     * Handler for file events sent by the Guacamole web-client.
-     *
-     * The handler takes a guac_stream which contains the stream index and
-     * will persist through the duration of the transfer, the mimetype of
-     * the file being transferred, and the filename.
-     *
-     * Example:
-     * @code
-     *     int file_handler(guac_client* client, guac_stream* stream,
-     *             char* mimetype, char* filename);
-     *
-     *     int guac_client_init(guac_client* client, int argc, char** argv) {
-     *         client->file_handler = file_handler;
-     *     }
-     * @endcode
-     */
-    guac_client_file_handler* file_handler;
-
-    /**
-     * Handler for pipe events sent by the Guacamole web-client.
-     *
-     * The handler takes a guac_stream which contains the stream index and
-     * will persist through the duration of the transfer, the mimetype of
-     * the data being transferred, and the pipe name.
-     *
-     * Example:
-     * @code
-     *     int pipe_handler(guac_client* client, guac_stream* stream,
-     *             char* mimetype, char* name);
-     *
-     *     int guac_client_init(guac_client* client, int argc, char** argv) {
-     *         client->pipe_handler = pipe_handler;
-     *     }
-     * @endcode
-     */
-    guac_client_pipe_handler* pipe_handler;
-
-    /**
-     * Handler for ack events sent by the Guacamole web-client.
-     *
-     * The handler takes a guac_stream which contains the stream index and
-     * will persist through the duration of the transfer, a string containing
-     * the error or status message, and a status code.
-     *
-     * Example:
-     * @code
-     *     int ack_handler(guac_client* client, guac_stream* stream,
-     *             char* error, guac_protocol_status status);
-     *
-     *     int guac_client_init(guac_client* client, int argc, char** argv) {
-     *         client->ack_handler = ack_handler;
-     *     }
-     * @endcode
-     */
-    guac_client_ack_handler* ack_handler;
-
-    /**
-     * Handler for blob events sent by the Guacamole web-client.
-     *
-     * The handler takes a guac_stream which contains the stream index and
-     * will persist through the duration of the transfer, an arbitrary buffer
-     * containing the blob, and the length of the blob.
-     *
-     * Example:
-     * @code
-     *     int blob_handler(guac_client* client, guac_stream* stream,
-     *             void* data, int length);
-     *
-     *     int guac_client_init(guac_client* client, int argc, char** argv) {
-     *         client->blob_handler = blob_handler;
-     *     }
-     * @endcode
-     */
-    guac_client_blob_handler* blob_handler;
-
-    /**
-     * Handler for stream end events sent by the Guacamole web-client.
-     *
-     * The handler takes only a guac_stream which contains the stream index.
-     * This guac_stream will be disposed of immediately after this event is
-     * finished.
-     *
-     * Example:
-     * @code
-     *     int end_handler(guac_client* client, guac_stream* stream);
-     *
-     *     int guac_client_init(guac_client* client, int argc, char** argv) {
-     *         client->end_handler = end_handler;
-     *     }
-     * @endcode
-     */
-    guac_client_end_handler* end_handler;
 
     /**
      * Handler for freeing data when the client is being unloaded.
@@ -406,21 +170,6 @@ struct guac_client {
     guac_pool* __layer_pool;
 
     /**
-     * Pool of stream indices.
-     */
-    guac_pool* __stream_pool;
-
-    /**
-     * All available output streams (data going to connected client).
-     */
-    guac_stream* __output_streams;
-
-    /**
-     * All available input streams (data coming from connected client).
-     */
-    guac_stream* __input_streams;
-
-    /**
      * The unique identifier allocated for the connection, which may
      * be used within the Guacamole protocol to refer to this connection.
      * This identifier is guaranteed to be unique from all existing
@@ -449,14 +198,14 @@ struct guac_client {
      *
      * Example:
      * @code
-     *     int join_handler(guac_client* client, guac_user* user);
+     *     int join_handler(guac_user* user);
      *
      *     int guac_client_init(guac_client* client, int argc, char** argv) {
      *         client->join_handler = join_handler;
      *     }
      * @endcode
      */
-    guac_client_join_handler* join_handler;
+    guac_user_join_handler* join_handler;
 
     /**
      * Handler for leave events, called whenever a new user is leaving an
@@ -467,14 +216,14 @@ struct guac_client {
      *
      * Example:
      * @code
-     *     int leave_handler(guac_client* client, guac_user* user);
+     *     int leave_handler(guac_user* user);
      *
      *     int guac_client_init(guac_client* client, int argc, char** argv) {
      *         client->leave_handler = leave_handler;
      *     }
      * @endcode
      */
-    guac_client_leave_handler* leave_handler;
+    guac_user_leave_handler* leave_handler;
 
 };
 
@@ -492,18 +241,6 @@ guac_client* guac_client_alloc();
  * @param client The proxy client to free all reasources of.
  */
 void guac_client_free(guac_client* client);
-
-/**
- * Call the appropriate handler defined by the given client for the given
- * instruction. A comparison is made between the instruction opcode and the
- * initial handler lookup table defined in client-handlers.c. The intial
- * handlers will in turn call the client's handler (if defined).
- *
- * @param client The proxy client whose handlers should be called.
- * @param instruction The instruction to pass to the proxy client via the
- *                    appropriate handler.
- */
-int guac_client_handle_instruction(guac_client* client, guac_instruction* instruction);
 
 /**
  * Logs an informational message in the log used by the given client. The
@@ -628,24 +365,6 @@ void guac_client_free_buffer(guac_client* client, guac_layer* layer);
  * @param layer The buffer to return to the pool of available layer.
  */
 void guac_client_free_layer(guac_client* client, guac_layer* layer);
-
-/**
- * Allocates a new stream. An arbitrary index is automatically assigned
- * if no previously-allocated stream is available for use.
- *
- * @param client The proxy client to allocate the layer buffer for.
- * @return The next available stream, or a newly allocated stream.
- */
-guac_stream* guac_client_alloc_stream(guac_client* client);
-
-/**
- * Returns the given stream to the pool of available streams, such that it
- * can be reused by any subsequent call to guac_client_alloc_stream().
- *
- * @param client The proxy client to return the buffer to.
- * @param stream The stream to return to the pool of available stream.
- */
-void guac_client_free_stream(guac_client* client, guac_stream* stream);
 
 /**
  * Creates a new user for the given socket, adding it to the internally-tracked

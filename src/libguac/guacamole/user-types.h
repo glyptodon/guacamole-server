@@ -35,5 +35,11 @@
  */
 typedef struct guac_user guac_user;
 
+/**
+ * Information exposed by the remote client during the connection handshake
+ * which can be used by a client plugin.
+ */
+typedef struct guac_user_info guac_user_info;
+
 #endif
 

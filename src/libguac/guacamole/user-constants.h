@@ -20,42 +20,24 @@
  * THE SOFTWARE.
  */
 
-#ifndef _GUAC_CLIENT_TYPES_H
-#define _GUAC_CLIENT_TYPES_H
+#ifndef _GUAC_USER_CONSTANTS_H
+#define _GUAC_USER_CONSTANTS_H
 
 /**
- * Type definitions related to the Guacamole client structure, guac_client.
+ * Constants related to the Guacamole user structure, guac_user.
  *
- * @file client-types.h
+ * @file user-constants.h
  */
 
 /**
- * Guacamole proxy client.
- *
- * Represents a Guacamole proxy client (the client which communicates to
- * a server on behalf of Guacamole, on behalf of the web-client).
+ * The maximum number of inbound streams supported by any one guac_client.
  */
-typedef struct guac_client guac_client;
+#define GUAC_USER_MAX_STREAMS 64
 
 /**
- * Possible current states of the Guacamole client. Currently, the only
- * two states are GUAC_CLIENT_RUNNING and GUAC_CLIENT_STOPPING.
+ * The index of a closed stream.
  */
-typedef enum guac_client_state {
-
-    /**
-     * The state of the client from when it has been allocated by the main
-     * daemon until it is killed or disconnected.
-     */
-    GUAC_CLIENT_RUNNING,
-
-    /**
-     * The state of the client when a stop has been requested, signalling the
-     * I/O threads to shutdown.
-     */
-    GUAC_CLIENT_STOPPING
-
-} guac_client_state;
+#define GUAC_USER_CLOSED_STREAM_INDEX -1
 
 #endif
 

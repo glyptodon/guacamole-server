@@ -23,11 +23,12 @@
 #include "config.h"
 
 #include "client.h"
-#include "client-handlers.h"
 #include "instruction.h"
 #include "protocol.h"
 #include "stream.h"
 #include "timestamp.h"
+#include "user.h"
+#include "user-handlers.h"
 
 #include <stdio.h>
 #include <stdint.h>
@@ -70,21 +71,21 @@ int64_t __guac_parse_int(const char* str) {
 
 /* Guacamole instruction handlers */
 
-int __guac_handle_sync(guac_client* client, guac_instruction* instruction) {
+int __guac_handle_sync(guac_user* user, guac_instruction* instruction) {
     guac_timestamp timestamp = __guac_parse_int(instruction->argv[0]);
 
     /* Error if timestamp is in future */
-    if (timestamp > client->last_sent_timestamp)
+    if (timestamp > user->last_sent_timestamp)
         return -1;
 
-    client->last_received_timestamp = timestamp;
+    user->last_received_timestamp = timestamp;
     return 0;
 }
 
-int __guac_handle_mouse(guac_client* client, guac_instruction* instruction) {
-    if (client->mouse_handler)
-        return client->mouse_handler(
-            client,
+int __guac_handle_mouse(guac_user* user, guac_instruction* instruction) {
+    if (user->mouse_handler)
+        return user->mouse_handler(
+            user,
             atoi(instruction->argv[0]), /* x */
             atoi(instruction->argv[1]), /* y */
             atoi(instruction->argv[2])  /* mask */
@@ -92,48 +93,48 @@ int __guac_handle_mouse(guac_client* client, guac_instruction* instruction) {
     return 0;
 }
 
-int __guac_handle_key(guac_client* client, guac_instruction* instruction) {
-    if (client->key_handler)
-        return client->key_handler(
-            client,
+int __guac_handle_key(guac_user* user, guac_instruction* instruction) {
+    if (user->key_handler)
+        return user->key_handler(
+            user,
             atoi(instruction->argv[0]), /* keysym */
             atoi(instruction->argv[1])  /* pressed */
         );
     return 0;
 }
 
-static guac_stream* __get_input_stream(guac_client* client, int stream_index) {
+static guac_stream* __get_input_stream(guac_user* user, int stream_index) {
 
     /* Validate stream index */
-    if (stream_index < 0 || stream_index >= GUAC_CLIENT_MAX_STREAMS) {
+    if (stream_index < 0 || stream_index >= GUAC_USER_MAX_STREAMS) {
 
         guac_stream dummy_stream;
         dummy_stream.index = stream_index;
 
-        guac_protocol_send_ack(client->socket, &dummy_stream,
+        guac_protocol_send_ack(user->socket, &dummy_stream,
                 "Invalid stream index", GUAC_PROTOCOL_STATUS_CLIENT_BAD_REQUEST);
         return NULL;
     }
 
-    return &(client->__input_streams[stream_index]);
+    return &(user->__input_streams[stream_index]);
 
 }
 
-static guac_stream* __get_open_input_stream(guac_client* client, int stream_index) {
+static guac_stream* __get_open_input_stream(guac_user* user, int stream_index) {
 
-    guac_stream* stream = __get_input_stream(client, stream_index);
+    guac_stream* stream = __get_input_stream(user, stream_index);
 
     /* Fail if no such stream */
     if (stream == NULL)
         return NULL;
 
     /* Validate initialization of stream */
-    if (stream->index == GUAC_CLIENT_CLOSED_STREAM_INDEX) {
+    if (stream->index == GUAC_USER_CLOSED_STREAM_INDEX) {
 
         guac_stream dummy_stream;
         dummy_stream.index = stream_index;
 
-        guac_protocol_send_ack(client->socket, &dummy_stream,
+        guac_protocol_send_ack(user->socket, &dummy_stream,
                 "Invalid stream index", GUAC_PROTOCOL_STATUS_CLIENT_BAD_REQUEST);
         return NULL;
     }
@@ -142,9 +143,9 @@ static guac_stream* __get_open_input_stream(guac_client* client, int stream_inde
 
 }
 
-static guac_stream* __init_input_stream(guac_client* client, int stream_index) {
+static guac_stream* __init_input_stream(guac_user* user, int stream_index) {
 
-    guac_stream* stream = __get_input_stream(client, stream_index);
+    guac_stream* stream = __get_input_stream(user, stream_index);
 
     /* Fail if no such stream */
     if (stream == NULL)
@@ -161,117 +162,117 @@ static guac_stream* __init_input_stream(guac_client* client, int stream_index) {
 
 }
 
-int __guac_handle_clipboard(guac_client* client, guac_instruction* instruction) {
+int __guac_handle_clipboard(guac_user* user, guac_instruction* instruction) {
 
     /* Pull corresponding stream */
     int stream_index = atoi(instruction->argv[0]);
-    guac_stream* stream = __init_input_stream(client, stream_index);
+    guac_stream* stream = __init_input_stream(user, stream_index);
     if (stream == NULL)
         return 0;
 
     /* If supported, call handler */
-    if (client->clipboard_handler)
-        return client->clipboard_handler(
-            client,
+    if (user->clipboard_handler)
+        return user->clipboard_handler(
+            user,
             stream,
             instruction->argv[1] /* mimetype */
         );
 
     /* Otherwise, abort */
-    guac_protocol_send_ack(client->socket, stream,
+    guac_protocol_send_ack(user->socket, stream,
             "Clipboard unsupported", GUAC_PROTOCOL_STATUS_UNSUPPORTED);
     return 0;
 
 }
 
-int __guac_handle_size(guac_client* client, guac_instruction* instruction) {
-    if (client->size_handler)
-        return client->size_handler(
-            client,
+int __guac_handle_size(guac_user* user, guac_instruction* instruction) {
+    if (user->size_handler)
+        return user->size_handler(
+            user,
             atoi(instruction->argv[0]), /* width */
             atoi(instruction->argv[1])  /* height */
         );
     return 0;
 }
 
-int __guac_handle_file(guac_client* client, guac_instruction* instruction) {
+int __guac_handle_file(guac_user* user, guac_instruction* instruction) {
 
     /* Pull corresponding stream */
     int stream_index = atoi(instruction->argv[0]);
-    guac_stream* stream = __init_input_stream(client, stream_index);
+    guac_stream* stream = __init_input_stream(user, stream_index);
     if (stream == NULL)
         return 0;
 
     /* If supported, call handler */
-    if (client->file_handler)
-        return client->file_handler(
-            client,
+    if (user->file_handler)
+        return user->file_handler(
+            user,
             stream,
             instruction->argv[1], /* mimetype */
             instruction->argv[2]  /* filename */
         );
 
     /* Otherwise, abort */
-    guac_protocol_send_ack(client->socket, stream,
+    guac_protocol_send_ack(user->socket, stream,
             "File transfer unsupported", GUAC_PROTOCOL_STATUS_UNSUPPORTED);
     return 0;
 }
 
-int __guac_handle_pipe(guac_client* client, guac_instruction* instruction) {
+int __guac_handle_pipe(guac_user* user, guac_instruction* instruction) {
 
     /* Pull corresponding stream */
     int stream_index = atoi(instruction->argv[0]);
-    guac_stream* stream = __init_input_stream(client, stream_index);
+    guac_stream* stream = __init_input_stream(user, stream_index);
     if (stream == NULL)
         return 0;
 
     /* If supported, call handler */
-    if (client->pipe_handler)
-        return client->pipe_handler(
-            client,
+    if (user->pipe_handler)
+        return user->pipe_handler(
+            user,
             stream,
             instruction->argv[1], /* mimetype */
             instruction->argv[2]  /* name */
         );
 
     /* Otherwise, abort */
-    guac_protocol_send_ack(client->socket, stream,
+    guac_protocol_send_ack(user->socket, stream,
             "Named pipes unsupported", GUAC_PROTOCOL_STATUS_UNSUPPORTED);
     return 0;
 }
 
-int __guac_handle_ack(guac_client* client, guac_instruction* instruction) {
+int __guac_handle_ack(guac_user* user, guac_instruction* instruction) {
 
     guac_stream* stream;
 
     /* Validate stream index */
     int stream_index = atoi(instruction->argv[0]);
-    if (stream_index < 0 || stream_index >= GUAC_CLIENT_MAX_STREAMS)
+    if (stream_index < 0 || stream_index >= GUAC_USER_MAX_STREAMS)
         return 0;
 
-    stream = &(client->__output_streams[stream_index]);
+    stream = &(user->__output_streams[stream_index]);
 
     /* Validate initialization of stream */
-    if (stream->index == GUAC_CLIENT_CLOSED_STREAM_INDEX)
+    if (stream->index == GUAC_USER_CLOSED_STREAM_INDEX)
         return 0;
 
     /* Call stream handler if defined */
     if (stream->ack_handler)
-        return stream->ack_handler(client, stream, instruction->argv[1],
+        return stream->ack_handler(user, stream, instruction->argv[1],
                 atoi(instruction->argv[2]));
 
     /* Fall back to global handler if defined */
-    if (client->ack_handler)
-        return client->ack_handler(client, stream, instruction->argv[1],
+    if (user->ack_handler)
+        return user->ack_handler(user, stream, instruction->argv[1],
                 atoi(instruction->argv[2]));
 
     return 0;
 }
 
-int __guac_handle_blob(guac_client* client, guac_instruction* instruction) {
+int __guac_handle_blob(guac_user* user, guac_instruction* instruction) {
 
     int stream_index = atoi(instruction->argv[0]);
-    guac_stream* stream = __get_open_input_stream(client, stream_index);
+    guac_stream* stream = __get_open_input_stream(user, stream_index);
 
     /* Fail if no such stream */
     if (stream == NULL)
@@ -280,27 +281,27 @@ int __guac_handle_blob(guac_client* client, guac_instruction* instruction) {
     /* Call stream handler if defined */
     if (stream->blob_handler) {
         int length = guac_protocol_decode_base64(instruction->argv[1]);
-        return stream->blob_handler(client, stream, instruction->argv[1],
+        return stream->blob_handler(user, stream, instruction->argv[1],
             length);
     }
 
     /* Fall back to global handler if defined */
-    if (client->blob_handler) {
+    if (user->blob_handler) {
         int length = guac_protocol_decode_base64(instruction->argv[1]);
-        return client->blob_handler(client, stream, instruction->argv[1],
+        return user->blob_handler(user, stream, instruction->argv[1],
             length);
     }
 
-    guac_protocol_send_ack(client->socket, stream,
+    guac_protocol_send_ack(user->socket, stream,
             "File transfer unsupported", GUAC_PROTOCOL_STATUS_UNSUPPORTED);
     return 0;
 }
 
-int __guac_handle_end(guac_client* client, guac_instruction* instruction) {
+int __guac_handle_end(guac_user* user, guac_instruction* instruction) {
 
     int result = 0;
     int stream_index = atoi(instruction->argv[0]);
-    guac_stream* stream = __get_open_input_stream(client, stream_index);
+    guac_stream* stream = __get_open_input_stream(user, stream_index);
 
     /* Fail if no such stream */
     if (stream == NULL)
@@ -308,20 +309,20 @@ int __guac_handle_end(guac_client* client, guac_instruction* instruction) {
 
     /* Call stream handler if defined */
     if (stream->end_handler)
-        result = stream->end_handler(client, stream);
+        result = stream->end_handler(user, stream);
 
     /* Fall back to global handler if defined */
-    if (client->end_handler)
-        result = client->end_handler(client, stream);
+    if (user->end_handler)
+        result = user->end_handler(user, stream);
 
     /* Mark stream as closed */
-    stream->index = GUAC_CLIENT_CLOSED_STREAM_INDEX;
+    stream->index = GUAC_USER_CLOSED_STREAM_INDEX;
     return result;
 }
 
-int __guac_handle_disconnect(guac_client* client, guac_instruction* instruction) {
-    guac_client_log_info(client, "Disconnect requested. Stopping client...");
-    guac_client_stop(client);
+int __guac_handle_disconnect(guac_user* user, guac_instruction* instruction) {
+    guac_client_log_info(user->client, "Disconnect requested. Removing user...");
+    guac_client_remove_user(user->client, user);
     return 0;
 }
 

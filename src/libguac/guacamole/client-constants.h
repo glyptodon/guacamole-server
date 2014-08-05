@@ -30,16 +30,6 @@
  */
 
 /**
- * The maximum number of inbound streams supported by any one guac_client.
- */
-#define GUAC_CLIENT_MAX_STREAMS 64
-
-/**
- * The index of a closed stream.
- */
-#define GUAC_CLIENT_CLOSED_STREAM_INDEX -1
-
-/**
  * The flag set in the mouse button mask when the left mouse button is down.
  */
 #define GUAC_CLIENT_MOUSE_LEFT 0x01
