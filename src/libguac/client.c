@@ -123,11 +123,10 @@ void guac_client_free_layer(guac_client* client, guac_layer* layer) {
 
 /**
  * Returns a newly allocated string containing a guaranteed-unique connection
- * identifier string which is 37 characters long and begins with a '$'
- * character.  If an error occurs, NULL is returned, and no memory is
- * allocated.
+ * identifier string which is 37 characters long and begins with the given
+ * prefix.  If an error occurs, NULL is returned, and no memory is allocated.
  */
-static char* __guac_generate_connection_id() {
+static char* __guac_generate_id(char prefix) {
 
     char* buffer;
     char* identifier;
@@ -173,7 +172,7 @@ static char* __guac_generate_connection_id() {
 
     uuid_destroy(uuid);
 
-    buffer[0] = '$';
+    buffer[0] = prefix;
     buffer[UUID_LEN_STR + 1] = '\0';
     return buffer;
 
@@ -197,7 +196,7 @@ guac_client* guac_client_alloc() {
     client->state = GUAC_CLIENT_RUNNING;
 
     /* Generate ID */
-    client->connection_id = __guac_generate_connection_id();
+    client->connection_id = __guac_generate_id(GUAC_CLIENT_ID_PREFIX);
     if (client->connection_id == NULL) {
         free(client);
         return NULL;
@@ -328,6 +327,13 @@ guac_user* guac_client_add_user(guac_client* client, guac_socket* socket) {
     guac_user* user = calloc(1, sizeof(guac_user));
     int i;
 
+    /* Generate ID */
+    user->user_id = __guac_generate_id(GUAC_USER_ID_PREFIX);
+    if (user->user_id == NULL) {
+        free(user);
+        return NULL;
+    }
+
     user->socket = socket;
     user->client = client;
     user->last_received_timestamp = user->last_sent_timestamp = guac_timestamp_current();
@@ -396,6 +402,7 @@ void guac_client_remove_user(guac_client* client, guac_user* user) {
 
     /* Clean up user */
     guac_socket_free(user->socket);
+    free(user->user_id);
     free(user);
 
 }

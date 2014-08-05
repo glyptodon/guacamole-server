@@ -97,6 +97,14 @@ struct guac_user {
     guac_socket* socket;
 
     /**
+     * The unique identifier allocated for this user, which may be used within
+     * the Guacamole protocol to refer to this user.  This identifier is
+     * guaranteed to be unique from all existing connections and users, and
+     * will not collide with any available protocol names.
+     */
+    char* user_id;
+
+    /**
      * The previous user in the group of users within the same logical
      * connection.  This is currently only used internally by guac_client to
      * track its set of connected users. There is no public API for iterating

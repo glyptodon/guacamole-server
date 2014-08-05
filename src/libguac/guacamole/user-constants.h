@@ -30,6 +30,11 @@
  */
 
 /**
+ * The character prefix which identifies a user ID.
+ */
+#define GUAC_USER_ID_PREFIX '@'
+
+/**
  * The maximum number of inbound streams supported by any one guac_client.
  */
 #define GUAC_USER_MAX_STREAMS 64

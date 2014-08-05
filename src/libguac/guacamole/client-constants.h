@@ -30,6 +30,11 @@
  */
 
 /**
+ * The character prefix which identifies a client ID.
+ */
+#define GUAC_CLIENT_ID_PREFIX '$'
+
+/**
  * The flag set in the mouse button mask when the left mouse button is down.
  */
 #define GUAC_CLIENT_MOUSE_LEFT 0x01
