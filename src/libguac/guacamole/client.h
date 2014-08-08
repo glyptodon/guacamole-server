@@ -395,6 +395,21 @@ guac_user* guac_client_add_user(guac_client* client, guac_socket* socket);
 void guac_client_remove_user(guac_client* client, guac_user* user);
 
 /**
+ * Calls the given function on all currently-connected users of the given
+ * client. The function will be given a reference to a guac_user and the
+ * specified arbitrary data.
+ *
+ * This function is NOT reentrant. The user list MUST NOT be manipulated
+ * within the same thread as a callback to this function, and the callback
+ * MUST NOT invoke guac_client_foreach_user() within its own thread.
+ *
+ * @param client The client whose users should be iterated.
+ * @param callback The function to call for each user.
+ * @param data Arbitrary data to pass to each function call.
+ */
+void guac_client_foreach_user(guac_client* client, guac_user_callback* callback, void* data);
+
+/**
  * The default Guacamole client layer, layer 0.
  */
 extern const guac_layer* GUAC_DEFAULT_LAYER;

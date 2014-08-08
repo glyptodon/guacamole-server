@@ -32,6 +32,14 @@
 #include "user-types.h"
 
 /**
+ * Callback which relates to a single guac_user at a time, along with arbitrary
+ * data.
+ *
+ * @see guac_client_foreach_user()
+ */
+typedef void guac_user_callback(guac_user* user, void* data);
+
+/**
  * Handler for Guacamole mouse events.
  */
 typedef int guac_user_mouse_handler(guac_user* user, int x, int y, int button_mask);

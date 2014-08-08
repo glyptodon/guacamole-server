@@ -407,3 +407,20 @@ void guac_client_remove_user(guac_client* client, guac_user* user) {
 
 }
 
+void guac_client_foreach_user(guac_client* client, guac_user_callback* callback, void* data) {
+
+    guac_user* current;
+
+    pthread_mutex_lock(&(client->__users_lock));
+
+    /* Call function on each user */
+    current = client->__users;
+    while (current != NULL) {
+        callback(current, data);
+        current = current->__next;
+    }
+
+    pthread_mutex_unlock(&(client->__users_lock));
+
+}
+

@@ -107,16 +107,16 @@ struct guac_user {
     /**
      * The previous user in the group of users within the same logical
      * connection.  This is currently only used internally by guac_client to
-     * track its set of connected users. There is no public API for iterating
-     * connected users.
+     * track its set of connected users. To iterate connected users, use
+     * guac_client_foreach_user().
      */
     guac_user* __prev;
 
     /**
      * The next user in the group of users within the same logical connection.
      * This is currently only used internally by guac_client to track its set
-     * of connected users. There is no public API for iterating connected
-     * users.
+     * of connected users. To iterate connected users, use
+     * guac_client_foreach_user().
      */
     guac_user* __next;
 
