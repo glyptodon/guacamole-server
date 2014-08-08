@@ -24,20 +24,14 @@
 
 #include "client.h"
 #include "error.h"
+#include "id.h"
 #include "instruction.h"
 #include "layer.h"
 #include "pool.h"
 #include "protocol.h"
 #include "socket.h"
-#include "stream.h"
 #include "timestamp.h"
 #include "user.h"
-
-#ifdef HAVE_OSSP_UUID_H
-#include <ossp/uuid.h>
-#else
-#include <uuid.h>
-#endif
 
 #include <pthread.h>
 #include <stdarg.h>
@@ -121,63 +115,6 @@ void guac_client_free_layer(guac_client* client, guac_layer* layer) {
 
 }
 
-/**
- * Returns a newly allocated string containing a guaranteed-unique connection
- * identifier string which is 37 characters long and begins with the given
- * prefix.  If an error occurs, NULL is returned, and no memory is allocated.
- */
-static char* __guac_generate_id(char prefix) {
-
-    char* buffer;
-    char* identifier;
-    size_t identifier_length;
-
-    uuid_t* uuid;
-
-    /* Attempt to create UUID object */
-    if (uuid_create(&uuid) != UUID_RC_OK) {
-        guac_error = GUAC_STATUS_NO_MEMORY;
-        guac_error_message = "Could not allocate memory for UUID";
-        return NULL;
-    }
-
-    /* Generate random UUID */
-    if (uuid_make(uuid, UUID_MAKE_V4) != UUID_RC_OK) {
-        uuid_destroy(uuid);
-        guac_error = GUAC_STATUS_NO_MEMORY;
-        guac_error_message = "UUID generation failed";
-        return NULL;
-    }
-
-    /* Allocate buffer for future formatted ID */
-    buffer = malloc(UUID_LEN_STR + 2);
-    if (buffer == NULL) {
-        uuid_destroy(uuid);
-        guac_error = GUAC_STATUS_NO_MEMORY;
-        guac_error_message = "Could not allocate memory for connection ID";
-        return NULL;
-    }
-
-    identifier = &(buffer[1]);
-    identifier_length = UUID_LEN_STR + 1;
-
-    /* Build connection ID from UUID */
-    if (uuid_export(uuid, UUID_FMT_STR, &identifier, &identifier_length) != UUID_RC_OK) {
-        free(buffer);
-        uuid_destroy(uuid);
-        guac_error = GUAC_STATUS_BAD_STATE;
-        guac_error_message = "Conversion of UUID to connection ID failed";
-        return NULL;
-    }
-
-    uuid_destroy(uuid);
-
-    buffer[0] = prefix;
-    buffer[UUID_LEN_STR + 1] = '\0';
-    return buffer;
-
-}
-
 guac_client* guac_client_alloc() {
 
     pthread_mutexattr_t lock_attributes;
@@ -196,7 +133,7 @@ guac_client* guac_client_alloc() {
     client->state = GUAC_CLIENT_RUNNING;
 
     /* Generate ID */
-    client->connection_id = __guac_generate_id(GUAC_CLIENT_ID_PREFIX);
+    client->connection_id = guac_generate_id(GUAC_CLIENT_ID_PREFIX);
     if (client->connection_id == NULL) {
         free(client);
         return NULL;
@@ -322,40 +259,14 @@ void guac_client_abort(guac_client* client, guac_protocol_status status,
 
 }
 
-guac_user* guac_client_add_user(guac_client* client, guac_socket* socket) {
+void guac_client_add_user(guac_client* client, guac_user* user) {
 
-    guac_user* user = calloc(1, sizeof(guac_user));
-    int i;
-
-    /* Generate ID */
-    user->user_id = __guac_generate_id(GUAC_USER_ID_PREFIX);
-    if (user->user_id == NULL) {
-        free(user);
-        return NULL;
-    }
-
-    user->socket = socket;
-    user->client = client;
-    user->last_received_timestamp = user->last_sent_timestamp = guac_timestamp_current();
-
-    /* Allocate stream pool */
-    user->__stream_pool = guac_pool_alloc(0);
-
-    /* Initialze streams */
-    user->__input_streams = malloc(sizeof(guac_stream) * GUAC_USER_MAX_STREAMS);
-    user->__output_streams = malloc(sizeof(guac_stream) * GUAC_USER_MAX_STREAMS);
-
-    for (i=0; i<GUAC_USER_MAX_STREAMS; i++) {
-        user->__input_streams[i].index = GUAC_USER_CLOSED_STREAM_INDEX;
-        user->__output_streams[i].index = GUAC_USER_CLOSED_STREAM_INDEX;
-    }
+    /* Insert new user as head */
+    pthread_mutex_lock(&(client->__users_lock));
 
     /* Call handler, if defined */
     if (client->join_handler)
         client->join_handler(user);
-
-    /* Insert new user as head */
-    pthread_mutex_lock(&(client->__users_lock));
 
     user->__prev = NULL;
     user->__next = client->__users;
@@ -367,19 +278,17 @@ guac_user* guac_client_add_user(guac_client* client, guac_socket* socket) {
 
     pthread_mutex_unlock(&(client->__users_lock));
 
-    return user;
-
 }
 
 void guac_client_remove_user(guac_client* client, guac_user* user) {
+
+    pthread_mutex_lock(&(client->__users_lock));
 
     /* Call handler, if defined */
     if (user->leave_handler)
         user->leave_handler(user);
     else if (client->leave_handler)
         client->leave_handler(user);
-
-    pthread_mutex_lock(&(client->__users_lock));
 
     /* Update prev / head */
     if (user->__prev != NULL)
@@ -392,18 +301,6 @@ void guac_client_remove_user(guac_client* client, guac_user* user) {
         user->__next->__prev = user->__prev;
 
     pthread_mutex_unlock(&(client->__users_lock));
-
-    /* Free streams */
-    free(user->__input_streams);
-    free(user->__output_streams);
-
-    /* Free stream pool */
-    guac_pool_free(user->__stream_pool);
-
-    /* Clean up user */
-    guac_socket_free(user->socket);
-    free(user->user_id);
-    free(user);
 
 }
 

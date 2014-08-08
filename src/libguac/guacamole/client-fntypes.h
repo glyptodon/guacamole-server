@@ -57,7 +57,7 @@ typedef void guac_client_log_handler(guac_client* client, const char* format, va
 /**
  * Handler which should initialize the given guac_client.
  */
-typedef int guac_client_init_handler(guac_client* client, int argc, char** argv);
+typedef int guac_client_init_handler(guac_client* client);
 
 #endif
 

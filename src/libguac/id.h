@@ -20,21 +20,21 @@
  * THE SOFTWARE.
  */
 
-#ifndef _GUAC_PLUGIN_TYPES_H
-#define _GUAC_PLUGIN_TYPES_H
+#ifndef __GUAC_ID_H
+#define __GUAC_ID_H
 
 /**
- * Type definitions related to client plugins.
+ * Generates a guaranteed-unique identifier which is a total of 37 characters
+ * long, having the given single-character prefix. The resulting identifier
+ * must be freed with a call to free() when no longer needed.  If an error
+ * occurs, NULL is returned, no memory is allocated, and guac_error is set
+ * appropriately.
  *
- * @file plugin-types.h
+ * @param prefix The single-character prefix to use.
+ * @return A newly-allocated unique identifier with the given prefix, or
+ *         NULL if the identifier could not be generated.
  */
-
-/**
- * A handle to a client plugin, containing enough information about the
- * plugin to complete the initial protocol handshake and instantiate a new
- * client supporting the protocol provided by the client plugin. 
- */
-typedef struct guac_client_plugin guac_client_plugin;
+char* guac_generate_id(char prefix);
 
 #endif
 

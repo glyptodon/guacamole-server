@@ -43,7 +43,6 @@ libguacinc_HEADERS =                  \
 	guacamole/layer-types.h           \
 	guacamole/plugin-constants.h      \
     guacamole/plugin.h                \
-	guacamole/plugin-types.h          \
     guacamole/pool.h                  \
 	guacamole/pool-types.h            \
     guacamole/protocol.h              \
@@ -63,6 +62,7 @@ libguacinc_HEADERS =                  \
 	guacamole/user-types.h
 
 noinst_HEADERS =      \
+    id.h              \
     palette.h         \
     user-handlers.h   \
     wav_encoder.h
@@ -72,6 +72,7 @@ libguac_la_SOURCES =  \
     client.c          \
     error.c           \
     hash.c            \
+    id.c              \
     instruction.c     \
     palette.c         \
     plugin.c          \

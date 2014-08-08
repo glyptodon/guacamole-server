@@ -357,6 +357,21 @@ struct guac_user {
 };
 
 /**
+ * Allocates a new, blank user, not associated with any specific client or
+ * socket.
+ *
+ * @return The newly allocated guac_user, or NULL if allocation failed.
+ */
+guac_user* guac_user_alloc();
+
+/**
+ * Frees the given user and all associated resources.
+ *
+ * @param user The guac_user to free.
+ */
+void guac_user_free(guac_user* user);
+
+/**
  * Call the appropriate handler defined by the given user for the given
  * instruction. A comparison is made between the instruction opcode and the
  * initial handler lookup table defined in user-handlers.c. The intial handlers

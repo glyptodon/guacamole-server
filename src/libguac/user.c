@@ -23,13 +23,60 @@
 #include "config.h"
 
 #include "client.h"
+#include "id.h"
 #include "pool.h"
 #include "stream.h"
+#include "timestamp.h"
 #include "user.h"
 #include "user-handlers.h"
 
 #include <stdlib.h>
 #include <string.h>
+
+guac_user* guac_user_alloc() {
+
+    guac_user* user = calloc(1, sizeof(guac_user));
+    int i;
+
+    /* Generate ID */
+    user->user_id = guac_generate_id(GUAC_USER_ID_PREFIX);
+    if (user->user_id == NULL) {
+        free(user);
+        return NULL;
+    }
+
+    user->last_received_timestamp = user->last_sent_timestamp = guac_timestamp_current();
+
+    /* Allocate stream pool */
+    user->__stream_pool = guac_pool_alloc(0);
+
+    /* Initialze streams */
+    user->__input_streams = malloc(sizeof(guac_stream) * GUAC_USER_MAX_STREAMS);
+    user->__output_streams = malloc(sizeof(guac_stream) * GUAC_USER_MAX_STREAMS);
+
+    for (i=0; i<GUAC_USER_MAX_STREAMS; i++) {
+        user->__input_streams[i].index = GUAC_USER_CLOSED_STREAM_INDEX;
+        user->__output_streams[i].index = GUAC_USER_CLOSED_STREAM_INDEX;
+    }
+
+    return user;
+
+}
+
+void guac_user_free(guac_user* user) {
+
+    /* Free streams */
+    free(user->__input_streams);
+    free(user->__output_streams);
+
+    /* Free stream pool */
+    guac_pool_free(user->__stream_pool);
+
+    /* Clean up user */
+    free(user->user_id);
+    free(user);
+
+}
 
 guac_stream* guac_user_alloc_stream(guac_user* user) {
 

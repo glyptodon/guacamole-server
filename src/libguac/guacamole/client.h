@@ -225,6 +225,14 @@ struct guac_client {
      */
     guac_user_leave_handler* leave_handler;
 
+    /**
+     * NULL-terminated array of all arguments accepted by this client , in
+     * order. New users will specify these arguments when they join the
+     * connection, and the values of those arguments will be made available to
+     * the function initializing newly-joined users.
+     */
+    const char** args;
+
 };
 
 /**
@@ -367,27 +375,18 @@ void guac_client_free_buffer(guac_client* client, guac_layer* layer);
 void guac_client_free_layer(guac_client* client, guac_layer* layer);
 
 /**
- * Creates a new user for the given socket, adding it to the internally-tracked
- * list of connected users. Future writes to the broadcast socket stored within
- * guac_client will also write to this user. The join handler of this
- * guac_client will be called.
+ * Adds the given user to the internal list of connected users. Future writes
+ * to the broadcast socket stored within guac_client will also write to this
+ * user. The join handler of this guac_client will be called.
  *
- * Note that, after this function is called, the lifecycle of the
- * guac_socket will be maintained by guac_client. The socket will
- * be freed when the user is removed or disconnected.
- *
- * @param client The proxy client to allocate the user for.
- * @param socket The socket to use when communicating with this user
- *               directly.
- * @return The newly-allocated user and added user, or NULL if the
- *         user could not be added.
+ * @param client The proxy client to add the user to.
+ * @param user THe user to add.
  */
-guac_user* guac_client_add_user(guac_client* client, guac_socket* socket);
+void guac_client_add_user(guac_client* client, guac_user* user);
 
 /**
  * Removes the given user, removing the user from the internally-tracked list
- * of connected users, and calling any appropriate leave handler. This function
- * will automatically free the guac_user's underlying socket.
+ * of connected users, and calling any appropriate leave handler.
  *
  * @param client The proxy client to return the buffer to.
  * @param user The user to remove.

@@ -31,15 +31,10 @@
 #include <stdlib.h>
 #include <string.h>
 
-guac_client_plugin* guac_client_plugin_open(const char* protocol) {
-
-    guac_client_plugin* plugin;
+int guac_client_plugin_init_client(const char* protocol, guac_client* client) {
 
     /* Reference to dlopen()'d plugin */
     void* client_plugin_handle;
-
-    /* Client args description */
-    const char** client_args;
 
     /* Pluggable client */
     char protocol_lib[GUAC_PROTOCOL_LIBRARY_LIMIT] =
@@ -59,7 +54,7 @@ guac_client_plugin* guac_client_plugin_open(const char* protocol) {
     if (!client_plugin_handle) {
         guac_error = GUAC_STATUS_BAD_ARGUMENT;
         guac_error_message = dlerror();
-        return NULL;
+        return -1;
     }
 
     dlerror(); /* Clear errors */
@@ -71,54 +66,17 @@ guac_client_plugin* guac_client_plugin_open(const char* protocol) {
     if (dlerror() != NULL) {
         guac_error = GUAC_STATUS_BAD_ARGUMENT;
         guac_error_message = dlerror();
-        return NULL;
+        return -1;
     }
 
-    /* Get usage strig */
-    client_args = (const char**) dlsym(client_plugin_handle, "GUAC_CLIENT_ARGS");
-
-    /* Fail if cannot find GUAC_CLIENT_ARGS */
-    if (dlerror() != NULL) {
-        guac_error = GUAC_STATUS_BAD_ARGUMENT;
-        guac_error_message = dlerror();
-        return NULL;
-    }
-
-    /* Allocate plugin */
-    plugin = malloc(sizeof(guac_client_plugin));
-    if (plugin == NULL) {
-        guac_error = GUAC_STATUS_NO_MEMORY;
-        guac_error_message = "Could not allocate memory for client plugin";
-        return NULL;
-    } 
-
-    /* Init and return plugin */
-    plugin->__client_plugin_handle = client_plugin_handle;
-    plugin->init_handler = alias.client_init;
-    plugin->args = client_args;
-    return plugin;
-
-}
-
-int guac_client_plugin_close(guac_client_plugin* plugin) {
-
-    /* Unload client plugin */
-    if (dlclose(plugin->__client_plugin_handle)) {
+    /* Close lib */
+    if (dlclose(client_plugin_handle)) {
         guac_error = GUAC_STATUS_BAD_STATE;
         guac_error_message = dlerror();
         return -1;
     }
 
-    /* Free plugin handle */
-    free(plugin);
-    return 0;
-
-}
-
-int guac_client_plugin_init_client(guac_client_plugin* plugin,
-        guac_client* client, int argc, char** argv) {
-
-    return plugin->init_handler(client, argc, argv);
+    return alias.client_init(client);
 
 }
 
