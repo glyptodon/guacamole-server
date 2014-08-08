@@ -22,9 +22,9 @@
 
 #include "config.h"
 
-#include "client.h"
 #include "client-map.h"
 #include "log.h"
+#include "user.h"
 
 #include <guacamole/client.h>
 #include <guacamole/error.h>
@@ -32,6 +32,7 @@
 #include <guacamole/plugin.h>
 #include <guacamole/protocol.h>
 #include <guacamole/socket.h>
+#include <guacamole/user.h>
 
 #ifdef ENABLE_SSL
 #include <openssl/ssl.h>
@@ -58,220 +59,179 @@
 #define GUACD_ROOT     "/"
 
 /**
- * Creates a new guac_client for the connection on the given socket, adding
- * it to the client map based on its ID.
+ * Handles the initial handshake of a user, associating that new user with the
+ * existing client. This function blocks until the user's connection is
+ * finished.
  */
-static void guacd_handle_connection(guacd_client_map* map, guac_socket* socket) {
+static int guacd_handle_user(guac_client* client, guac_socket* socket) {
 
-    guac_client* client;
-    guac_client_plugin* plugin;
-    guac_instruction* select;
     guac_instruction* size;
     guac_instruction* audio;
     guac_instruction* video;
     guac_instruction* connect;
-    int init_result;
 
-    /* Reset guac_error */
-    guac_error = GUAC_STATUS_SUCCESS;
-    guac_error_message = NULL;
-
-    /* Get protocol from select instruction */
-    select = guac_instruction_expect(
-            socket, GUACD_USEC_TIMEOUT, "select");
-    if (select == NULL) {
-
-        /* Log error */
-        guacd_log_guac_error("Error reading \"select\"");
-
-        /* Free resources */
-        guac_socket_free(socket);
-        return;
-    }
-
-    /* Validate args to select */
-    if (select->argc != 1) {
-
-        /* Log error */
-        guacd_log_error("Bad number of arguments to \"select\" (%i)",
-                select->argc);
-
-        /* Free resources */
-        guac_socket_free(socket);
-        return;
-    }
-
-    guacd_log_info("Protocol \"%s\" selected", select->argv[0]);
-
-    /* Get plugin from protocol in select */
-    plugin = guac_client_plugin_open(select->argv[0]);
-    guac_instruction_free(select);
-
-    if (plugin == NULL) {
-
-        /* Log error */
-        guacd_log_guac_error("Error loading client plugin");
-
-        /* Free resources */
-        guac_socket_free(socket);
-        return;
-    }
-
-    /* Send args response */
-    if (guac_protocol_send_args(socket, plugin->args)
+    /* Send args */
+    if (guac_protocol_send_args(socket, client->args)
             || guac_socket_flush(socket)) {
-
-        /* Log error */
-        guacd_log_guac_error("Error sending \"args\"");
-
-        if (guac_client_plugin_close(plugin))
-            guacd_log_guac_error("Error closing client plugin");
-
-        guac_socket_free(socket);
-        return;
+        guacd_log_guac_error("Error sending \"args\" to new user");
+        return 1;
     }
 
     /* Get optimal screen size */
     size = guac_instruction_expect(
             socket, GUACD_USEC_TIMEOUT, "size");
     if (size == NULL) {
-
-        /* Log error */
         guacd_log_guac_error("Error reading \"size\"");
-
-        /* Free resources */
-        guac_socket_free(socket);
-        return;
+        return 1;
     }
 
     /* Get supported audio formats */
     audio = guac_instruction_expect(
             socket, GUACD_USEC_TIMEOUT, "audio");
     if (audio == NULL) {
-
-        /* Log error */
         guacd_log_guac_error("Error reading \"audio\"");
-
-        /* Free resources */
-        guac_socket_free(socket);
-        return;
+        return 1;
     }
 
     /* Get supported video formats */
     video = guac_instruction_expect(
             socket, GUACD_USEC_TIMEOUT, "video");
     if (video == NULL) {
-
-        /* Log error */
         guacd_log_guac_error("Error reading \"video\"");
-
-        /* Free resources */
-        guac_socket_free(socket);
-        return;
+        return 1;
     }
 
     /* Get args from connect instruction */
     connect = guac_instruction_expect(
             socket, GUACD_USEC_TIMEOUT, "connect");
     if (connect == NULL) {
-
-        /* Log error */
         guacd_log_guac_error("Error reading \"connect\"");
-
-        if (guac_client_plugin_close(plugin))
-            guacd_log_guac_error("Error closing client plugin");
-
-        guac_socket_free(socket);
-        return;
+        return 1;
     }
 
-    /* Get client */
-    client = guac_client_alloc();
-    if (client == NULL) {
-        guacd_log_guac_error("Client could not be allocated");
-        guac_socket_free(socket);
-        return;
-    }
-
-    client->log_info_handler = guacd_client_log_info;
-    client->log_error_handler = guacd_client_log_error;
+    /* Create skeleton user */
+    guac_user* user = guac_user_alloc();
+    user->socket = socket;
+    user->client = client;
 
     /* Parse optimal screen dimensions from size instruction */
-    client->info.optimal_width  = atoi(size->argv[0]);
-    client->info.optimal_height = atoi(size->argv[1]);
+    user->info.optimal_width  = atoi(size->argv[0]);
+    user->info.optimal_height = atoi(size->argv[1]);
 
     /* If DPI given, set the client resolution */
     if (size->argc >= 3)
-        client->info.optimal_resolution = atoi(size->argv[2]);
+        user->info.optimal_resolution = atoi(size->argv[2]);
 
     /* Otherwise, use a safe default for rough backwards compatibility */
     else
-        client->info.optimal_resolution = 96;
+        user->info.optimal_resolution = 96;
 
     /* Store audio mimetypes */
-    client->info.audio_mimetypes = malloc(sizeof(char*) * (audio->argc+1));
-    memcpy(client->info.audio_mimetypes, audio->argv,
+    user->info.audio_mimetypes = malloc(sizeof(char*) * (audio->argc+1));
+    memcpy(user->info.audio_mimetypes, audio->argv,
             sizeof(char*) * audio->argc);
-    client->info.audio_mimetypes[audio->argc] = NULL;
+    user->info.audio_mimetypes[audio->argc] = NULL;
 
     /* Store video mimetypes */
-    client->info.video_mimetypes = malloc(sizeof(char*) * (video->argc+1));
-    memcpy(client->info.video_mimetypes, video->argv,
+    user->info.video_mimetypes = malloc(sizeof(char*) * (video->argc+1));
+    memcpy(user->info.video_mimetypes, video->argv,
             sizeof(char*) * video->argc);
-    client->info.video_mimetypes[video->argc] = NULL;
+    user->info.video_mimetypes[video->argc] = NULL;
 
-    /* Store client */
-    if (guacd_client_map_add(map, client))
-        guacd_log_error("Unable to add client. Internal client storage has failed");
-
-    /* Send connection ID */
-    guacd_log_info("Connection ID is \"%s\"", client->connection_id);
+    /* Acknowledge successful join */
+    guacd_log_info("User \"%s\" joined connection \"%s\"", user->user_id, client->connection_id);
     guac_protocol_send_ready(socket, client->connection_id);
 
-    /* Init client */
-    init_result = guac_client_plugin_init_client(plugin,
-                client, connect->argc, connect->argv);
+    /* Handle user I/O */
+    guac_client_add_user(client, user, connect->argc, connect->argv);
+    guacd_user_start(user, socket);
+
+    guacd_log_info("User \"%s\" disconnected", user->user_id);
+
+    /* Free user */
+    guac_client_remove_user(client, user);
+    guac_user_free(user);
 
     guac_instruction_free(connect);
 
-    /* If client could not be started, free everything and fail */
-    if (init_result) {
-
-        guac_client_free(client);
-
-        guacd_log_guac_error("Error instantiating client");
-
-        if (guac_client_plugin_close(plugin))
-            guacd_log_guac_error("Error closing client plugin");
-
-        guac_socket_free(socket);
-        return;
-    }
-
-    /* Start client threads */
-    guacd_log_info("Starting client");
-    if (guacd_client_start(client, socket))
-        guacd_log_error("Client finished abnormally");
-    else
-        guacd_log_info("Client finished normally");
-
-    /* Remove client */
-    if (guacd_client_map_remove(map, client->connection_id) == NULL)
-        guacd_log_error("Unable to remove client. Internal client storage has failed");
-
     /* Free mimetype lists */
-    free(client->info.audio_mimetypes);
-    free(client->info.video_mimetypes);
+    free(user->info.audio_mimetypes);
+    free(user->info.video_mimetypes);
 
     /* Free remaining instructions */
     guac_instruction_free(audio);
     guac_instruction_free(video);
     guac_instruction_free(size);
 
-    /* Clean up */
-    guac_client_free(client);
-    if (guac_client_plugin_close(plugin))
-        guacd_log_error("Error closing client plugin");
+    /* Successful disconnect */
+    return 0;
+
+}
+
+static guac_client* guacd_get_client(guacd_client_map* map, const char* identifier) {
+
+    /*
+     * TODO: If connection ID given, client should be retrieved instead of created.
+     */
+
+    guacd_log_info("Creating new client for protocol \"%s\"", identifier);
+
+    /* Create client */
+    guac_client* client = guac_client_alloc();
+    if (client == NULL)
+        return NULL;
+
+    /* Init logging - FIXME: set client->args */
+    client->log_info_handler = guacd_client_log_info;
+    client->log_error_handler = guacd_client_log_error;
+
+    /* Init client for selected protocol */
+    if (guac_client_plugin_init_client(identifier, client)) {
+        guacd_log_error("Protocol initialization failed.");
+        guac_client_free(client);
+        return NULL;
+    }
+
+    return client;
+
+}
+
+
+/**
+ * Creates a new guac_client for the connection on the given socket, adding
+ * it to the client map based on its ID.
+ */
+static int guacd_handle_connection(guacd_client_map* map, guac_socket* socket) {
+
+    /* Reset guac_error */
+    guac_error = GUAC_STATUS_SUCCESS;
+    guac_error_message = NULL;
+
+    /* Get protocol from select instruction */
+    guac_instruction* select = guac_instruction_expect(socket, GUACD_USEC_TIMEOUT, "select");
+    if (select == NULL) {
+        guacd_log_guac_error("Error reading \"select\"");
+        return 1;
+    }
+
+    /* Validate args to select */
+    if (select->argc != 1) {
+        guacd_log_error("Bad number of arguments to \"select\" (%i)", select->argc);
+        return 1;
+    }
+
+    /* Get client for connection */
+    guac_client* client = guacd_get_client(map, select->argv[0]);
+    guac_instruction_free(select);
+
+    if (client == NULL)
+        return 1;
+
+    /* Log connection ID */
+    guacd_log_info("Connection ID is \"%s\"", client->connection_id);
+
+    /* Proceed with handshake and user I/O */
+    return guacd_handle_user(client, socket);
 
 }
 
@@ -657,6 +617,8 @@ int main(int argc, char* argv[]) {
 #endif
 
             guacd_handle_connection(map, socket);
+
+            guac_socket_free(socket);
             close(connected_socket_fd);
             return 0;
         }

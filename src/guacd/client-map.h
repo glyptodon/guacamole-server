@@ -25,8 +25,8 @@
 #define _GUACD_CLIENT_MAP_H
 
 #include "config.h"
-#include "client.h"
 #include "guac_list.h"
+#include "user.h"
 
 #include <guacamole/client.h>
 

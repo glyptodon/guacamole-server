@@ -21,9 +21,9 @@
  */
 
 #include "config.h"
-#include "client.h"
 #include "client-map.h"
 #include "guac_list.h"
+#include "user.h"
 
 #include <guacamole/client.h>
 

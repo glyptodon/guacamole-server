@@ -26,34 +26,8 @@
 
 #include "config.h"
 
-#include <guacamole/client.h>
+#include <guacamole/user.h>
 #include <guacamole/socket.h>
-
-/**
- * The time to allow between sync responses in milliseconds. If a sync
- * instruction is sent to the client and no response is received within this
- * timeframe, server messages will not be handled until a sync instruction is
- * received from the client.
- */
-#define GUACD_SYNC_THRESHOLD 500
-
-/**
- * The time to allow between server sync messages in milliseconds. A sync
- * message from the server will be sent every GUACD_SYNC_FREQUENCY milliseconds.
- * As this will induce a response from a client that is not malfunctioning,
- * this is used to detect when a client has died. This must be set to a
- * reasonable value to avoid clients being disconnected unnecessarily due
- * to timeout.
- */
-#define GUACD_SYNC_FREQUENCY 5000
-
-/**
- * The amount of time to wait after handling server messages. If a client
- * plugin has a message handler, and sends instructions when server messages
- * are being handled, there will be a pause of this many milliseconds before
- * the next call to the message handler.
- */
-#define GUACD_MESSAGE_HANDLE_FREQUENCY 50
 
 /**
  * The number of milliseconds to wait for messages in any phase before
@@ -75,11 +49,10 @@
 #define GUACD_CLIENT_MAX_CONNECTIONS 65536
 
 /**
- * Starts the input/output threads of a new client, adding the given socket
- * as the first user of that client. This function will block until all
- * users of this client have disconnected.
+ * Starts the input/output threads of a new user. This function will block
+ * until the user disconnects.
  */
-int guacd_client_start(guac_client* client, guac_socket* socket);
+int guacd_user_start(guac_user* user, guac_socket* socket);
 
 #endif
 
