@@ -85,12 +85,12 @@ libguac_la_SOURCES =  \
     unicode.c         \
     user.c            \
     user-handlers.c   \
-    wav_encoder.c
+    #wav_encoder.c
 
 # Compile OGG support if available
 if ENABLE_OGG
-libguac_la_SOURCES += ogg_encoder.c
-noinst_HEADERS += ogg_encoder.h
+#libguac_la_SOURCES += ogg_encoder.c
+#noinst_HEADERS += ogg_encoder.h
 endif
 
 lib_LTLIBRARIES = libguac.la
