@@ -32,7 +32,9 @@
  */
 
 #include "client-types.h"
+#include "instruction-types.h"
 #include "pool-types.h"
+#include "socket-types.h"
 #include "stream-types.h"
 #include "timestamp-types.h"
 #include "user-constants.h"

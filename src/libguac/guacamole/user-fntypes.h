@@ -29,6 +29,7 @@
  * @file user-fntypes.h
  */
 
+#include "protocol-types.h"
 #include "user-types.h"
 
 /**
