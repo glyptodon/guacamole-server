@@ -77,7 +77,7 @@ struct guac_client {
      * @code
      *     int handle_messages(guac_client* client);
      *
-     *     int guac_client_init(guac_client* client, int argc, char** argv) {
+     *     int guac_client_init(guac_client* client) {
      *         client->handle_messages = handle_messages;
      *     }
      * @endcode
@@ -100,7 +100,7 @@ struct guac_client {
      * @code
      *     int free_handler(guac_client* client);
      *
-     *     int guac_client_init(guac_client* client, int argc, char** argv) {
+     *     int guac_client_init(guac_client* client) {
      *         client->free_handler = free_handler;
      *     }
      * @endcode
@@ -198,9 +198,9 @@ struct guac_client {
      *
      * Example:
      * @code
-     *     int join_handler(guac_user* user);
+     *     int join_handler(guac_user* user, int argc, char** argv);
      *
-     *     int guac_client_init(guac_client* client, int argc, char** argv) {
+     *     int guac_client_init(guac_client* client) {
      *         client->join_handler = join_handler;
      *     }
      * @endcode
@@ -218,7 +218,7 @@ struct guac_client {
      * @code
      *     int leave_handler(guac_user* user);
      *
-     *     int guac_client_init(guac_client* client, int argc, char** argv) {
+     *     int guac_client_init(guac_client* client) {
      *         client->leave_handler = leave_handler;
      *     }
      * @endcode
@@ -380,9 +380,11 @@ void guac_client_free_layer(guac_client* client, guac_layer* layer);
  * user. The join handler of this guac_client will be called.
  *
  * @param client The proxy client to add the user to.
- * @param user THe user to add.
+ * @param user The user to add.
+ * @param argc The number of arguments to pass to the new user.
+ * @param argv An array of strings containing the argument values being passed.
  */
-void guac_client_add_user(guac_client* client, guac_user* user);
+void guac_client_add_user(guac_client* client, guac_user* user, int argc, char** argv);
 
 /**
  * Removes the given user, removing the user from the internally-tracked list

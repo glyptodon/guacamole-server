@@ -259,14 +259,14 @@ void guac_client_abort(guac_client* client, guac_protocol_status status,
 
 }
 
-void guac_client_add_user(guac_client* client, guac_user* user) {
+void guac_client_add_user(guac_client* client, guac_user* user, int argc, char** argv) {
 
     /* Insert new user as head */
     pthread_mutex_lock(&(client->__users_lock));
 
     /* Call handler, if defined */
     if (client->join_handler)
-        client->join_handler(user);
+        client->join_handler(user, argc, argv);
 
     user->__prev = NULL;
     user->__next = client->__users;

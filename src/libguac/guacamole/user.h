@@ -347,7 +347,7 @@ struct guac_user {
      * @code
      *     int leave_handler(guac_user* user);
      *
-     *     int my_join_handler(guac_user* user) {
+     *     int my_join_handler(guac_user* user, int argv, char** argv) {
      *         user->leave_handler = leave_handler;
      *     }
      * @endcode

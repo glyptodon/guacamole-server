@@ -104,7 +104,7 @@ typedef int guac_user_video_handler(guac_user* user, char* mimetype);
  * Handler for Guacamole join events. A join event is fired by the
  * guac_client whenever a guac_user joins the connection.
  */
-typedef int guac_user_join_handler(guac_user* user);
+typedef int guac_user_join_handler(guac_user* user, int argc, char** argv);
 
 /**
  * Handler for Guacamole leave events. A leave event is fired by the
