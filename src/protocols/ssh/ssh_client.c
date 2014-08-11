@@ -474,10 +474,11 @@ void* ssh_client_thread(void* data) {
         /* Request command execution */
         guac_client_log_info(client, "SSH requesting command execution.");
         if (libssh2_channel_exec(client_data->term_channel, client_data->command)) {
-            guac_client_abort(client, GUAC_PROTOCOL_STATUS_UPSTREAM_ERROR, "Unable to associate shell with PTY.");
+            guac_client_abort(client, GUAC_PROTOCOL_STATUS_UPSTREAM_ERROR, "Unable to execute command.");
             return NULL;
         }
-    } else {
+    }
+    else {
         /* Request shell */
         guac_client_log_info(client, "SSH requesting shell.");
         if (libssh2_channel_shell(client_data->term_channel)) {
