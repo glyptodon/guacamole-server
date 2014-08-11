@@ -479,7 +479,7 @@ void* ssh_client_thread(void* data) {
         }
     } else {
         /* Request shell */
-         guac_client_log_info(client, "SSH requesting shell.");
+        guac_client_log_info(client, "SSH requesting shell.");
         if (libssh2_channel_shell(client_data->term_channel)) {
             guac_client_abort(client, GUAC_PROTOCOL_STATUS_UPSTREAM_ERROR, "Unable to associate shell with PTY.");
             return NULL;
