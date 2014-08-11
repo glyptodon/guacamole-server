@@ -91,6 +91,11 @@ typedef struct ssh_guac_client_data {
     int font_size;
 
     /**
+     * The command to run instead of asking for shell
+     */
+    char command[1024];
+
+    /**
      * Whether SFTP is enabled.
      */
     bool enable_sftp;
