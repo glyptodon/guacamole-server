@@ -76,22 +76,6 @@ struct guac_client {
     guac_timestamp last_sent_timestamp;
 
     /**
-     * Handler for server messages. If set, this function will be called
-     * occasionally by the Guacamole proxy to give the client a chance to
-     * handle messages from whichever server it is connected to.
-     *
-     * Example:
-     * @code
-     *     int handle_messages(guac_client* client);
-     *
-     *     int guac_client_init(guac_client* client) {
-     *         client->handle_messages = handle_messages;
-     *     }
-     * @endcode
-     */
-    guac_client_handle_messages* handle_messages;
-
-    /**
      * Handler for freeing data when the client is being unloaded.
      *
      * This handler will be called when the client needs to be unloaded

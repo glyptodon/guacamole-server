@@ -38,19 +38,13 @@
 #include <stdarg.h>
 
 /**
- * Handler for server messages (where "server" refers to the server that
- * the proxy client is connected to).
- */
-typedef int guac_client_handle_messages(guac_client* client);
-
-/**
  * Handler for freeing up any extra data allocated by the client
  * implementation.
  */
 typedef int guac_client_free_handler(guac_client* client);
 
 /**
- * Handler for logging messages
+ * Handler for logging messages.
  */
 typedef void guac_client_log_handler(guac_client* client, const char* format, va_list args); 
 
