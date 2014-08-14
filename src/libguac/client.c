@@ -131,6 +131,7 @@ guac_client* guac_client_alloc() {
     memset(client, 0, sizeof(guac_client));
 
     client->state = GUAC_CLIENT_RUNNING;
+    client->last_sent_timestamp = guac_timestamp_current();
 
     /* Generate ID */
     client->connection_id = guac_generate_id(GUAC_CLIENT_ID_PREFIX);
@@ -318,6 +319,14 @@ void guac_client_foreach_user(guac_client* client, guac_user_callback* callback,
     }
 
     pthread_mutex_unlock(&(client->__users_lock));
+
+}
+
+int guac_client_end_frame(guac_client* client) {
+
+    /* Update and send timestamp */
+    client->last_sent_timestamp = guac_timestamp_current();
+    return guac_protocol_send_sync(client->socket, client->last_sent_timestamp);
 
 }
 

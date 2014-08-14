@@ -75,10 +75,14 @@ int __guac_handle_sync(guac_user* user, guac_instruction* instruction) {
     guac_timestamp timestamp = __guac_parse_int(instruction->argv[0]);
 
     /* Error if timestamp is in future */
-    if (timestamp > user->last_sent_timestamp)
+    if (timestamp > user->client->last_sent_timestamp)
         return -1;
 
+    /* Update stored timestamp */
     user->last_received_timestamp = timestamp;
+
+    if (user->sync_handler)
+        return user->sync_handler(user, timestamp);
     return 0;
 }
 

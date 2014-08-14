@@ -45,7 +45,7 @@ guac_user* guac_user_alloc() {
         return NULL;
     }
 
-    user->last_received_timestamp = user->last_sent_timestamp = guac_timestamp_current();
+    user->last_received_timestamp = guac_timestamp_current();
 
     /* Allocate stream pool */
     user->__stream_pool = guac_pool_alloc(0);

@@ -36,6 +36,7 @@
 #include "layer-types.h"
 #include "pool-types.h"
 #include "socket-types.h"
+#include "timestamp-types.h"
 #include "user-fntypes.h"
 #include "user-types.h"
 
@@ -67,6 +68,12 @@ struct guac_client {
      * be retrieved as necessary in the message handlers.
      */
     void* data;
+
+    /**
+     * The time (in milliseconds) that the last sync message was sent to the
+     * client.
+     */
+    guac_timestamp last_sent_timestamp;
 
     /**
      * Handler for server messages. If set, this function will be called
@@ -409,6 +416,19 @@ void guac_client_remove_user(guac_client* client, guac_user* user);
  * @param data Arbitrary data to pass to each function call.
  */
 void guac_client_foreach_user(guac_client* client, guac_user_callback* callback, void* data);
+
+/**
+ * Marks the end of the current frame by sending a "sync" instruction to
+ * all connected users. This instruction will contain the current timestamp.
+ * The last_sent_timestamp member of guac_client will be updated accordingly.
+ *
+ * If an error occurs sending the instruction, a non-zero value is
+ * returned, and guac_error is set appropriately.
+ *
+ * @param client The guac_client which has finished a frame.
+ * @return Zero on success, non-zero on error.
+ */
+int guac_client_end_frame(guac_client* client);
 
 /**
  * The default Guacamole client layer, layer 0.

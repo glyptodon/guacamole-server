@@ -124,19 +124,13 @@ struct guac_user {
 
     /**
      * The time (in milliseconds) of receipt of the last sync message from
-     * the client.
+     * the user.
      */
     guac_timestamp last_received_timestamp;
 
     /**
-     * The time (in milliseconds) that the last sync message was sent to the
-     * client.
-     */
-    guac_timestamp last_sent_timestamp;
-
-    /**
      * Information structure containing properties exposed by the remote
-     * client during the initial handshake process.
+     * user during the initial handshake process.
      */
     guac_user_info info;
 
@@ -146,12 +140,12 @@ struct guac_user {
     guac_pool* __stream_pool;
 
     /**
-     * All available output streams (data going to connected client).
+     * All available output streams (data going to connected user).
      */
     guac_stream* __output_streams;
 
     /**
-     * All available input streams (data coming from connected client).
+     * All available input streams (data coming from connected user).
      */
     guac_stream* __input_streams;
 
@@ -178,10 +172,10 @@ struct guac_user {
 
      * Example:
      * @code
-     *     int mouse_handler(guac_client* client, int x, int y, int button_mask);
+     *     int mouse_handler(guac_user* user, int x, int y, int button_mask);
      *
-     *     int guac_user_init(guac_client* client, int argc, char** argv) {
-     *         client->mouse_handler = mouse_handler;
+     *     int guac_user_init(guac_user* user, int argc, char** argv) {
+     *         user->mouse_handler = mouse_handler;
      *     }
      * @endcode
      */
@@ -196,10 +190,10 @@ struct guac_user {
      *
      * Example:
      * @code
-     *     int key_handler(guac_client* client, int keysym, int pressed);
+     *     int key_handler(guac_user* user, int keysym, int pressed);
      *
-     *     int guac_user_init(guac_client* client, int argc, char** argv) {
-     *         client->key_handler = key_handler;
+     *     int guac_user_init(guac_user* user, int argc, char** argv) {
+     *         user->key_handler = key_handler;
      *     }
      * @endcode
      */
@@ -216,11 +210,11 @@ struct guac_user {
      *
      * Example:
      * @code
-     *     int clipboard_handler(guac_client* client, guac_stream* stream,
+     *     int clipboard_handler(guac_user* user, guac_stream* stream,
      *             char* mimetype);
      *
-     *     int guac_user_init(guac_client* client, int argc, char** argv) {
-     *         client->clipboard_handler = clipboard_handler;
+     *     int guac_user_init(guac_user* user, int argc, char** argv) {
+     *         user->clipboard_handler = clipboard_handler;
      *     }
      * @endcode
      */
@@ -234,10 +228,10 @@ struct guac_user {
      *
      * Example:
      * @code
-     *     int size_handler(guac_client* client, int width, int height);
+     *     int size_handler(guac_user* user, int width, int height);
      *
-     *     int guac_user_init(guac_client* client, int argc, char** argv) {
-     *         client->size_handler = size_handler;
+     *     int guac_user_init(guac_user* user, int argc, char** argv) {
+     *         user->size_handler = size_handler;
      *     }
      * @endcode
      */
@@ -252,11 +246,11 @@ struct guac_user {
      *
      * Example:
      * @code
-     *     int file_handler(guac_client* client, guac_stream* stream,
+     *     int file_handler(guac_user* user, guac_stream* stream,
      *             char* mimetype, char* filename);
      *
-     *     int guac_user_init(guac_client* client, int argc, char** argv) {
-     *         client->file_handler = file_handler;
+     *     int guac_user_init(guac_user* user, int argc, char** argv) {
+     *         user->file_handler = file_handler;
      *     }
      * @endcode
      */
@@ -271,11 +265,11 @@ struct guac_user {
      *
      * Example:
      * @code
-     *     int pipe_handler(guac_client* client, guac_stream* stream,
+     *     int pipe_handler(guac_user* user, guac_stream* stream,
      *             char* mimetype, char* name);
      *
-     *     int guac_user_init(guac_client* client, int argc, char** argv) {
-     *         client->pipe_handler = pipe_handler;
+     *     int guac_user_init(guac_user* user, int argc, char** argv) {
+     *         user->pipe_handler = pipe_handler;
      *     }
      * @endcode
      */
@@ -290,11 +284,11 @@ struct guac_user {
      *
      * Example:
      * @code
-     *     int ack_handler(guac_client* client, guac_stream* stream,
+     *     int ack_handler(guac_user* user, guac_stream* stream,
      *             char* error, guac_protocol_status status);
      *
-     *     int guac_user_init(guac_client* client, int argc, char** argv) {
-     *         client->ack_handler = ack_handler;
+     *     int guac_user_init(guac_user* user, int argc, char** argv) {
+     *         user->ack_handler = ack_handler;
      *     }
      * @endcode
      */
@@ -309,11 +303,11 @@ struct guac_user {
      *
      * Example:
      * @code
-     *     int blob_handler(guac_client* client, guac_stream* stream,
+     *     int blob_handler(guac_user* user, guac_stream* stream,
      *             void* data, int length);
      *
-     *     int guac_user_init(guac_client* client, int argc, char** argv) {
-     *         client->blob_handler = blob_handler;
+     *     int guac_user_init(guac_user* user, int argc, char** argv) {
+     *         user->blob_handler = blob_handler;
      *     }
      * @endcode
      */
@@ -328,14 +322,33 @@ struct guac_user {
      *
      * Example:
      * @code
-     *     int end_handler(guac_client* client, guac_stream* stream);
+     *     int end_handler(guac_user* user, guac_stream* stream);
      *
-     *     int guac_user_init(guac_client* client, int argc, char** argv) {
-     *         client->end_handler = end_handler;
+     *     int guac_user_init(guac_user* user, int argc, char** argv) {
+     *         user->end_handler = end_handler;
      *     }
      * @endcode
      */
     guac_user_end_handler* end_handler;
+
+    /**
+     * Handler for sync events sent by the Guacamole web-client. Sync events
+     * are used to track per-user latency.
+     *
+     * The handler takes only a guac_timestamp which contains the timestamp
+     * received from the user. Latency can be determined by comparing this
+     * timestamp against the last_sent_timestamp of guac_client.
+     *
+     * Example:
+     * @code
+     *     int sync_handler(guac_user* user, guac_timestamp timestamp);
+     *
+     *     int guac_user_init(guac_user* user, int argc, char** argv) {
+     *         user->sync_handler = sync_handler;
+     *     }
+     * @endcode
+     */
+    guac_user_sync_handler* sync_handler;
 
     /**
      * Handler for leave events fired by the guac_client when a guac_user

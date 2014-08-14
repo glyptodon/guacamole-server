@@ -113,5 +113,11 @@ typedef int guac_user_join_handler(guac_user* user, int argc, char** argv);
  */
 typedef int guac_user_leave_handler(guac_user* user);
 
+/**
+ * Handler for Guacamole sync events. A sync event is fired by the
+ * guac_client whenever a guac_user responds to a sync instruction.
+ */
+typedef int guac_user_sync_handler(guac_user* user, guac_timestamp timestamp);
+
 #endif
 
