@@ -205,6 +205,13 @@ static guac_client* guacd_get_client(guacd_client_map* map, const char* identifi
         return NULL;
     }
 
+    /* Add client to global storage */
+    if (guacd_client_map_add(map, client)) {
+        guacd_log_error("Internal failure adding client \"%s\".", client->connection_id);
+        guac_client_free(client);
+        return NULL;
+    }
+
     return client;
 
 }
@@ -252,8 +259,14 @@ static int guacd_handle_connection(guacd_client_map* map, guac_socket* socket) {
 
     /* Clean up client if no more users */
     if (client->connected_users == 0) {
+
         guacd_log_info("Last user of connection \"%s\" disconnected", client->connection_id);
-        guac_client_stop(client);
+
+        /* Remove client */
+        if (guacd_client_map_remove(map, client->connection_id))
+            guacd_log_error("Internal failure removing client \"%s\". Client record will never be freed.",
+                    client->connection_id);
+
         guac_client_free(client);
     }
 
