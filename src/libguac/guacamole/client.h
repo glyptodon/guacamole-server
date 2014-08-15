@@ -181,6 +181,12 @@ struct guac_client {
     guac_user* __users;
 
     /**
+     * The number of currently-connected users. This value may include inactive
+     * users if cleanup of those users has not yet finished.
+     */
+    int connected_users;
+
+    /**
      * Handler for join events, called whenever a new user is joining an
      * active connection.
      *

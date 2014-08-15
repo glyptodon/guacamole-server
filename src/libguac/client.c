@@ -276,6 +276,7 @@ void guac_client_add_user(guac_client* client, guac_user* user, int argc, char**
         client->__users->__prev = user;
 
     client->__users = user;
+    client->connected_users++;
 
     pthread_mutex_unlock(&(client->__users_lock));
 
@@ -300,6 +301,8 @@ void guac_client_remove_user(guac_client* client, guac_user* user) {
     /* Update next */
     if (user->__next != NULL)
         user->__next->__prev = user->__prev;
+
+    client->connected_users--;
 
     pthread_mutex_unlock(&(client->__users_lock));
 

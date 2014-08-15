@@ -239,7 +239,16 @@ static int guacd_handle_connection(guacd_client_map* map, guac_socket* socket) {
     guacd_log_info("Connection ID is \"%s\"", client->connection_id);
 
     /* Proceed with handshake and user I/O */
-    return guacd_handle_user(client, socket, owner);
+    int retval = guacd_handle_user(client, socket, owner);
+
+    /* Clean up client if no more users */
+    if (client->connected_users == 0) {
+        guacd_log_info("Last user of connection \"%s\" disconnected", client->connection_id);
+        guac_client_stop(client);
+        guac_client_free(client);
+    }
+
+    return retval;
 
 }
 
