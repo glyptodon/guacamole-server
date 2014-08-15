@@ -143,17 +143,18 @@ static int guacd_handle_user(guac_client* client, guac_socket* socket, int owner
     user->info.video_mimetypes[video->argc] = NULL;
 
     /* Acknowledge successful join */
-    guacd_log_info("User \"%s\" joined connection \"%s\"", user->user_id, client->connection_id);
     guac_protocol_send_ready(socket, client->connection_id);
-
-    /* Handle user I/O */
     guac_client_add_user(client, user, connect->argc, connect->argv);
+
+    guacd_log_info("User \"%s\" joined connection \"%s\" (%i users now present)",
+            user->user_id, client->connection_id, client->connected_users);
+
+    /* Handle user I/O, wait for connection to terminate */
     guacd_user_start(user, socket);
 
-    guacd_log_info("User \"%s\" disconnected", user->user_id);
-
-    /* Free user */
+    /* Remove/free user */
     guac_client_remove_user(client, user);
+    guacd_log_info("User \"%s\" disconnected (%i users remain)", user->user_id, client->connected_users);
     guac_user_free(user);
 
     guac_instruction_free(connect);
