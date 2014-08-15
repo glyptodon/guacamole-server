@@ -62,8 +62,11 @@
  * Handles the initial handshake of a user, associating that new user with the
  * existing client. This function blocks until the user's connection is
  * finished.
+ *
+ * Note that if this user is the owner of the client, the owner parameter MUST
+ * be set to a non-zero value.
  */
-static int guacd_handle_user(guac_client* client, guac_socket* socket) {
+static int guacd_handle_user(guac_client* client, guac_socket* socket, int owner) {
 
     guac_instruction* size;
     guac_instruction* audio;
@@ -113,6 +116,7 @@ static int guacd_handle_user(guac_client* client, guac_socket* socket) {
     guac_user* user = guac_user_alloc();
     user->socket = socket;
     user->client = client;
+    user->owner = owner;
 
     /* Parse optimal screen dimensions from size instruction */
     user->info.optimal_width  = atoi(size->argv[0]);
@@ -220,6 +224,8 @@ static int guacd_handle_connection(guacd_client_map* map, guac_socket* socket) {
         return 1;
     }
 
+    int owner;
+
     /* Get client for connection */
     guac_client* client = guacd_get_client(map, select->argv[0]);
     guac_instruction_free(select);
@@ -227,11 +233,13 @@ static int guacd_handle_connection(guacd_client_map* map, guac_socket* socket) {
     if (client == NULL)
         return 1;
 
+    owner = 1;
+
     /* Log connection ID */
     guacd_log_info("Connection ID is \"%s\"", client->connection_id);
 
     /* Proceed with handshake and user I/O */
-    return guacd_handle_user(client, socket);
+    return guacd_handle_user(client, socket, owner);
 
 }
 

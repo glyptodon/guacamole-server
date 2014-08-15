@@ -25,6 +25,8 @@
 #include "client.h"
 #include "id.h"
 #include "pool.h"
+#include "protocol.h"
+#include "socket.h"
 #include "stream.h"
 #include "timestamp.h"
 #include "user.h"
@@ -46,6 +48,7 @@ guac_user* guac_user_alloc() {
     }
 
     user->last_received_timestamp = guac_timestamp_current();
+    user->active = 1;
 
     /* Allocate stream pool */
     user->__stream_pool = guac_pool_alloc(0);
@@ -130,4 +133,75 @@ int guac_user_handle_instruction(guac_user* user, guac_instruction* instruction)
 
 }
 
+void guac_user_stop(guac_user* user) {
+    user->active = 0;
+}
+
+void vguac_user_abort(guac_user* user, guac_protocol_status status,
+        const char* format, va_list ap) {
+
+    /* Only relevant if user is active */
+    if (user->active) {
+
+        /* Log detail of error */
+        vguac_user_log_error(user, format, ap);
+
+        /* Send error immediately, limit information given */
+        guac_protocol_send_error(user->socket, "Aborted. See logs.", status);
+        guac_socket_flush(user->socket);
+
+        /* Stop user */
+        guac_user_stop(user);
+
+    }
+
+}
+
+void guac_user_abort(guac_user* user, guac_protocol_status status,
+        const char* format, ...) {
+
+    va_list args;
+    va_start(args, format);
+
+    vguac_user_abort(user, status, format, args);
+
+    va_end(args);
+
+}
+
+void vguac_user_log_info(guac_user* user, const char* format,
+        va_list ap) {
+
+    vguac_client_log_info(user->client, format, ap);
+
+}
+
+void vguac_user_log_error(guac_user* user, const char* format,
+        va_list ap) {
+
+    vguac_client_log_error(user->client, format, ap);
+
+}
+
+void guac_user_log_info(guac_user* user, const char* format, ...) {
+
+    va_list args;
+    va_start(args, format);
+
+    vguac_client_log_info(user->client, format, args);
+
+    va_end(args);
+
+}
+
+void guac_user_log_error(guac_user* user, const char* format, ...) {
+
+    va_list args;
+    va_start(args, format);
+
+    vguac_client_log_error(user->client, format, args);
+
+    va_end(args);
+
+}
 

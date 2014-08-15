@@ -42,6 +42,7 @@
 #include "user-types.h"
 
 #include <pthread.h>
+#include <stdarg.h>
 
 struct guac_user_info {
 
@@ -105,6 +106,20 @@ struct guac_user {
      * will not collide with any available protocol names.
      */
     char* user_id;
+
+    /**
+     * Non-zero if this user is the owner of the associated connection, zero
+     * otherwise. The owner is the user which created the connection.
+     */
+    int owner;
+
+    /**
+     * Non-zero if this user is active (connected), and zero otherwise. When
+     * the user is created, this will be set to a non-zero value. If an event
+     * occurs which requires that the user disconnect, or the user has
+     * disconnected, this will be reset to zero.
+     */
+    int active;
 
     /**
      * The previous user in the group of users within the same logical
@@ -415,6 +430,93 @@ guac_stream* guac_user_alloc_stream(guac_user* user);
  * @param stream The stream to return to the pool of available stream.
  */
 void guac_user_free_stream(guac_user* user, guac_stream* stream);
+
+/**
+ * Signals the given user that it must disconnect, or advises cooperating
+ * services that the given user is no longer connected.
+ *
+ * @param user The user to stop.
+ */
+void guac_user_stop(guac_user* user);
+
+/**
+ * Signals the given user to stop gracefully, while also signalling via the
+ * Guacamole protocol that an error has occurred. Note that this is a completely
+ * cooperative signal, and can be ignored by the user or the hosting
+ * daemon. The message given will be logged to the system logs.
+ *
+ * @param user The user to signal to stop.
+ * @param status The status to send over the Guacamole protocol.
+ * @param format A printf-style format string to log.
+ * @param ... Arguments to use when filling the format string for printing.
+ */
+void guac_user_abort(guac_user* user, guac_protocol_status status,
+        const char* format, ...);
+
+/**
+ * Signals the given user to stop gracefully, while also signalling via the
+ * Guacamole protocol that an error has occurred. Note that this is a completely
+ * cooperative signal, and can be ignored by the user or the hosting
+ * daemon. The message given will be logged to the system logs.
+ *
+ * @param user The user to signal to stop.
+ * @param status The status to send over the Guacamole protocol.
+ * @param format A printf-style format string to log.
+ * @param ap The va_list containing the arguments to be used when filling the
+ *           format string for printing.
+ */
+void vguac_user_abort(guac_user* user, guac_protocol_status status,
+        const char* format, va_list ap);
+
+/**
+ * Logs an informational message in the log used by the given user. The
+ * logger used will normally be defined by guacd (or whichever program loads
+ * the user) by setting the logging handlers of the user when it is
+ * loaded.
+ *
+ * @param user The user to log an informational message for.
+ * @param format A printf-style format string to log.
+ * @param ... Arguments to use when filling the format string for printing.
+ */
+void guac_user_log_info(guac_user* user, const char* format, ...);
+
+/**
+ * Logs an error message in the log used by the given user. The logger
+ * used will normally be defined by guacd (or whichever program loads the
+ * user) by setting the logging handlers of the user when it is
+ * loaded.
+ *
+ * @param user The user to log an error for.
+ * @param format A printf-style format string to log.
+ * @param ... Arguments to use when filling the format string for printing.
+ */
+void guac_user_log_error(guac_user* user, const char* format, ...);
+
+/**
+ * Logs an informational message in the log used by the given user. The
+ * logger used will normally be defined by guacd (or whichever program loads
+ * the user) by setting the logging handlers of the user when it is
+ * loaded.
+ *
+ * @param user The user to log an informational message for.
+ * @param format A printf-style format string to log.
+ * @param ap The va_list containing the arguments to be used when filling the
+ *           format string for printing.
+ */
+void vguac_user_log_info(guac_user* user, const char* format, va_list ap);
+
+/**
+ * Logs an error message in the log used by the given user. The logger
+ * used will normally be defined by guacd (or whichever program loads the
+ * user) by setting the logging handlers of the user when it is
+ * loaded.
+ *
+ * @param user The user to log an error for.
+ * @param format A printf-style format string to log.
+ * @param ap The va_list containing the arguments to be used when filling the
+ *           format string for printing.
+ */
+void vguac_user_log_error(guac_user* user, const char* format, va_list ap);
 
 #endif
 

@@ -59,8 +59,8 @@ void* __guacd_user_input_thread(void* data) {
     guac_client* client = user->client;
     guac_socket* socket = user->socket;
 
-    /* Guacamole client input loop */
-    while (client->state == GUAC_CLIENT_RUNNING) {
+    /* Guacamole user input loop */
+    while (client->state == GUAC_CLIENT_RUNNING && user->active) {
 
         /* Read instruction */
         guac_instruction* instruction =
@@ -70,17 +70,17 @@ void* __guacd_user_input_thread(void* data) {
         if (instruction == NULL) {
 
             if (guac_error == GUAC_STATUS_INPUT_TIMEOUT)
-                guac_client_abort(client, GUAC_PROTOCOL_STATUS_CLIENT_TIMEOUT, "Client is not responding.");
+                guac_user_abort(user, GUAC_PROTOCOL_STATUS_CLIENT_TIMEOUT, "User is not responding.");
 
             else {
                 guacd_client_log_guac_error(client, "Error reading instruction");
-                guac_client_stop(client);
+                guac_user_stop(user);
             }
 
             return NULL;
         }
 
-        /* Reset guac_error and guac_error_message (client handlers are not
+        /* Reset guac_error and guac_error_message (user/client handlers are not
          * guaranteed to set these) */
         guac_error = GUAC_STATUS_SUCCESS;
         guac_error_message = NULL;
@@ -93,12 +93,12 @@ void* __guacd_user_input_thread(void* data) {
                     "User instruction handler error");
 
             /* Log handler details */
-            guac_client_log_info(client,
+            guac_user_log_info(user,
                     "Failing instruction handler in user was \"%s\"",
                     instruction->opcode);
 
             guac_instruction_free(instruction);
-            guac_client_stop(client);
+            guac_user_stop(user);
             return NULL;
         }
 
@@ -113,12 +113,11 @@ void* __guacd_user_input_thread(void* data) {
 
 int guacd_user_start(guac_user* user, guac_socket* socket) {
 
-    guac_client* client = user->client;
     pthread_t input_thread;
 
     if (pthread_create(&input_thread, NULL, __guacd_user_input_thread, (void*) user)) {
-        guac_client_log_error(client, "Unable to start input thread");
-        guac_client_stop(client);
+        guac_user_log_error(user, "Unable to start input thread");
+        guac_user_stop(user);
         return -1;
     }
 
