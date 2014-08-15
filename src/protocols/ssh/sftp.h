@@ -28,14 +28,15 @@
 
 #include <guacamole/client.h>
 #include <guacamole/stream.h>
+#include <guacamole/user.h>
 
 /**
  * Handles an incoming stream from a Guacamole "file" instruction, saving the
  * contents of that stream to the file having the given name within the
  * upload directory set by guac_sftp_set_upload_path().
  *
- * @param client
- *     The client receiving the uploaded file.
+ * @param user
+ *     The user receiving the uploaded file.
  *
  * @param stream
  *     The stream through which the uploaded file data will be received.
@@ -52,7 +53,7 @@
  *     Zero if the incoming stream has been handled successfully, non-zero on
  *     failure.
  */
-int guac_sftp_file_handler(guac_client* client, guac_stream* stream,
+int guac_sftp_file_handler(guac_user* user, guac_stream* stream,
         char* mimetype, char* filename);
 
 /**
@@ -61,8 +62,8 @@ int guac_sftp_file_handler(guac_client* client, guac_stream* stream,
  * after this function terminates in response to "ack" instructions received by
  * the client.
  *
- * @param client
- *     The client receiving the file.
+ * @param user
+ *     The user receiving the file.
  *
  * @param filename
  *     The filename of the file to download, relative to the given filesystem.
@@ -71,7 +72,7 @@ int guac_sftp_file_handler(guac_client* client, guac_stream* stream,
  *     The file stream created for the file download, already configured to
  *     properly handle "ack" responses, etc. from the client.
  */
-guac_stream* guac_sftp_download_file(guac_client* client, char* filename);
+guac_stream* guac_sftp_download_file(guac_user* user, char* filename);
 
 /**
  * Sets the destination directory for future uploads submitted via Guacamole

@@ -22,18 +22,20 @@
 
 #include "config.h"
 
-#include "client.h"
 #include "guac_sftp.h"
 #include "sftp.h"
+#include "ssh.h"
 
 #include <guacamole/client.h>
 #include <guacamole/stream.h>
+#include <guacamole/user.h>
 
-int guac_sftp_file_handler(guac_client* client, guac_stream* stream,
+int guac_sftp_file_handler(guac_user* user, guac_stream* stream,
         char* mimetype, char* filename) {
 
-    ssh_guac_client_data* client_data = (ssh_guac_client_data*) client->data;
-    guac_object* filesystem = client_data->sftp_filesystem;
+    guac_client* client = user->client;
+    guac_ssh_client* ssh_client = (guac_ssh_client*) client->data;
+    guac_object* filesystem = ssh_client->sftp_filesystem;
 
     /* Handle file upload */
     return guac_common_ssh_sftp_handle_file_stream(filesystem, stream,
@@ -41,11 +43,12 @@ int guac_sftp_file_handler(guac_client* client, guac_stream* stream,
 
 }
 
-guac_stream* guac_sftp_download_file(guac_client* client,
+guac_stream* guac_sftp_download_file(guac_user* user,
         char* filename) {
 
-    ssh_guac_client_data* client_data = (ssh_guac_client_data*) client->data;
-    guac_object* filesystem = client_data->sftp_filesystem;
+    guac_client* client = user->client;
+    guac_ssh_client* ssh_client = (guac_ssh_client*) client->data;
+    guac_object* filesystem = ssh_client->sftp_filesystem;
 
     /* Initiate download of requested file */
     return guac_common_ssh_sftp_download_file(filesystem, filename);
@@ -54,8 +57,8 @@ guac_stream* guac_sftp_download_file(guac_client* client,
 
 void guac_sftp_set_upload_path(guac_client* client, char* path) {
 
-    ssh_guac_client_data* client_data = (ssh_guac_client_data*) client->data;
-    guac_object* filesystem = client_data->sftp_filesystem;
+    guac_ssh_client* ssh_client = (guac_ssh_client*) client->data;
+    guac_object* filesystem = ssh_client->sftp_filesystem;
 
     /* Set upload path as specified */
     guac_common_ssh_sftp_set_upload_path(filesystem, path);

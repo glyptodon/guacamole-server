@@ -833,9 +833,6 @@ AC_ARG_WITH([ssh],
             [],
             [with_ssh=check])
 
-# FIXME: Temporarily disabled
-with_ssh=no
-
 AC_ARG_ENABLE(ssh_agent,
               [AS_HELP_STRING([--enable-ssh-agent],
                               [enable built-in ssh-agent])
