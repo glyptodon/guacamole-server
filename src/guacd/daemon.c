@@ -142,20 +142,28 @@ static int guacd_handle_user(guac_client* client, guac_socket* socket, int owner
             sizeof(char*) * video->argc);
     user->info.video_mimetypes[video->argc] = NULL;
 
-    /* Acknowledge successful join */
+    /* Acknowledge connection availability */
     guac_protocol_send_ready(socket, client->connection_id);
-    guac_client_add_user(client, user, connect->argc, connect->argv);
 
-    guacd_log_info("User \"%s\" joined connection \"%s\" (%i users now present)",
-            user->user_id, client->connection_id, client->connected_users);
+    /* Attempt join */
+    if (guac_client_add_user(client, user, connect->argc, connect->argv))
+        guacd_log_error("User \"%s\" could NOT join connection \"%s\"", user->user_id, client->connection_id);
 
-    /* Handle user I/O, wait for connection to terminate */
-    guacd_user_start(user, socket);
+    /* Begin user connection if join successful */
+    else {
 
-    /* Remove/free user */
-    guac_client_remove_user(client, user);
-    guacd_log_info("User \"%s\" disconnected (%i users remain)", user->user_id, client->connected_users);
-    guac_user_free(user);
+        guacd_log_info("User \"%s\" joined connection \"%s\" (%i users now present)",
+                user->user_id, client->connection_id, client->connected_users);
+
+        /* Handle user I/O, wait for connection to terminate */
+        guacd_user_start(user, socket);
+
+        /* Remove/free user */
+        guac_client_remove_user(client, user);
+        guacd_log_info("User \"%s\" disconnected (%i users remain)", user->user_id, client->connected_users);
+        guac_user_free(user);
+
+    }
 
     guac_instruction_free(connect);
 

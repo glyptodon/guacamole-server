@@ -380,8 +380,10 @@ void guac_client_free_layer(guac_client* client, guac_layer* layer);
  * @param user The user to add.
  * @param argc The number of arguments to pass to the new user.
  * @param argv An array of strings containing the argument values being passed.
+ * @return Zero if the user was added successfully, non-zero if the user could
+ *         not join the connection.
  */
-void guac_client_add_user(guac_client* client, guac_user* user, int argc, char** argv);
+int guac_client_add_user(guac_client* client, guac_user* user, int argc, char** argv);
 
 /**
  * Removes the given user, removing the user from the internally-tracked list

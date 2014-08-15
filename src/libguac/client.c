@@ -260,25 +260,33 @@ void guac_client_abort(guac_client* client, guac_protocol_status status,
 
 }
 
-void guac_client_add_user(guac_client* client, guac_user* user, int argc, char** argv) {
+int guac_client_add_user(guac_client* client, guac_user* user, int argc, char** argv) {
 
-    /* Insert new user as head */
+    int retval = 0;
+
     pthread_mutex_lock(&(client->__users_lock));
 
     /* Call handler, if defined */
     if (client->join_handler)
-        client->join_handler(user, argc, argv);
+        retval = client->join_handler(user, argc, argv);
 
-    user->__prev = NULL;
-    user->__next = client->__users;
+    /* Add to list if join was successful */
+    if (retval == 0) {
 
-    if (client->__users != NULL)
-        client->__users->__prev = user;
+        user->__prev = NULL;
+        user->__next = client->__users;
 
-    client->__users = user;
-    client->connected_users++;
+        if (client->__users != NULL)
+            client->__users->__prev = user;
+
+        client->__users = user;
+        client->connected_users++;
+
+    }
 
     pthread_mutex_unlock(&(client->__users_lock));
+
+    return retval;
 
 }
 
