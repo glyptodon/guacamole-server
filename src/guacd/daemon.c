@@ -194,7 +194,7 @@ static guac_client* guacd_get_client(guacd_client_map* map, const char* identifi
     if (client == NULL)
         return NULL;
 
-    /* Init logging - FIXME: set client->args */
+    /* Init logging */
     client->log_info_handler = guacd_client_log_info;
     client->log_error_handler = guacd_client_log_error;
 

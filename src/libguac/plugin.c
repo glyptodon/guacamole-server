@@ -31,6 +31,11 @@
 #include <stdlib.h>
 #include <string.h>
 
+/**
+ * Empty NULL-terminated array of argument names.
+ */
+const char* __GUAC_CLIENT_NO_ARGS[] = { NULL };
+
 int guac_client_plugin_init_client(const char* protocol, guac_client* client) {
 
     /* Reference to dlopen()'d plugin */
@@ -76,6 +81,7 @@ int guac_client_plugin_init_client(const char* protocol, guac_client* client) {
         return -1;
     }
 
+    client->args = __GUAC_CLIENT_NO_ARGS;
     return alias.client_init(client);
 
 }

@@ -227,6 +227,25 @@ struct guac_client {
      * order. New users will specify these arguments when they join the
      * connection, and the values of those arguments will be made available to
      * the function initializing newly-joined users.
+     *
+     * The guac_client_init entry point is expected to initialize this, if
+     * arguments are expected.
+     *
+     * Example:
+     * @code
+     *     const char* __my_args[] = {
+     *         "hostname",
+     *         "port",
+     *         "username",
+     *         "password",
+     *         NULL
+     *     };
+     *
+     *     int guac_client_init(guac_client* client) {
+     *         client->args = __my_args;
+     *     }
+     * @endcode
+
      */
     const char** args;
 
