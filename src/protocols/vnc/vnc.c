@@ -259,6 +259,7 @@ void* guac_vnc_client_thread(void* data) {
 
     }
 
+    guac_client_log_info(client, "Internal VNC client disconnected");
     return NULL;
 
 }

@@ -54,6 +54,29 @@ int guac_vnc_client_free_handler(guac_client* client) {
 
     guac_vnc_client* vnc_client = (guac_vnc_client*) client->data;
 
+    /* Clean up VNC client*/
+    rfbClient* rfb_client = vnc_client->rfb_client;
+    if (rfb_client != NULL) {
+
+        /* Wait for client thread to finish */
+        pthread_join(vnc_client->client_thread, NULL);
+
+        /* Free memory not free'd by libvncclient's rfbClientCleanup() */
+        if (rfb_client->frameBuffer != NULL) free(rfb_client->frameBuffer);
+        if (rfb_client->raw_buffer != NULL) free(rfb_client->raw_buffer);
+        if (rfb_client->rcSource != NULL) free(rfb_client->rcSource);
+
+        /* Free VNC rfbClientData linked list (not free'd by rfbClientCleanup()) */
+        while (rfb_client->clientData != NULL) {
+            rfbClientData* next = rfb_client->clientData->next;
+            free(rfb_client->clientData);
+            rfb_client->clientData = next;
+        }
+
+        rfbClientCleanup(rfb_client);
+
+    }
+
 #ifdef ENABLE_PULSE
     /* If audio enabled, stop streaming */
     if (vnc_client->audio_enabled)
@@ -71,26 +94,6 @@ int guac_vnc_client_free_handler(guac_client* client) {
     /* Free surface */
     if (vnc_client->default_surface != NULL)
         guac_common_surface_free(vnc_client->default_surface);
-
-    /* Clean up VNC client*/
-    rfbClient* rfb_client = vnc_client->rfb_client;
-    if (rfb_client != NULL) {
-
-        /* Free memory not free'd by libvncclient's rfbClientCleanup() */
-        if (rfb_client->frameBuffer != NULL) free(rfb_client->frameBuffer);
-        if (rfb_client->raw_buffer != NULL) free(rfb_client->raw_buffer);
-        if (rfb_client->rcSource != NULL) free(rfb_client->rcSource);
-
-        /* Free VNC rfbClientData linked list (not free'd by rfbClientCleanup()) */
-        while (rfb_client->clientData != NULL) {
-            rfbClientData* next = rfb_client->clientData->next;
-            free(rfb_client->clientData);
-            rfb_client->clientData = next;
-        }
-
-        rfbClientCleanup(rfb_client);
-
-    }
 
     /* Free generic data struct */
     free(client->data);
