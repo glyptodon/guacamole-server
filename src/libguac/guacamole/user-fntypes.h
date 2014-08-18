@@ -30,6 +30,8 @@
  */
 
 #include "protocol-types.h"
+#include "stream-types.h"
+#include "timestamp-types.h"
 #include "user-types.h"
 
 /**
