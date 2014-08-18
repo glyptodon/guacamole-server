@@ -176,6 +176,9 @@ AC_ARG_WITH([vorbis],
             [],
             [with_vorbis=check])
 
+# FIXME: Temporarily disabled
+with_vorbis=no
+
 if test "x$with_vorbis" != "xno"
 then
     have_vorbis=yes
@@ -212,6 +215,9 @@ AC_ARG_WITH([pulse],
                             [support PulseAudio @<:@default=check@:>@])],
             [],
             [with_pulse=check])
+
+# FIXME: Temporarily disabled
+with_pulse=no
 
 if test "x$with_pulse" != "xno"
 then
@@ -263,6 +269,9 @@ AC_ARG_WITH([terminal],
             [],
             [with_terminal=check])
 
+# FIXME: Temporarily disabled
+with_terminal=no
+
 if test "x$with_terminal" != "xno"
 then
     have_terminal=yes
@@ -285,6 +294,9 @@ AC_ARG_WITH([vnc],
                             [support VNC @<:@default=check@:>@])],
             [],
             [with_vnc=check])
+
+# FIXME: Temporarily disabled
+with_vnc=no
 
 if test "x$with_vnc" != "xno"
 then
@@ -358,6 +370,9 @@ AC_ARG_WITH([rdp],
                             [support RDP @<:@default=check@:>@])],
             [],
             [with_rdp=check])
+
+# FIXME: Temporarily disabled
+with_rdp=no
 
 if test "x$with_rdp" != "xno"
 then
@@ -729,6 +744,9 @@ AC_ARG_WITH([ssh],
             [],
             [with_ssh=check])
 
+# FIXME: Temporarily disabled
+with_ssh=no
+
 AC_ARG_ENABLE(ssh_agent,
               [AS_HELP_STRING([--enable-ssh-agent],
                               [enable built-in ssh-agent])
@@ -811,6 +829,9 @@ AC_ARG_WITH([telnet],
                             [support Telnet @<:@default=check@:>@])],
             [],
             [with_telnet=check])
+
+# FIXME: Temporarily disabled
+with_telnet=no
 
 if test "x$with_telnet" != "xno"
 then
