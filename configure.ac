@@ -295,9 +295,6 @@ AC_ARG_WITH([vnc],
             [],
             [with_vnc=check])
 
-# FIXME: Temporarily disabled
-with_vnc=no
-
 if test "x$with_vnc" != "xno"
 then
     have_libvncserver=yes
