@@ -200,7 +200,7 @@ static guac_client* guacd_get_client(guacd_client_map* map, const char* identifi
     client->log_error_handler = guacd_client_log_error;
 
     /* Init client for selected protocol */
-    if (guac_client_plugin_init_client(identifier, client)) {
+    if (guac_client_load_plugin(client, identifier)) {
         guacd_log_guac_error("Protocol initialization failed");
         guac_client_free(client);
         return NULL;

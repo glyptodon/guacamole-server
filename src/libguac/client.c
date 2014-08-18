@@ -28,11 +28,13 @@
 #include "instruction.h"
 #include "layer.h"
 #include "pool.h"
+#include "plugin.h"
 #include "protocol.h"
 #include "socket.h"
 #include "timestamp.h"
 #include "user.h"
 
+#include <dlfcn.h>
 #include <pthread.h>
 #include <stdarg.h>
 #include <stdio.h>
@@ -222,6 +224,12 @@ void guac_client_free(guac_client* client) {
     guac_pool_free(client->__buffer_pool);
     guac_pool_free(client->__layer_pool);
 
+    /* Close associated plugin */
+    if (client->__plugin_handle != NULL) {
+        if (dlclose(client->__plugin_handle))
+            guac_client_log_error(client, "Unable to close plugin: %s", dlerror());
+    }
+
     pthread_mutex_destroy(&(client->__users_lock));
     free(client);
 }
@@ -380,6 +388,57 @@ int guac_client_end_frame(guac_client* client) {
     /* Update and send timestamp */
     client->last_sent_timestamp = guac_timestamp_current();
     return guac_protocol_send_sync(client->socket, client->last_sent_timestamp);
+
+}
+
+/**
+ * Empty NULL-terminated array of argument names.
+ */
+const char* __GUAC_CLIENT_NO_ARGS[] = { NULL };
+
+int guac_client_load_plugin(guac_client* client, const char* protocol) {
+
+    /* Reference to dlopen()'d plugin */
+    void* client_plugin_handle;
+
+    /* Pluggable client */
+    char protocol_lib[GUAC_PROTOCOL_LIBRARY_LIMIT] =
+        GUAC_PROTOCOL_LIBRARY_PREFIX;
+ 
+    union {
+        guac_client_init_handler* client_init;
+        void* obj;
+    } alias;
+
+    /* Add protocol and .so suffix to protocol_lib */
+    strncat(protocol_lib, protocol, GUAC_PROTOCOL_NAME_LIMIT-1);
+    strcat(protocol_lib, GUAC_PROTOCOL_LIBRARY_SUFFIX);
+
+    /* Load client plugin */
+    client_plugin_handle = dlopen(protocol_lib, RTLD_LAZY);
+    if (!client_plugin_handle) {
+        guac_error = GUAC_STATUS_BAD_ARGUMENT;
+        guac_error_message = dlerror();
+        return -1;
+    }
+
+    dlerror(); /* Clear errors */
+
+    /* Get init function */
+    alias.obj = dlsym(client_plugin_handle, "guac_client_init");
+
+    /* Fail if cannot find guac_client_init */
+    if (dlerror() != NULL) {
+        guac_error = GUAC_STATUS_BAD_ARGUMENT;
+        guac_error_message = dlerror();
+        return -1;
+    }
+
+    /* Init client */
+    client->args = __GUAC_CLIENT_NO_ARGS;
+    client->__plugin_handle = client_plugin_handle;
+
+    return alias.client_init(client);
 
 }
 

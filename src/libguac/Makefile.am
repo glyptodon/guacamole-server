@@ -75,7 +75,6 @@ libguac_la_SOURCES =  \
     id.c              \
     instruction.c     \
     palette.c         \
-    plugin.c          \
     pool.c            \
     protocol.c        \
     socket.c          \

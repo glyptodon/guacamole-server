@@ -23,7 +23,6 @@
 #ifndef _GUAC_PLUGIN_H
 #define _GUAC_PLUGIN_H
 
-#include "client-types.h"
 #include "plugin-constants.h"
 
 /**
@@ -31,15 +30,5 @@
  *
  * @file plugin.h
  */
-
-/**
- * Initializes the given guac_client using the initialization routine provided
- * by the plugin corresponding to the named protocol.
- *
- * @param protocol The name of the protocol to use.
- * @param client The guac_client to initialize.
- * @return Zero if initialization was successful, non-zero otherwise.
- */
-int guac_client_plugin_init_client(const char* protocol, guac_client* client);
 
 #endif

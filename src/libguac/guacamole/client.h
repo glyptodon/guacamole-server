@@ -249,6 +249,13 @@ struct guac_client {
      */
     const char** args;
 
+    /**
+     * Handle to the dlopen()'d plugin, which should be given to dlclose() when
+     * this client is freed. This is only assigned if guac_client_load_plugin()
+     * is used.
+     */
+    void* __plugin_handle;
+
 };
 
 /**
@@ -440,6 +447,20 @@ void guac_client_foreach_user(guac_client* client, guac_user_callback* callback,
  * @return Zero on success, non-zero on error.
  */
 int guac_client_end_frame(guac_client* client);
+
+/**
+ * Initializes the given guac_client using the initialization routine provided
+ * by the plugin corresponding to the named protocol. This will automatically
+ * invoke guac_client_init within the plugin for the given protocol.
+ *
+ * Note that the connection will likely not be established until the first
+ * user (the "owner") is added to the client.
+ *
+ * @param client The guac_client to initialize.
+ * @param protocol The name of the protocol to use.
+ * @return Zero if initialization was successful, non-zero otherwise.
+ */
+int guac_client_load_plugin(guac_client* client, const char* protocol);
 
 /**
  * The default Guacamole client layer, layer 0.
