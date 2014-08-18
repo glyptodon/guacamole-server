@@ -325,8 +325,8 @@ int __guac_handle_end(guac_user* user, guac_instruction* instruction) {
 }
 
 int __guac_handle_disconnect(guac_user* user, guac_instruction* instruction) {
-    guac_client_log_info(user->client, "Disconnect requested. Removing user...");
-    guac_client_remove_user(user->client, user);
+    guac_client_log_info(user->client, "Disconnect requested. Ending user session...");
+    guac_user_stop(user);
     return 0;
 }
 
