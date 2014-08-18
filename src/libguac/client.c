@@ -46,13 +46,43 @@ guac_layer __GUAC_DEFAULT_LAYER = {
 const guac_layer* GUAC_DEFAULT_LAYER = &__GUAC_DEFAULT_LAYER;
 
 /**
- * Socket read handler which operates on each of the sockets of all connected
- * users, unifying the results.
+ * The broadcast socket cannot be read from.
  */
 static ssize_t __guac_socket_broadcast_read_handler(guac_socket* socket,
         void* buf, size_t count) {
-    /* STUB */
-    return 0;
+
+    /* Broadcast socket reads are not allowed */
+    return -1;
+
+}
+
+/**
+ * Single chunk of data, to be broadcast to all users.
+ */
+typedef struct __write_chunk {
+
+    /**
+     * The buffer to write.
+     */
+    const void* buffer;
+
+    /**
+     * The number of bytes in the buffer.
+     */
+    size_t length;
+
+} __write_chunk;
+
+/**
+ * Writes a chunk of data to a given user.
+ */
+static void __write_chunk_callback(guac_user* user, void* data) {
+
+    __write_chunk* chunk = (__write_chunk*) data;
+
+    /* Attempt write, disconnect on failure */
+    if (guac_socket_write(user->socket, chunk->buffer, chunk->length))
+        guac_user_stop(user);
 
 }
 
@@ -62,17 +92,29 @@ static ssize_t __guac_socket_broadcast_read_handler(guac_socket* socket,
  */
 static ssize_t __guac_socket_broadcast_write_handler(guac_socket* socket,
         const void* buf, size_t count) {
-    /* STUB */
-    return 0;
+
+    guac_client* client = (guac_client*) socket->data;
+
+    /* Build chunk */
+    __write_chunk chunk;
+    chunk.buffer = buf;
+    chunk.length = count;
+
+    /* Broadcast chunk to all users */
+    guac_client_foreach_user(client, __write_chunk_callback, &chunk);
+
+    return count;
+
 }
 
 /**
- * Socket select handler which operates on each of the sockets of all connected
- * users, unifying the results.
+ * The broadcast socket cannot be read from (nor selected).
  */
 static int __guac_socket_broadcast_select_handler(guac_socket* socket, int usec_timeout) {
-    /* STUB */
-    return 0;
+
+    /* Selecting the broadcast socket is not possible */
+    return -1;
+
 }
 
 guac_layer* guac_client_alloc_layer(guac_client* client) {
