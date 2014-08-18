@@ -264,11 +264,15 @@ static int guacd_handle_connection(guacd_client_map* map, guac_socket* socket) {
         guacd_log_info("Last user of connection \"%s\" disconnected", client->connection_id);
 
         /* Remove client */
-        if (guacd_client_map_remove(map, client->connection_id))
+        if (guacd_client_map_remove(map, client->connection_id) == NULL)
             guacd_log_error("Internal failure removing client \"%s\". Client record will never be freed.",
                     client->connection_id);
+        else
+            guacd_log_info("Connection \"%s\" removed.", client->connection_id);
 
+        guac_client_stop(client);
         guac_client_free(client);
+
     }
 
     return retval;
