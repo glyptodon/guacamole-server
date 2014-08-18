@@ -144,6 +144,7 @@ static int guacd_handle_user(guac_client* client, guac_socket* socket, int owner
 
     /* Acknowledge connection availability */
     guac_protocol_send_ready(socket, client->connection_id);
+    guac_socket_flush(socket);
 
     /* Attempt join */
     if (guac_client_add_user(client, user, connect->argc, connect->argv))
