@@ -25,17 +25,21 @@
 #include "clipboard.h"
 #include "guac_clipboard.h"
 #include "guac_iconv.h"
+#include "user.h"
+#include "vnc.h"
 
 #include <guacamole/client.h>
 #include <guacamole/stream.h>
+#include <guacamole/user.h>
 #include <rfb/rfbclient.h>
+#include <rfb/rfbproto.h>
 
-int guac_vnc_clipboard_handler(guac_client* client, guac_stream* stream,
+int guac_vnc_clipboard_handler(guac_user* user, guac_stream* stream,
         char* mimetype) {
 
     /* Clear clipboard and prepare for new data */
-    vnc_guac_client_data* client_data = (vnc_guac_client_data*) client->data;
-    guac_common_clipboard_reset(client_data->clipboard, mimetype);
+    guac_vnc_client* vnc_client = (guac_vnc_client*) user->client->data;
+    guac_common_clipboard_reset(vnc_client->clipboard, mimetype);
 
     /* Set handlers for clipboard stream */
     stream->blob_handler = guac_vnc_clipboard_blob_handler;
@@ -44,33 +48,54 @@ int guac_vnc_clipboard_handler(guac_client* client, guac_stream* stream,
     return 0;
 }
 
-int guac_vnc_clipboard_blob_handler(guac_client* client, guac_stream* stream,
+int guac_vnc_clipboard_blob_handler(guac_user* user, guac_stream* stream,
         void* data, int length) {
 
     /* Append new data */
-    vnc_guac_client_data* client_data = (vnc_guac_client_data*) client->data;
-    guac_common_clipboard_append(client_data->clipboard, (char*) data, length);
+    guac_vnc_client* vnc_client = (guac_vnc_client*) user->client->data;
+    guac_common_clipboard_append(vnc_client->clipboard, (char*) data, length);
 
     return 0;
 }
 
-int guac_vnc_clipboard_end_handler(guac_client* client, guac_stream* stream) {
+int guac_vnc_clipboard_end_handler(guac_user* user, guac_stream* stream) {
 
-    vnc_guac_client_data* client_data = (vnc_guac_client_data*) client->data;
-    rfbClient* rfb_client = client_data->rfb_client;
+    guac_vnc_client* vnc_client = (guac_vnc_client*) user->client->data;
+    rfbClient* rfb_client = vnc_client->rfb_client;
 
     char output_data[GUAC_VNC_CLIPBOARD_MAX_LENGTH];
 
-    const char* input = client_data->clipboard->buffer;
+    const char* input = vnc_client->clipboard->buffer;
     char* output = output_data;
 
     /* Convert clipboard to ISO 8859-1 */
-    guac_iconv(GUAC_READ_UTF8, &input, client_data->clipboard->length,
+    guac_iconv(GUAC_READ_UTF8, &input, vnc_client->clipboard->length,
                GUAC_WRITE_ISO8859_1, &output, sizeof(output_data));
 
     /* Send via VNC */
     SendClientCutText(rfb_client, output_data, output - output_data);
 
     return 0;
+}
+
+void guac_vnc_cut_text(rfbClient* client, const char* text, int textlen) {
+
+    guac_client* gc = rfbClientGetClientData(client, GUAC_VNC_CLIENT_KEY);
+    guac_vnc_client* vnc_client = (guac_vnc_client*) gc->data;
+
+    char received_data[GUAC_VNC_CLIPBOARD_MAX_LENGTH];
+
+    const char* input = text;
+    char* output = received_data;
+
+    /* Convert clipboard contents */
+    guac_iconv(GUAC_READ_ISO8859_1, &input, textlen,
+               GUAC_WRITE_UTF8, &output, sizeof(received_data));
+
+    /* Send converted data */
+    guac_common_clipboard_reset(vnc_client->clipboard, "text/plain");
+    guac_common_clipboard_append(vnc_client->clipboard, received_data, output - received_data);
+    guac_common_clipboard_send(vnc_client->clipboard, gc);
+
 }
 

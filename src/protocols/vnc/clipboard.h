@@ -25,25 +25,32 @@
 
 #include "config.h"
 
-#include <guacamole/client.h>
+#include "guac_clipboard.h"
+
 #include <guacamole/stream.h>
+#include <guacamole/user.h>
+#include <rfb/rfbclient.h>
+#include <rfb/rfbproto.h>
 
 /**
- * Handler for inbound clipboard data.
+ * Handler for inbound clipboard data from Guacamole users.
  */
-int guac_vnc_clipboard_handler(guac_client* client, guac_stream* stream,
-        char* mimetype);
+int guac_vnc_clipboard_handler(guac_user* user, guac_stream* stream, char* mimetype);
 
 /**
  * Handler for stream data related to clipboard.
  */
-int guac_vnc_clipboard_blob_handler(guac_client* client, guac_stream* stream,
-        void* data, int length);
+int guac_vnc_clipboard_blob_handler(guac_user* user, guac_stream* stream, void* data, int length);
 
 /**
  * Handler for end-of-stream related to clipboard.
  */
-int guac_vnc_clipboard_end_handler(guac_client* client, guac_stream* stream);
+int guac_vnc_clipboard_end_handler(guac_user* user, guac_stream* stream);
+
+/**
+ * Handler for clipboard data received via VNC.
+ */
+void guac_vnc_cut_text(rfbClient* client, const char* text, int textlen);
 
 #endif
 

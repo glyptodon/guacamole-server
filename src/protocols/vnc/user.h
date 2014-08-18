@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2013 Glyptodon LLC
+ * Copyright (C) 2014 Glyptodon LLC
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -20,38 +20,24 @@
  * THE SOFTWARE.
  */
 
+#ifndef GUAC_VNC_USER_H
+#define GUAC_VNC_USER_H
 
-#ifndef __GUAC_VNC_CLIENT_H
-#define __GUAC_VNC_CLIENT_H
+#include "config.h"
 
-#include <guacamole/client.h>
+#include "guac_clipboard.h"
 
-/**
- * The maximum duration of a frame in milliseconds.
- */
-#define GUAC_VNC_FRAME_DURATION 40
+#include <guacamole/user.h>
 
 /**
- * The amount of time to allow per message read within a frame, in
- * milliseconds. If the server is silent for at least this amount of time, the
- * frame will be considered finished.
+ * Handler for joining users.
  */
-#define GUAC_VNC_FRAME_TIMEOUT 0
+int guac_vnc_user_join_handler(guac_user* user, int argc, char** argv);
 
 /**
- * The number of milliseconds to wait between connection attempts.
+ * Handler for leaving users.
  */
-#define GUAC_VNC_CONNECT_INTERVAL 1000
-
-/**
- * The maximum number of bytes to allow within the clipboard.
- */
-#define GUAC_VNC_CLIPBOARD_MAX_LENGTH 262144
-
-/**
- * Handler which frees all data associated with the guac_client.
- */
-int guac_vnc_client_free_handler(guac_client* client);
+int guac_vnc_user_leave_handler(guac_user* user);
 
 #endif
 

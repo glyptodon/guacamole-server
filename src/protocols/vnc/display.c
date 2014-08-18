@@ -25,6 +25,7 @@
 #include "client.h"
 #include "guac_iconv.h"
 #include "guac_surface.h"
+#include "vnc.h"
 
 #include <cairo/cairo.h>
 #include <guacamole/client.h>
@@ -44,101 +45,10 @@
 #include <stdlib.h>
 #include <syslog.h>
 
-void guac_vnc_cursor(rfbClient* client, int x, int y, int w, int h, int bpp) {
-
-    guac_client* gc = rfbClientGetClientData(client, __GUAC_CLIENT);
-    guac_socket* socket = gc->socket;
-    vnc_guac_client_data* guac_client_data = (vnc_guac_client_data*) gc->data;
-    const guac_layer* cursor_layer = guac_client_data->cursor;
-
-    /* Cairo image buffer */
-    int stride = cairo_format_stride_for_width(CAIRO_FORMAT_ARGB32, w);
-    unsigned char* buffer = malloc(h*stride);
-    unsigned char* buffer_row_current = buffer;
-    cairo_surface_t* surface;
-
-    /* VNC image buffer */
-    unsigned int fb_stride = bpp * w;
-    unsigned char* fb_row_current = client->rcSource;
-    unsigned char* fb_mask = client->rcMask;
-
-    int dx, dy;
-
-    /* Copy image data from VNC client to RGBA buffer */
-    for (dy = 0; dy<h; dy++) {
-
-        unsigned int*  buffer_current;
-        unsigned char* fb_current;
-        
-        /* Get current buffer row, advance to next */
-        buffer_current      = (unsigned int*) buffer_row_current;
-        buffer_row_current += stride;
-
-        /* Get current framebuffer row, advance to next */
-        fb_current      = fb_row_current;
-        fb_row_current += fb_stride;
-
-        for (dx = 0; dx<w; dx++) {
-
-            unsigned char alpha, red, green, blue;
-            unsigned int v;
-
-            /* Read current pixel value */
-            switch (bpp) {
-                case 4:
-                    v = *((unsigned int*)   fb_current);
-                    break;
-
-                case 2:
-                    v = *((unsigned short*) fb_current);
-                    break;
-
-                default:
-                    v = *((unsigned char*)  fb_current);
-            }
-
-            /* Translate mask to alpha */
-            if (*(fb_mask++)) alpha = 0xFF;
-            else              alpha = 0x00;
-
-            /* Translate value to RGB */
-            red   = (v >> client->format.redShift)   * 0x100 / (client->format.redMax  + 1);
-            green = (v >> client->format.greenShift) * 0x100 / (client->format.greenMax+ 1);
-            blue  = (v >> client->format.blueShift)  * 0x100 / (client->format.blueMax + 1);
-
-            /* Output ARGB */
-            if (guac_client_data->swap_red_blue)
-                *(buffer_current++) = (alpha << 24) | (blue << 16) | (green << 8) | red;
-            else
-                *(buffer_current++) = (alpha << 24) | (red  << 16) | (green << 8) | blue;
-
-            /* Next VNC pixel */
-            fb_current += bpp;
-
-        }
-    }
-
-    /* Send cursor data*/
-    surface = cairo_image_surface_create_for_data(buffer, CAIRO_FORMAT_ARGB32, w, h, stride);
-    
-    guac_protocol_send_png(socket,
-            GUAC_COMP_SRC, cursor_layer, 0, 0, surface);
-    
-    /* Update cursor */
-    guac_protocol_send_cursor(socket, x, y, cursor_layer, 0, 0, w, h);
-    
-    /* Free surface */
-    cairo_surface_destroy(surface);
-    free(buffer);
-
-    /* libvncclient does not free rcMask as it does rcSource */
-    free(client->rcMask);
-}
-
 void guac_vnc_update(rfbClient* client, int x, int y, int w, int h) {
 
-    guac_client* gc = rfbClientGetClientData(client, __GUAC_CLIENT);
-    vnc_guac_client_data* guac_client_data = (vnc_guac_client_data*) gc->data;
+    guac_client* gc = rfbClientGetClientData(client, GUAC_VNC_CLIENT_KEY);
+    guac_vnc_client* vnc_client = (guac_vnc_client*) gc->data;
 
     int dx, dy;
 
@@ -154,8 +64,8 @@ void guac_vnc_update(rfbClient* client, int x, int y, int w, int h) {
     unsigned char* fb_row_current;
 
     /* Ignore extra update if already handled by copyrect */
-    if (guac_client_data->copy_rect_used) {
-        guac_client_data->copy_rect_used = 0;
+    if (vnc_client->copy_rect_used) {
+        vnc_client->copy_rect_used = 0;
         return;
     }
 
@@ -206,7 +116,7 @@ void guac_vnc_update(rfbClient* client, int x, int y, int w, int h) {
             blue  = (v >> client->format.blueShift)  * 0x100 / (client->format.blueMax + 1);
 
             /* Output RGB */
-            if (guac_client_data->swap_red_blue)
+            if (vnc_client->settings.swap_red_blue)
                 *(buffer_current++) = (blue << 16) | (green << 8) | red;
             else
                 *(buffer_current++) = (red  << 16) | (green << 8) | blue;
@@ -219,7 +129,7 @@ void guac_vnc_update(rfbClient* client, int x, int y, int w, int h) {
     /* For now, only use default layer */
     surface = cairo_image_surface_create_for_data(buffer, CAIRO_FORMAT_RGB24, w, h, stride);
 
-    guac_common_surface_draw(guac_client_data->default_surface, x, y, surface);
+    guac_common_surface_draw(vnc_client->default_surface, x, y, surface);
 
     /* Free surface */
     cairo_surface_destroy(surface);
@@ -229,20 +139,15 @@ void guac_vnc_update(rfbClient* client, int x, int y, int w, int h) {
 
 void guac_vnc_copyrect(rfbClient* client, int src_x, int src_y, int w, int h, int dest_x, int dest_y) {
 
-    guac_client* gc = rfbClientGetClientData(client, __GUAC_CLIENT);
-    vnc_guac_client_data* guac_client_data = (vnc_guac_client_data*) gc->data;
+    guac_client* gc = rfbClientGetClientData(client, GUAC_VNC_CLIENT_KEY);
+    guac_vnc_client* vnc_client = (guac_vnc_client*) gc->data;
 
     /* For now, only use default layer */
-    guac_common_surface_copy(guac_client_data->default_surface, src_x,  src_y, w, h,
-                             guac_client_data->default_surface, dest_x, dest_y);
+    guac_common_surface_copy(vnc_client->default_surface, src_x,  src_y, w, h,
+                             vnc_client->default_surface, dest_x, dest_y);
 
-    ((vnc_guac_client_data*) gc->data)->copy_rect_used = 1;
+    vnc_client->copy_rect_used = 1;
 
-}
-
-char* guac_vnc_get_password(rfbClient* client) {
-    guac_client* gc = rfbClientGetClientData(client, __GUAC_CLIENT);
-    return ((vnc_guac_client_data*) gc->data)->password;
 }
 
 void guac_vnc_set_pixel_format(rfbClient* client, int color_depth) {
@@ -285,65 +190,14 @@ void guac_vnc_set_pixel_format(rfbClient* client, int color_depth) {
 
 rfbBool guac_vnc_malloc_framebuffer(rfbClient* rfb_client) {
 
-    guac_client* gc = rfbClientGetClientData(rfb_client, __GUAC_CLIENT);
-    vnc_guac_client_data* guac_client_data = (vnc_guac_client_data*) gc->data;
+    guac_client* gc = rfbClientGetClientData(rfb_client, GUAC_VNC_CLIENT_KEY);
+    guac_vnc_client* vnc_client = (guac_vnc_client*) gc->data;
 
     /* Resize surface */
-    if (guac_client_data->default_surface != NULL)
-        guac_common_surface_resize(guac_client_data->default_surface, rfb_client->width, rfb_client->height);
+    if (vnc_client->default_surface != NULL)
+        guac_common_surface_resize(vnc_client->default_surface, rfb_client->width, rfb_client->height);
 
     /* Use original, wrapped proc */
-    return guac_client_data->rfb_MallocFrameBuffer(rfb_client);
-}
-
-void guac_vnc_cut_text(rfbClient* client, const char* text, int textlen) {
-
-    guac_client* gc = rfbClientGetClientData(client, __GUAC_CLIENT);
-    vnc_guac_client_data* client_data = (vnc_guac_client_data*) gc->data;
-
-    char received_data[GUAC_VNC_CLIPBOARD_MAX_LENGTH];
-
-    const char* input = text;
-    char* output = received_data;
-
-    /* Convert clipboard contents */
-    guac_iconv(GUAC_READ_ISO8859_1, &input, textlen,
-               GUAC_WRITE_UTF8, &output, sizeof(received_data));
-
-    /* Send converted data */
-    guac_common_clipboard_reset(client_data->clipboard, "text/plain");
-    guac_common_clipboard_append(client_data->clipboard, received_data, output - received_data);
-    guac_common_clipboard_send(client_data->clipboard, gc);
-
-}
-
-void guac_vnc_client_log_info(const char* format, ...) {
-
-    char message[2048];
-
-    /* Copy log message into buffer */
-    va_list args;
-    va_start(args, format);
-    vsnprintf(message, sizeof(message), format, args);
-    va_end(args);
-
-    /* Log to syslog */
-    syslog(LOG_INFO, "%s", message);
-
-}
-
-void guac_vnc_client_log_error(const char* format, ...) {
-
-    char message[2048];
-
-    /* Copy log message into buffer */
-    va_list args;
-    va_start(args, format);
-    vsnprintf(message, sizeof(message), format, args);
-    va_end(args);
-
-    /* Log to syslog */
-    syslog(LOG_ERR, "%s", message);
-
+    return vnc_client->rfb_MallocFrameBuffer(rfb_client);
 }
 

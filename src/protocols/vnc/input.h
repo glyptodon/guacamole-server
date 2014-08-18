@@ -21,37 +21,22 @@
  */
 
 
-#ifndef __GUAC_VNC_CLIENT_H
-#define __GUAC_VNC_CLIENT_H
+#ifndef GUAC_VNC_INPUT_H
+#define GUAC_VNC_INPUT_H
 
-#include <guacamole/client.h>
+#include "config.h"
 
-/**
- * The maximum duration of a frame in milliseconds.
- */
-#define GUAC_VNC_FRAME_DURATION 40
+#include <guacamole/user.h>
 
 /**
- * The amount of time to allow per message read within a frame, in
- * milliseconds. If the server is silent for at least this amount of time, the
- * frame will be considered finished.
+ * Handler for Guacamole user mouse events.
  */
-#define GUAC_VNC_FRAME_TIMEOUT 0
+int guac_vnc_user_mouse_handler(guac_user* user, int x, int y, int mask);
 
 /**
- * The number of milliseconds to wait between connection attempts.
+ * Handler for Guacamole user key events.
  */
-#define GUAC_VNC_CONNECT_INTERVAL 1000
-
-/**
- * The maximum number of bytes to allow within the clipboard.
- */
-#define GUAC_VNC_CLIPBOARD_MAX_LENGTH 262144
-
-/**
- * Handler which frees all data associated with the guac_client.
- */
-int guac_vnc_client_free_handler(guac_client* client);
+int guac_vnc_user_key_handler(guac_user* user, int keysym, int pressed);
 
 #endif
 

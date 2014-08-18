@@ -20,38 +20,34 @@
  * THE SOFTWARE.
  */
 
+#ifndef GUAC_VNC_DISPLAY_H
+#define GUAC_VNC_DISPLAY_H
 
-#ifndef __GUAC_VNC_CLIENT_H
-#define __GUAC_VNC_CLIENT_H
+#include "config.h"
 
-#include <guacamole/client.h>
-
-/**
- * The maximum duration of a frame in milliseconds.
- */
-#define GUAC_VNC_FRAME_DURATION 40
+#include <rfb/rfbclient.h>
+#include <rfb/rfbproto.h>
 
 /**
- * The amount of time to allow per message read within a frame, in
- * milliseconds. If the server is silent for at least this amount of time, the
- * frame will be considered finished.
+ * Called for normal binary VNC image data.
  */
-#define GUAC_VNC_FRAME_TIMEOUT 0
+void guac_vnc_update(rfbClient* client, int x, int y, int w, int h);
 
 /**
- * The number of milliseconds to wait between connection attempts.
+ * Called for updates which contain data from existing rectangles of the
+ * display.
  */
-#define GUAC_VNC_CONNECT_INTERVAL 1000
+void guac_vnc_copyrect(rfbClient* client, int src_x, int src_y, int w, int h, int dest_x, int dest_y);
 
 /**
- * The maximum number of bytes to allow within the clipboard.
+ * Called when the pixel format of future updates is changing.
  */
-#define GUAC_VNC_CLIPBOARD_MAX_LENGTH 262144
+void guac_vnc_set_pixel_format(rfbClient* client, int color_depth);
 
 /**
- * Handler which frees all data associated with the guac_client.
+ * Called when the display is being resized (or initially allocated).
  */
-int guac_vnc_client_free_handler(guac_client* client);
+rfbBool guac_vnc_malloc_framebuffer(rfbClient* rfb_client);
 
 #endif
 

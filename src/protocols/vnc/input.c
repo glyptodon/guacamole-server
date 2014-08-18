@@ -20,18 +20,28 @@
  * THE SOFTWARE.
  */
 
-
-#ifndef __GUAC_VNC_GUAC_HANDLERS_H
-#define __GUAC_VNC_GUAC_HANDLERS_H
-
 #include "config.h"
 
-#include <guacamole/client.h>
+#include "vnc.h"
 
-int vnc_guac_client_handle_messages(guac_client* client);
-int vnc_guac_client_mouse_handler(guac_client* client, int x, int y, int mask);
-int vnc_guac_client_key_handler(guac_client* client, int keysym, int pressed);
-int vnc_guac_client_free_handler(guac_client* client);
+#include <guacamole/user.h>
+#include <rfb/rfbclient.h>
 
-#endif
+int guac_vnc_user_mouse_handler(guac_user* user, int x, int y, int mask) {
+
+    guac_vnc_client* vnc_client = (guac_vnc_client*) user->client->data;
+
+    SendPointerEvent(vnc_client->rfb_client, x, y, mask);
+
+    return 0;
+}
+
+int guac_vnc_user_key_handler(guac_user* user, int keysym, int pressed) {
+
+    guac_vnc_client* vnc_client = (guac_vnc_client*) user->client->data;
+
+    SendKeyEvent(vnc_client->rfb_client, keysym, pressed);
+
+    return 0;
+}
 
