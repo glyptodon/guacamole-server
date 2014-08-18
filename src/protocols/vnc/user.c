@@ -34,6 +34,8 @@
 #include <rfb/rfbclient.h>
 #include <rfb/rfbproto.h>
 
+#include <pthread.h>
+
 int guac_vnc_user_join_handler(guac_user* user, int argc, char** argv) {
 
     guac_vnc_client* vnc_client = (guac_vnc_client*) user->client->data;
@@ -48,7 +50,11 @@ int guac_vnc_user_join_handler(guac_user* user, int argc, char** argv) {
             return 1;
         }
 
-        /* TODO: Start client thread */
+        /* Start client thread */
+        if (pthread_create(&vnc_client->client_thread, NULL, guac_vnc_client_thread, user->client)) {
+            guac_user_log_error(user, "Unable to start VNC client thread.");
+            return 1;
+        }
 
     }
 

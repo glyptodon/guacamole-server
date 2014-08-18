@@ -129,7 +129,7 @@ rfbClient* guac_vnc_get_client(guac_client* client) {
 
 }
 
-int guac_vnc_client_thread(void* data) {
+void* guac_vnc_client_thread(void* data) {
 
     guac_client* client = (guac_client*) data;
     guac_vnc_client* vnc_client = (guac_vnc_client*) client->data;
@@ -167,7 +167,7 @@ int guac_vnc_client_thread(void* data) {
     /* If the final connect attempt fails, return error */
     if (!rfb_client) {
         guac_client_abort(client, GUAC_PROTOCOL_STATUS_UPSTREAM_ERROR, "Unable to connect to VNC server.");
-        return 1;
+        return NULL;
     }
 
 #ifdef ENABLE_PULSE
@@ -232,7 +232,7 @@ int guac_vnc_client_thread(void* data) {
             if (!HandleRFBServerMessage(rfb_client)) {
                 guac_client_abort(client, GUAC_PROTOCOL_STATUS_UPSTREAM_ERROR,
                                   "Error handling message from VNC server.");
-                return 1;
+                break;
             }
 
             /* Calculate time remaining in frame */
@@ -248,17 +248,14 @@ int guac_vnc_client_thread(void* data) {
         }
 
         /* If an error occurs, log it and fail */
-        if (wait_result < 0) {
+        if (wait_result < 0)
             guac_client_abort(client, GUAC_PROTOCOL_STATUS_UPSTREAM_ERROR, "Connection closed.");
-            return 1;
-        }
 
         guac_common_surface_flush(vnc_client->default_surface);
-        return 0;
 
     }
 
-    return 0;
+    return NULL;
 
 }
 

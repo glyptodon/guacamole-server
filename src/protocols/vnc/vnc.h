@@ -38,10 +38,17 @@
 #include <pulse/pulseaudio.h>
 #endif
 
+#include <pthread.h>
+
 /**
  * VNC-specific client data.
  */
 typedef struct guac_vnc_client {
+
+    /**
+     * The VNC client thread.
+     */
+    pthread_t client_thread;
 
     /**
      * The underlying VNC client.
@@ -104,7 +111,7 @@ rfbClient* guac_vnc_get_client(guac_client* client);
  * VNC client thread. This thread runs throughout the duration of the client,
  * existing as a single instance, shared by all users.
  */
-int guac_vnc_client_thread(void* data);
+void* guac_vnc_client_thread(void* data);
 
 /**
  * Key which can be used with the rfbClientGetClientData function to return
