@@ -33,6 +33,9 @@
 
 int guac_client_init(guac_client* client) {
 
+    /* Set client args */
+    client->args = GUAC_VNC_CLIENT_ARGS;
+
     /* Alloc client data */
     guac_vnc_client* vnc_client = calloc(1, sizeof(guac_vnc_client));
     client->data = vnc_client;
@@ -50,7 +53,6 @@ int guac_client_init(guac_client* client) {
 int guac_vnc_client_free_handler(guac_client* client) {
 
     guac_vnc_client* vnc_client = (guac_vnc_client*) client->data;
-    rfbClient* rfb_client = vnc_client->rfb_client;
 
 #ifdef ENABLE_PULSE
     /* If audio enabled, stop streaming */
@@ -63,28 +65,35 @@ int guac_vnc_client_free_handler(guac_client* client) {
         free(vnc_client->settings.encodings);
 
     /* Free clipboard */
-    guac_common_clipboard_free(vnc_client->clipboard);
+    if (vnc_client->clipboard != NULL)
+        guac_common_clipboard_free(vnc_client->clipboard);
 
     /* Free surface */
-    guac_common_surface_free(vnc_client->default_surface);
+    if (vnc_client->default_surface != NULL)
+        guac_common_surface_free(vnc_client->default_surface);
 
     /* Free generic data struct */
     free(client->data);
 
-    /* Free memory not free'd by libvncclient's rfbClientCleanup() */
-    if (rfb_client->frameBuffer != NULL) free(rfb_client->frameBuffer);
-    if (rfb_client->raw_buffer != NULL) free(rfb_client->raw_buffer);
-    if (rfb_client->rcSource != NULL) free(rfb_client->rcSource);
-
-    /* Free VNC rfbClientData linked list (not free'd by rfbClientCleanup()) */
-    while (rfb_client->clientData != NULL) {
-        rfbClientData* next = rfb_client->clientData->next;
-        free(rfb_client->clientData);
-        rfb_client->clientData = next;
-    }
-
     /* Clean up VNC client*/
-    rfbClientCleanup(rfb_client);
+    rfbClient* rfb_client = vnc_client->rfb_client;
+    if (rfb_client != NULL) {
+
+        /* Free memory not free'd by libvncclient's rfbClientCleanup() */
+        if (rfb_client->frameBuffer != NULL) free(rfb_client->frameBuffer);
+        if (rfb_client->raw_buffer != NULL) free(rfb_client->raw_buffer);
+        if (rfb_client->rcSource != NULL) free(rfb_client->rcSource);
+
+        /* Free VNC rfbClientData linked list (not free'd by rfbClientCleanup()) */
+        while (rfb_client->clientData != NULL) {
+            rfbClientData* next = rfb_client->clientData->next;
+            free(rfb_client->clientData);
+            rfb_client->clientData = next;
+        }
+
+        rfbClientCleanup(rfb_client);
+
+    }
 
     return 0;
 }
