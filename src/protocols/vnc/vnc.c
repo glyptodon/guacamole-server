@@ -217,6 +217,8 @@ void* guac_vnc_client_thread(void* data) {
     vnc_client->default_surface = guac_common_surface_alloc(client->socket, GUAC_DEFAULT_LAYER,
                                                             rfb_client->width, rfb_client->height);
 
+    guac_socket_flush(client->socket);
+
     /* Handle messages from VNC server while client is running */
     while (client->state == GUAC_CLIENT_RUNNING) {
 
@@ -252,6 +254,7 @@ void* guac_vnc_client_thread(void* data) {
             guac_client_abort(client, GUAC_PROTOCOL_STATUS_UPSTREAM_ERROR, "Connection closed.");
 
         guac_common_surface_flush(vnc_client->default_surface);
+        guac_socket_flush(client->socket);
 
     }
 
