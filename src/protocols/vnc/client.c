@@ -72,9 +72,6 @@ int guac_vnc_client_free_handler(guac_client* client) {
     if (vnc_client->default_surface != NULL)
         guac_common_surface_free(vnc_client->default_surface);
 
-    /* Free generic data struct */
-    free(client->data);
-
     /* Clean up VNC client*/
     rfbClient* rfb_client = vnc_client->rfb_client;
     if (rfb_client != NULL) {
@@ -94,6 +91,9 @@ int guac_vnc_client_free_handler(guac_client* client) {
         rfbClientCleanup(rfb_client);
 
     }
+
+    /* Free generic data struct */
+    free(client->data);
 
     return 0;
 }
