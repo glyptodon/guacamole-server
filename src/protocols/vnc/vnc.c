@@ -254,6 +254,7 @@ void* guac_vnc_client_thread(void* data) {
             guac_client_abort(client, GUAC_PROTOCOL_STATUS_UPSTREAM_ERROR, "Connection closed.");
 
         guac_common_surface_flush(vnc_client->default_surface);
+        guac_client_end_frame(client);
         guac_socket_flush(client->socket);
 
     }
