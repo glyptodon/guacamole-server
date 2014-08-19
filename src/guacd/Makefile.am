@@ -27,8 +27,8 @@ AM_CFLAGS = -Werror -Wall -pedantic @LIBGUAC_INCLUDE@ @COMMON_INCLUDE@
 sbin_PROGRAMS = guacd
 man_MANS = man/guacd.8
 
-noinst_HEADERS = user.h client-map.h log.h
-guacd_SOURCES  = daemon.c user.c client-map.c log.c
+noinst_HEADERS = user.h connection.h client-map.h log.h
+guacd_SOURCES  = daemon.c connection.c user.c client-map.c log.c
 guacd_LDADD    = @LIBGUAC_LTLIB@ @COMMON_LTLIB@
 guacd_LDFLAGS  = @PTHREAD_LIBS@ @SSL_LIBS@
 
