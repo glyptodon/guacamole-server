@@ -26,10 +26,12 @@
 #include "input.h"
 #include "guac_dot_cursor.h"
 #include "guac_pointer_cursor.h"
+#include "guac_surface.h"
 #include "user.h"
 #include "vnc.h"
 
 #include <guacamole/client.h>
+#include <guacamole/socket.h>
 #include <guacamole/user.h>
 #include <rfb/rfbclient.h>
 #include <rfb/rfbproto.h>
@@ -56,6 +58,12 @@ int guac_vnc_user_join_handler(guac_user* user, int argc, char** argv) {
             return 1;
         }
 
+    }
+
+    /* If not owner, synchronize with current display */
+    else {
+        guac_common_surface_dup(vnc_client->default_surface, user->socket);
+        guac_socket_flush(user->socket);
     }
 
     /* If not read-only, set input handlers and pointer */
