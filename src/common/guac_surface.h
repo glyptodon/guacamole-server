@@ -261,5 +261,14 @@ void guac_common_surface_flush(guac_common_surface* surface);
  */
 void guac_common_surface_flush_deferred(guac_common_surface* surface);
 
+/**
+ * Duplicates the contents of the current surface to the given socket. Pending
+ * changes are not flushed.
+ *
+ * @param surface The surface to duplicate.
+ * @param socket The socket to send the surface contents to.
+ */
+void guac_common_surface_dup(guac_common_surface* surface, guac_socket* socket);
+
 #endif
 

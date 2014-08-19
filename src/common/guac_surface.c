@@ -1021,3 +1021,23 @@ void guac_common_surface_flush(guac_common_surface* surface) {
 
 }
 
+void guac_common_surface_dup(guac_common_surface* surface, guac_socket* socket) {
+
+    /* Do nothing if not realized */
+    if (!surface->realized)
+        return;
+
+    /* Sync size to new socket */
+    guac_protocol_send_size(socket, surface->layer, surface->width, surface->height);
+
+    /* Get entire surface */
+    cairo_surface_t* rect = cairo_image_surface_create_for_data(
+            surface->buffer, CAIRO_FORMAT_RGB24,
+            surface->width, surface->height, surface->stride);
+
+    /* Send PNG for rect */
+    guac_protocol_send_png(socket, GUAC_COMP_OVER, surface->layer, 0, 0, rect);
+    cairo_surface_destroy(rect);
+
+}
+
