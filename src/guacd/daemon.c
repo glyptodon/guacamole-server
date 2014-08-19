@@ -182,6 +182,10 @@ static int guacd_handle_user(guac_client* client, guac_socket* socket, int owner
 
 }
 
+/**
+ * Returns a client for the given protocol or, if a connection ID is given, the
+ * existing client for the given connection ID.
+ */
 static guac_client* guacd_get_client(guacd_client_map* map, const char* identifier) {
 
     /*

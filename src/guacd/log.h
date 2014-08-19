@@ -51,17 +51,41 @@ void vguacd_log_error(const char* format, va_list args);
  */
 void guacd_log_info(const char* format, ...);
 
-/** Prints an error message to guacd's logs. This function accepts parameters
+/**
+ * Prints an error message to guacd's logs. This function accepts parameters
  * identically to printf.
  */
 void guacd_log_error(const char* format, ...);
 
+/**
+ * Prints an error message to guacd's logs. This function accepts parameters
+ * identically to printf.
+ */
+void guacd_log_error(const char* format, ...);
+
+/**
+ * Prints an error message to guacd's logs, automatically including any
+ * information present in guac_error. This function accepts parameters
+ * identically to printf.
+ */
 void guacd_log_guac_error(const char* message);
 
-void guacd_client_log_info(guac_client* client, const char* format, va_list args);
-void guacd_client_log_error(guac_client* client, const char* format, va_list args);
-
+/**
+ * Prints an error message using the logging facilities of the given client,
+ * automatically including any information present in guac_error. This function
+ * accepts parameters identically to printf.
+ */
 void guacd_client_log_guac_error(guac_client* client, const char* message);
+
+/**
+ * Handler for logging informational messages at the guac_client level.
+ */
+void guacd_client_log_info(guac_client* client, const char* format, va_list args);
+
+/**
+ * Handler for logging error messages at the guac_client level.
+ */
+void guacd_client_log_error(guac_client* client, const char* format, va_list args);
 
 #endif
 

@@ -30,28 +30,10 @@
 #include <guacamole/instruction.h>
 #include <guacamole/protocol.h>
 #include <guacamole/socket.h>
-#include <guacamole/timestamp.h>
 #include <guacamole/user.h>
 
 #include <pthread.h>
 #include <stdlib.h>
-#include <time.h>
-
-/**
- * Sleep for the given number of milliseconds.
- *
- * @param millis The number of milliseconds to sleep.
- */
-void __guacdd_sleep(int millis) {
-
-    struct timespec sleep_period;
-
-    sleep_period.tv_sec =   millis / 1000;
-    sleep_period.tv_nsec = (millis % 1000) * 1000000L;
-
-    nanosleep(&sleep_period, NULL);
-
-}
 
 void* __guacd_user_input_thread(void* data) {
 
