@@ -188,33 +188,47 @@ static int guacd_handle_user(guac_client* client, guac_socket* socket, int owner
  */
 static guac_client* guacd_get_client(guacd_client_map* map, const char* identifier) {
 
-    /*
-     * TODO: If connection ID given, client should be retrieved instead of created.
-     */
+    guac_client* client;
 
-    guacd_log_info("Creating new client for protocol \"%s\"", identifier);
+    /* If connection ID given, retrieve client from map */
+    if (identifier[0] == GUAC_CLIENT_ID_PREFIX) {
 
-    /* Create client */
-    guac_client* client = guac_client_alloc();
-    if (client == NULL)
-        return NULL;
+        client = guacd_client_map_retrieve(map, identifier);
+        if (client == NULL)
+            guacd_log_info("Requested connection \"%s\" does not exist.", identifier);
+        else
+            guacd_log_info("Joining existing connection \"%s\"", identifier);
 
-    /* Init logging */
-    client->log_info_handler = guacd_client_log_info;
-    client->log_error_handler = guacd_client_log_error;
-
-    /* Init client for selected protocol */
-    if (guac_client_load_plugin(client, identifier)) {
-        guacd_log_guac_error("Protocol initialization failed");
-        guac_client_free(client);
-        return NULL;
     }
 
-    /* Add client to global storage */
-    if (guacd_client_map_add(map, client)) {
-        guacd_log_error("Internal failure adding client \"%s\".", client->connection_id);
-        guac_client_free(client);
-        return NULL;
+    /* Otherwise, identifier is protocol name */
+    else {
+
+        guacd_log_info("Creating new client for protocol \"%s\"", identifier);
+
+        /* Create client */
+        client = guac_client_alloc();
+        if (client == NULL)
+            return NULL;
+
+        /* Init logging */
+        client->log_info_handler = guacd_client_log_info;
+        client->log_error_handler = guacd_client_log_error;
+
+        /* Init client for selected protocol */
+        if (guac_client_load_plugin(client, identifier)) {
+            guacd_log_guac_error("Protocol initialization failed");
+            guac_client_free(client);
+            return NULL;
+        }
+
+        /* Add client to global storage */
+        if (guacd_client_map_add(map, client)) {
+            guacd_log_error("Internal failure adding client \"%s\".", client->connection_id);
+            guac_client_free(client);
+            return NULL;
+        }
+
     }
 
     return client;
