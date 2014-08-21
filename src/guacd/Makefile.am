@@ -27,20 +27,22 @@ AM_CFLAGS = -Werror -Wall -pedantic @LIBGUAC_INCLUDE@ @COMMON_INCLUDE@
 sbin_PROGRAMS = guacd
 man_MANS = man/guacd.8
 
-noinst_HEADERS = \
-    user.h       \
-    connection.h \
-    client-map.h \
-    move-fd.h    \
-    log.h
+noinst_HEADERS =  \
+    connection.h  \
+    log.h         \
+    move-fd.h     \
+    proc.h        \
+    proc-map.h    \
+    user.h
 
 guacd_SOURCES =  \
-    daemon.c     \
     connection.c \
-    user.c       \
-    client-map.c \
+    daemon.c     \
+    log.c        \
     move-fd.c    \
-    log.c
+    proc.c       \
+    proc-map.c   \
+    user.c
 
 guacd_LDADD    = @LIBGUAC_LTLIB@ @COMMON_LTLIB@
 guacd_LDFLAGS  = @PTHREAD_LIBS@ @SSL_LIBS@

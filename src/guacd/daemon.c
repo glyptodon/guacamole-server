@@ -22,9 +22,9 @@
 
 #include "config.h"
 
-#include "client-map.h"
 #include "connection.h"
 #include "log.h"
+#include "proc-map.h"
 #include "user.h"
 
 #ifdef ENABLE_SSL
@@ -167,7 +167,7 @@ int main(int argc, char* argv[]) {
     SSL_CTX* ssl_context = NULL;
 #endif
 
-    guacd_client_map* map = guacd_client_map_alloc();
+    guacd_proc_map* map = guacd_proc_map_alloc();
 
     /* General */
     int retval;

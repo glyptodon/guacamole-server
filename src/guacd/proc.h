@@ -20,52 +20,44 @@
  * THE SOFTWARE.
  */
 
-#ifndef GUACD_CONNECTION_H
-#define GUACD_CONNECTION_H
+#ifndef GUACD_PROC_H
+#define GUACD_PROC_H
 
 #include "config.h"
 
-#include "proc-map.h"
+#include <guacamole/client.h>
 
-#ifdef ENABLE_SSL
-#include <openssl/ssl.h>
-#endif
+#include <unistd.h>
 
 /**
- * Contextual information surrounding a new, inbound connection to guacd.
+ * Process information of the internal remote desktop client.
  */
-typedef struct guacd_connection_context {
+typedef struct guacd_proc {
 
     /**
-     * The shared map of all connected clients.
+     * The process ID of the client.
      */
-    guacd_proc_map* map;
-
-#ifdef ENABLE_SSL
-    /**
-     * SSL context for encrypted connections to guacd. If SSL is not active,
-     * this will be NULL.
-     */
-    SSL_CTX* ssl_context;
-#endif
+    pid_t pid;
 
     /**
-     * The file descriptor associated with the newly-accepted connection.
+     * The file descriptor of the UNIX domain socket to use for sending and
+     * receiving file descriptors of new users.
      */
-    int connected_socket_fd;
+    int fd_socket;
 
-} guacd_connection_context;
+    /**
+     * The actual client instance.
+     */
+    guac_client* client;
+
+} guacd_proc;
 
 /**
- * Thread which accepts a guacd_connection_context and handles the connection
- * it describes. The guacd_connection_context must be dynamically allocated,
- * and this thread will automatically free the guacd_connection_context upon
- * termination.
- *
- * It is expected that this thread will operate detached. The creating process
- * need not join on the resulting thread.
+ * Creates a new process for handling the given protocol, returning the process
+ * created. The created process runs in the background relative to the calling
+ * process.
  */
-void* guacd_connection_thread(void* data);
+guacd_proc* guacd_create_proc(const char* protocol);
 
 #endif
 
