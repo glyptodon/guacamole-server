@@ -23,7 +23,9 @@
 #include "config.h"
 
 #include "log.h"
+#include "move-fd.h"
 #include "proc.h"
+#include "proc-map.h"
 #include "user.h"
 
 #include <guacamole/client.h>
@@ -34,9 +36,12 @@
 #include <guacamole/socket.h>
 #include <guacamole/user.h>
 
+#include <errno.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <sys/types.h>
+#include <sys/socket.h>
 
 /**
  * Handles the initial handshake of a user, associating that new user with the
@@ -163,66 +168,146 @@ static int guacd_handle_user(guac_client* client, guac_socket* socket, int owner
 }
 
 /**
- * Returns a new client for the given protocol.
+ * Begins a new user connection under a given process, using the given file
+ * descriptor.
  */
-static guac_client* guacd_create_client(guacd_proc_map* map, const char* protocol) {
+static void guacd_proc_add_user(guacd_proc* proc, int fd, int owner) {
 
-    /* Create client */
-    guac_client* client = guac_client_alloc();
-    if (client == NULL)
-        return NULL;
+    guac_client* client = proc->client;
 
-    /* Init logging */
-    client->log_info_handler = guacd_client_log_info;
-    client->log_error_handler = guacd_client_log_error;
+    /* Get guac_socket for given file descriptor */
+    guac_socket* socket = guac_socket_open(fd);
+    if (socket == NULL)
+        return;
 
-    /* Init client for selected protocol */
-    if (guac_client_load_plugin(client, protocol)) {
-        guacd_log_guac_error("Protocol initialization failed");
-        guac_client_free(client);
-        return NULL;
+    /* Handle user connection from handshake until disconnect/completion */
+    guacd_handle_user(client, socket, owner);
+
+    /* Stop client and prevent future users if all users are disconnected */
+    if (client->connected_users == 0) {
+        guacd_log_info("Last user of connection \"%s\" disconnected", client->connection_id);
+        guacd_proc_stop(proc);
     }
 
-    /* Add client to global storage */
-    if (guacd_proc_map_add(map, client)) {
-        guacd_log_error("Internal failure adding client \"%s\".", client->connection_id);
-        guac_client_free(client);
-        return NULL;
-    }
-
-    return client;
+    /* Close socket */
+    guac_socket_free(socket);
+    close(fd);
 
 }
 
 /**
- * Begins a new user connection under a given process, using the given file
- * descriptor. The file descriptor is added to the running process and managed
- * as a new user.
+ * Starts protocol-specific handling on the given process. This function does
+ * NOT return. It initializes the process with protocol-specific handlers and
+ * then runs until the fd_socket is closed.
  */
-static void guacd_proc_add_fd() {
+static void guacd_exec_proc(guacd_proc* proc, const char* protocol) {
 
-    /* Proceed with handshake and user I/O */
-    int retval = guacd_handle_user(client, socket, owner);
+    /* Init client for selected protocol */
+    if (guac_client_load_plugin(proc->client, protocol)) {
+        guacd_log_guac_error("Protocol initialization failed");
+        guac_client_free(proc->client);
+        close(proc->fd_socket);
+        free(proc);
+        exit(1);
+    }
 
-    /* Clean up client if no more users */
-    if (client->connected_users == 0) {
+    /* The first file descriptor is the owner */
+    int owner = 1;
 
-        guacd_log_info("Last user of connection \"%s\" disconnected", client->connection_id);
+    /* Add each received file descriptor as a new user */
+    int received_fd;
+    while ((received_fd = guacd_recv_fd(proc->fd_socket)) != -1) {
 
-        /* Remove client */
-        if (guacd_proc_map_remove(map, client->connection_id) == NULL)
-            guacd_log_error("Internal failure removing client \"%s\". Client record will never be freed.",
-                    client->connection_id);
-        else
-            guacd_log_info("Connection \"%s\" removed.", client->connection_id);
+        guacd_proc_add_user(proc, received_fd, owner);
 
-        guac_client_stop(client);
-        guac_client_free(client);
+        /* Future file descriptors are not owners */
+        owner = 0;
 
     }
+
+    /* Stop and free client */
+    guac_client_stop(proc->client);
+    guac_client_free(proc->client);
+
+    /* Child is finished */
+    close(proc->fd_socket);
+    free(proc);
+    exit(0);
 
 }
 
 guacd_proc* guacd_create_proc(const char* protocol) {
+
+    int sockets[2];
+
+    /* Open UNIX socket pair */
+    if (socketpair(PF_UNIX, SOCK_DGRAM, 0, sockets) < 0) {
+        guacd_log_error("Error opening socket pair: %s", strerror(errno));
+        return NULL;
+    }
+
+    int parent_socket = sockets[0];
+    int child_socket = sockets[1];
+
+    /* Allocate process */
+    guacd_proc* proc = calloc(1, sizeof(guacd_proc));
+    if (proc == NULL) {
+        close(parent_socket);
+        close(child_socket);
+        return NULL;
+    }
+
+    /* Associate new client */
+    proc->client = guac_client_alloc();
+    if (proc->client == NULL) {
+        close(parent_socket);
+        close(child_socket);
+        free(proc);
+        return NULL;
+    }
+
+    /* Init logging */
+    proc->client->log_info_handler  = guacd_client_log_info;
+    proc->client->log_error_handler = guacd_client_log_error;
+
+    /* Fork */
+    proc->pid = fork();
+    if (proc->pid < 0) {
+        guacd_log_error("Cannot fork child process: %s", strerror(errno));
+        close(parent_socket);
+        close(child_socket);
+        guac_client_free(proc->client);
+        free(proc);
+        return NULL;
+    }
+
+    /* Child */
+    else if (proc->pid == 0) {
+
+        /* Communicate with parent */
+        proc->fd_socket = parent_socket;
+        close(child_socket);
+
+        /* Start protocol-specific handling */
+        guacd_exec_proc(proc, protocol);
+
+    }
+
+    /* Parent */
+    else {
+
+        /* Communicate with child */
+        proc->fd_socket = child_socket;
+        close(parent_socket);
+
+    }
+
+    return proc;
+
+}
+
+void guacd_proc_stop(guacd_proc* proc) {
+    guac_client_stop(proc->client);
+    close(proc->fd_socket);
 }
 
