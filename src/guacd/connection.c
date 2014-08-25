@@ -124,15 +124,15 @@ static int guacd_route_connection(guacd_proc_map* map, guac_socket* socket) {
         guacd_log_info("Creating new client for protocol \"%s\"", identifier);
         proc = guacd_create_proc(identifier);
 
-        /* Log connection ID */
-        guacd_log_info("Connection ID is \"%s\"", proc->client->connection_id);
-
     }
 
     guac_instruction_free(select);
 
     if (proc == NULL)
         return 1;
+
+    /* Log connection ID */
+    guacd_log_info("Connection ID is \"%s\"", proc->client->connection_id);
 
     /* Add new user (in the case of a new process, this will be the owner */
     if (guacd_add_user(proc, socket) == 0) {
