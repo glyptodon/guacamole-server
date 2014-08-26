@@ -223,7 +223,8 @@ void guac_socket_update_buffer_end(guac_socket* socket);
 
 /**
  * Allocates and initializes a new guac_socket object with the given open
- * file descriptor.
+ * file descriptor. The file descriptor will be automatically closed when
+ * the allocated guac_socket is freed.
  *
  * If an error occurs while allocating the guac_socket object, NULL is returned,
  * and guac_error is set appropriately.
@@ -237,7 +238,8 @@ guac_socket* guac_socket_open(int fd);
 
 /**
  * Allocates and initializes a new guac_socket which writes all data via
- * nest instructions to the given existing, open guac_socket.
+ * nest instructions to the given existing, open guac_socket. Freeing the
+ * returned guac_socket has no effect on the underlying, nested guac_socket.
  *
  * If an error occurs while allocating the guac_socket object, NULL is returned,
  * and guac_error is set appropriately.
