@@ -241,7 +241,7 @@ guacd_proc* guacd_create_proc(const char* protocol) {
     int sockets[2];
 
     /* Open UNIX socket pair */
-    if (socketpair(PF_UNIX, SOCK_DGRAM, 0, sockets) < 0) {
+    if (socketpair(AF_UNIX, SOCK_DGRAM, 0, sockets) < 0) {
         guacd_log_error("Error opening socket pair: %s", strerror(errno));
         return NULL;
     }
