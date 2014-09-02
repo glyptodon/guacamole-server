@@ -21,13 +21,14 @@
  */
 
 
-#ifndef _GUACD_CLIENT_H
-#define _GUACD_CLIENT_H
+#ifndef _GUACD_USER_H
+#define _GUACD_USER_H
 
 #include "config.h"
 
-#include <guacamole/user.h>
+#include <guacamole/parser.h>
 #include <guacamole/socket.h>
+#include <guacamole/user.h>
 
 /**
  * The number of milliseconds to wait for messages in any phase before
@@ -49,10 +50,28 @@
 #define GUACD_CLIENT_MAX_CONNECTIONS 65536
 
 /**
+ * Information tied to a particular user's session, including a reference to
+ * the guac_user and the guac_parser being used for received instructions.
+ */
+typedef struct guacd_user_context {
+
+    /**
+     * The parser which will be used throughout the user's session.
+     */
+    guac_parser* parser;
+
+    /**
+     * A reference to the connected user.
+     */
+    guac_user* user;
+
+} guacd_user_context;
+
+/**
  * Starts the input/output threads of a new user. This function will block
  * until the user disconnects.
  */
-int guacd_user_start(guac_user* user, guac_socket* socket);
+int guacd_user_start(guacd_user_context* context);
 
 #endif
 

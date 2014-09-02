@@ -23,7 +23,6 @@
 #include "config.h"
 
 #include "client.h"
-#include "instruction.h"
 #include "protocol.h"
 #include "stream.h"
 #include "timestamp.h"
@@ -71,8 +70,8 @@ int64_t __guac_parse_int(const char* str) {
 
 /* Guacamole instruction handlers */
 
-int __guac_handle_sync(guac_user* user, guac_instruction* instruction) {
-    guac_timestamp timestamp = __guac_parse_int(instruction->argv[0]);
+int __guac_handle_sync(guac_user* user, int argc, char** argv) {
+    guac_timestamp timestamp = __guac_parse_int(argv[0]);
 
     /* Error if timestamp is in future */
     if (timestamp > user->client->last_sent_timestamp)
@@ -86,23 +85,23 @@ int __guac_handle_sync(guac_user* user, guac_instruction* instruction) {
     return 0;
 }
 
-int __guac_handle_mouse(guac_user* user, guac_instruction* instruction) {
+int __guac_handle_mouse(guac_user* user, int argc, char** argv) {
     if (user->mouse_handler)
         return user->mouse_handler(
             user,
-            atoi(instruction->argv[0]), /* x */
-            atoi(instruction->argv[1]), /* y */
-            atoi(instruction->argv[2])  /* mask */
+            atoi(argv[0]), /* x */
+            atoi(argv[1]), /* y */
+            atoi(argv[2])  /* mask */
         );
     return 0;
 }
 
-int __guac_handle_key(guac_user* user, guac_instruction* instruction) {
+int __guac_handle_key(guac_user* user, int argc, char** argv) {
     if (user->key_handler)
         return user->key_handler(
             user,
-            atoi(instruction->argv[0]), /* keysym */
-            atoi(instruction->argv[1])  /* pressed */
+            atoi(argv[0]), /* keysym */
+            atoi(argv[1])  /* pressed */
         );
     return 0;
 }
@@ -166,10 +165,10 @@ static guac_stream* __init_input_stream(guac_user* user, int stream_index) {
 
 }
 
-int __guac_handle_clipboard(guac_user* user, guac_instruction* instruction) {
+int __guac_handle_clipboard(guac_user* user, int argc, char** argv) {
 
     /* Pull corresponding stream */
-    int stream_index = atoi(instruction->argv[0]);
+    int stream_index = atoi(argv[0]);
     guac_stream* stream = __init_input_stream(user, stream_index);
     if (stream == NULL)
         return 0;
@@ -179,7 +178,7 @@ int __guac_handle_clipboard(guac_user* user, guac_instruction* instruction) {
         return user->clipboard_handler(
             user,
             stream,
-            instruction->argv[1] /* mimetype */
+            argv[1] /* mimetype */
         );
 
     /* Otherwise, abort */
@@ -189,20 +188,20 @@ int __guac_handle_clipboard(guac_user* user, guac_instruction* instruction) {
 
 }
 
-int __guac_handle_size(guac_user* user, guac_instruction* instruction) {
+int __guac_handle_size(guac_user* user, int argc, char** argv) {
     if (user->size_handler)
         return user->size_handler(
             user,
-            atoi(instruction->argv[0]), /* width */
-            atoi(instruction->argv[1])  /* height */
+            atoi(argv[0]), /* width */
+            atoi(argv[1])  /* height */
         );
     return 0;
 }
 
-int __guac_handle_file(guac_user* user, guac_instruction* instruction) {
+int __guac_handle_file(guac_user* user, int argc, char** argv) {
 
     /* Pull corresponding stream */
-    int stream_index = atoi(instruction->argv[0]);
+    int stream_index = atoi(argv[0]);
     guac_stream* stream = __init_input_stream(user, stream_index);
     if (stream == NULL)
         return 0;
@@ -212,8 +211,8 @@ int __guac_handle_file(guac_user* user, guac_instruction* instruction) {
         return user->file_handler(
             user,
             stream,
-            instruction->argv[1], /* mimetype */
-            instruction->argv[2]  /* filename */
+            argv[1], /* mimetype */
+            argv[2]  /* filename */
         );
 
     /* Otherwise, abort */
@@ -222,10 +221,10 @@ int __guac_handle_file(guac_user* user, guac_instruction* instruction) {
     return 0;
 }
 
-int __guac_handle_pipe(guac_user* user, guac_instruction* instruction) {
+int __guac_handle_pipe(guac_user* user, int argc, char** argv) {
 
     /* Pull corresponding stream */
-    int stream_index = atoi(instruction->argv[0]);
+    int stream_index = atoi(argv[0]);
     guac_stream* stream = __init_input_stream(user, stream_index);
     if (stream == NULL)
         return 0;
@@ -235,8 +234,8 @@ int __guac_handle_pipe(guac_user* user, guac_instruction* instruction) {
         return user->pipe_handler(
             user,
             stream,
-            instruction->argv[1], /* mimetype */
-            instruction->argv[2]  /* name */
+            argv[1], /* mimetype */
+            argv[2]  /* name */
         );
 
     /* Otherwise, abort */
@@ -245,12 +244,12 @@ int __guac_handle_pipe(guac_user* user, guac_instruction* instruction) {
     return 0;
 }
 
-int __guac_handle_ack(guac_user* user, guac_instruction* instruction) {
+int __guac_handle_ack(guac_user* user, int argc, char** argv) {
 
     guac_stream* stream;
 
     /* Validate stream index */
-    int stream_index = atoi(instruction->argv[0]);
+    int stream_index = atoi(argv[0]);
     if (stream_index < 0 || stream_index >= GUAC_USER_MAX_STREAMS)
         return 0;
 
@@ -262,20 +261,20 @@ int __guac_handle_ack(guac_user* user, guac_instruction* instruction) {
 
     /* Call stream handler if defined */
     if (stream->ack_handler)
-        return stream->ack_handler(user, stream, instruction->argv[1],
-                atoi(instruction->argv[2]));
+        return stream->ack_handler(user, stream, argv[1],
+                atoi(argv[2]));
 
     /* Fall back to global handler if defined */
     if (user->ack_handler)
-        return user->ack_handler(user, stream, instruction->argv[1],
-                atoi(instruction->argv[2]));
+        return user->ack_handler(user, stream, argv[1],
+                atoi(argv[2]));
 
     return 0;
 }
 
-int __guac_handle_blob(guac_user* user, guac_instruction* instruction) {
+int __guac_handle_blob(guac_user* user, int argc, char** argv) {
 
-    int stream_index = atoi(instruction->argv[0]);
+    int stream_index = atoi(argv[0]);
     guac_stream* stream = __get_open_input_stream(user, stream_index);
 
     /* Fail if no such stream */
@@ -284,15 +283,15 @@ int __guac_handle_blob(guac_user* user, guac_instruction* instruction) {
 
     /* Call stream handler if defined */
     if (stream->blob_handler) {
-        int length = guac_protocol_decode_base64(instruction->argv[1]);
-        return stream->blob_handler(user, stream, instruction->argv[1],
+        int length = guac_protocol_decode_base64(argv[1]);
+        return stream->blob_handler(user, stream, argv[1],
             length);
     }
 
     /* Fall back to global handler if defined */
     if (user->blob_handler) {
-        int length = guac_protocol_decode_base64(instruction->argv[1]);
-        return user->blob_handler(user, stream, instruction->argv[1],
+        int length = guac_protocol_decode_base64(argv[1]);
+        return user->blob_handler(user, stream, argv[1],
             length);
     }
 
@@ -301,10 +300,10 @@ int __guac_handle_blob(guac_user* user, guac_instruction* instruction) {
     return 0;
 }
 
-int __guac_handle_end(guac_user* user, guac_instruction* instruction) {
+int __guac_handle_end(guac_user* user, int argc, char** argv) {
 
     int result = 0;
-    int stream_index = atoi(instruction->argv[0]);
+    int stream_index = atoi(argv[0]);
     guac_stream* stream = __get_open_input_stream(user, stream_index);
 
     /* Fail if no such stream */
@@ -324,7 +323,7 @@ int __guac_handle_end(guac_user* user, guac_instruction* instruction) {
     return result;
 }
 
-int __guac_handle_disconnect(guac_user* user, guac_instruction* instruction) {
+int __guac_handle_disconnect(guac_user* user, int argc, char** argv) {
     guac_client_log_info(user->client, "Disconnect requested. Ending user session...");
     guac_user_stop(user);
     return 0;

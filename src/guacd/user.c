@@ -27,7 +27,7 @@
 
 #include <guacamole/client.h>
 #include <guacamole/error.h>
-#include <guacamole/instruction.h>
+#include <guacamole/parser.h>
 #include <guacamole/protocol.h>
 #include <guacamole/socket.h>
 #include <guacamole/user.h>
@@ -37,19 +37,17 @@
 
 void* __guacd_user_input_thread(void* data) {
 
-    guac_user* user = (guac_user*) data;
+    guacd_user_context* context = (guacd_user_context*) data;
+    guac_user* user = context->user;
+    guac_parser* parser = context->parser;
     guac_client* client = user->client;
     guac_socket* socket = user->socket;
 
     /* Guacamole user input loop */
     while (client->state == GUAC_CLIENT_RUNNING && user->active) {
 
-        /* Read instruction */
-        guac_instruction* instruction =
-            guac_instruction_read(socket, GUACD_USEC_TIMEOUT);
-
-        /* Stop on error */
-        if (instruction == NULL) {
+        /* Read instruction, stop on error */
+        if (guac_parser_next(parser, socket, GUACD_USEC_TIMEOUT)) {
 
             if (guac_error == GUAC_STATUS_INPUT_TIMEOUT)
                 guac_user_abort(user, GUAC_PROTOCOL_STATUS_CLIENT_TIMEOUT, "User is not responding.");
@@ -59,6 +57,7 @@ void* __guacd_user_input_thread(void* data) {
                 guac_user_stop(user);
             }
 
+            guac_parser_free(parser);
             return NULL;
         }
 
@@ -68,38 +67,33 @@ void* __guacd_user_input_thread(void* data) {
         guac_error_message = NULL;
 
         /* Call handler, stop on error */
-        if (guac_user_handle_instruction(user, instruction) < 0) {
+        if (guac_user_handle_instruction(user, parser->opcode, parser->argc, parser->argv) < 0) {
 
             /* Log error */
-            guacd_client_log_guac_error(client,
-                    "User instruction handler error");
+            guacd_client_log_guac_error(client, "User instruction handler error");
 
             /* Log handler details */
-            guac_user_log_info(user,
-                    "Failing instruction handler in user was \"%s\"",
-                    instruction->opcode);
+            guac_user_log_info(user, "Failing instruction handler in user was \"%s\"", parser->opcode);
 
-            guac_instruction_free(instruction);
             guac_user_stop(user);
+            guac_parser_free(parser);
             return NULL;
         }
 
-        /* Free allocated instruction */
-        guac_instruction_free(instruction);
-
     }
 
+    guac_parser_free(parser);
     return NULL;
 
 }
 
-int guacd_user_start(guac_user* user, guac_socket* socket) {
+int guacd_user_start(guacd_user_context* context) {
 
     pthread_t input_thread;
 
-    if (pthread_create(&input_thread, NULL, __guacd_user_input_thread, (void*) user)) {
-        guac_user_log_error(user, "Unable to start input thread");
-        guac_user_stop(user);
+    if (pthread_create(&input_thread, NULL, __guacd_user_input_thread, (void*) context)) {
+        guac_user_log_error(context->user, "Unable to start input thread");
+        guac_user_stop(context->user);
         return -1;
     }
 

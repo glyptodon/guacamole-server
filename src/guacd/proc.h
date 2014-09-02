@@ -26,6 +26,7 @@
 #include "config.h"
 
 #include <guacamole/client.h>
+#include <guacamole/parser.h>
 
 #include <unistd.h>
 
@@ -67,7 +68,7 @@ typedef struct guacd_proc {
  * process. Within the child process, this function does not return - the
  * entire child process simply terminates instead.
  */
-guacd_proc* guacd_create_proc(const char* protocol);
+guacd_proc* guacd_create_proc(guac_parser* parser, const char* protocol);
 
 /**
  * Signals the given process to stop accepting new users and clean up. This

@@ -102,24 +102,6 @@ struct guac_socket {
     char __out_buf[GUAC_SOCKET_OUTPUT_BUFFER_SIZE];
 
     /**
-     * Pointer to the first character of the current in-progress instruction
-     * within the buffer.
-     */
-    char* __instructionbuf_unparsed_start;
-
-    /**
-     * Pointer to the first unused section of the instruction buffer.
-     */
-    char* __instructionbuf_unparsed_end;
-
-    /**
-     * The instruction buffer. This is essentially the input buffer,
-     * provided as a convenience to be used to buffer instructions until
-     * those instructions are complete and ready to be parsed.
-     */
-    char __instructionbuf[32768];
-
-    /**
      * Whether instructions should be guaranteed atomic across threads using
      * locks. By default, thread safety is disabled on sockets.
      */

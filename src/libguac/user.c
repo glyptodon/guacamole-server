@@ -115,15 +115,15 @@ void guac_user_free_stream(guac_user* user, guac_stream* stream) {
 
 }
 
-int guac_user_handle_instruction(guac_user* user, guac_instruction* instruction) {
+int guac_user_handle_instruction(guac_user* user, const char* opcode, int argc, char** argv) {
 
     /* For each defined instruction */
     __guac_instruction_handler_mapping* current = __guac_instruction_handler_map;
     while (current->opcode != NULL) {
 
         /* If recognized, call handler */
-        if (strcmp(instruction->opcode, current->opcode) == 0)
-            return current->handler(user, instruction);
+        if (strcmp(opcode, current->opcode) == 0)
+            return current->handler(user, argc, argv);
 
         current++;
     }

@@ -36,11 +36,11 @@ libguacinc_HEADERS =                  \
     guacamole/error.h                 \
 	guacamole/error-types.h           \
     guacamole/hash.h                  \
-	guacamole/instruction-constants.h \
-    guacamole/instruction.h           \
-	guacamole/instruction-types.h     \
     guacamole/layer.h                 \
 	guacamole/layer-types.h           \
+	guacamole/parser-constants.h      \
+    guacamole/parser.h                \
+	guacamole/parser-types.h          \
 	guacamole/plugin-constants.h      \
     guacamole/plugin.h                \
     guacamole/pool.h                  \
@@ -73,8 +73,8 @@ libguac_la_SOURCES =  \
     error.c           \
     hash.c            \
     id.c              \
-    instruction.c     \
     palette.c         \
+    parser.c          \
     pool.c            \
     protocol.c        \
     socket.c          \

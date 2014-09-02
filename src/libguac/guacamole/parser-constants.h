@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2013 Glyptodon LLC
+ * Copyright (C) 2014 Glyptodon LLC
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -20,49 +20,29 @@
  * THE SOFTWARE.
  */
 
-
-#ifndef _GUAC_INSTRUCTION_TYPES_H
-#define _GUAC_INSTRUCTION_TYPES_H
+#ifndef _GUAC_PARSER_CONSTANTS_H
+#define _GUAC_PARSER_CONSTANTS_H
 
 /**
- * Type definitions related to Guacamole instructions.
+ * Constants related to Guacamole instructions.
  *
- * @file instruction-types.h
+ * @file instruction-constants.h
  */
 
 /**
- * All possible states of the instruction parser.
+ * The maximum number of characters per instruction.
  */
-typedef enum guac_instruction_parse_state {
-
-    /**
-     * The parser is currently waiting for data to complete the length prefix
-     * of the current element of the instruction.
-     */
-    GUAC_INSTRUCTION_PARSE_LENGTH,
-
-    /**
-     * The parser has finished reading the length prefix and is currently
-     * waiting for data to complete the content of the instruction.
-     */
-    GUAC_INSTRUCTION_PARSE_CONTENT,
-
-    /**
-     * The instruction has been fully parsed.
-     */
-    GUAC_INSTRUCTION_PARSE_COMPLETE,
-
-    /**
-     * The instruction cannot be parsed because of a protocol error.
-     */
-    GUAC_INSTRUCTION_PARSE_ERROR
-
-} guac_instruction_parse_state;
+#define GUAC_INSTRUCTION_MAX_LENGTH 8192
 
 /**
- * Represents a single instruction within the Guacamole protocol.
+ * The maximum number of digits to allow per length prefix.
  */
-typedef struct guac_instruction guac_instruction;
+#define GUAC_INSTRUCTION_MAX_DIGITS 5
+
+/**
+ * The maximum number of elements per instruction, including the opcode.
+ */
+#define GUAC_INSTRUCTION_MAX_ELEMENTS 64
 
 #endif
 

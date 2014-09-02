@@ -30,7 +30,7 @@
 
 #include <guacamole/client.h>
 #include <guacamole/error.h>
-#include <guacamole/instruction.h>
+#include <guacamole/parser.h>
 #include <guacamole/plugin.h>
 #include <guacamole/protocol.h>
 #include <guacamole/socket.h>
@@ -44,6 +44,41 @@
 #include <sys/socket.h>
 
 /**
+ * Copies the contents of an instruction's argc and argv into a
+ * newly-allocated, NULL-terminated string array.
+ */
+static char** __dup_mimetypes(int argc, char** argv) {
+
+    char** mimetypes = malloc(sizeof(char*) * (argc+1));
+
+    int i;
+
+    /* Copy contents of argv into NULL-terminated string array */
+    for (i=0; i<argc; i++)
+        mimetypes[i] = strdup(argv[i]);
+
+    mimetypes[argc] = NULL;
+
+    return mimetypes;
+
+}
+
+/**
+ * Frees an array of mimetypes allocated through __dup_mimetypes().
+ */
+static void __free_mimetypes(char** mimetypes) {
+
+    /* Free contents of mimetypes array */
+    while (*mimetypes != NULL) {
+        free(*mimetypes);
+        mimetypes++;
+    }
+
+    free(mimetypes);
+
+}
+
+/**
  * Handles the initial handshake of a user, associating that new user with the
  * existing client. This function blocks until the user's connection is
  * finished.
@@ -53,47 +88,12 @@
  */
 static int guacd_handle_user(guac_client* client, guac_socket* socket, int owner) {
 
-    guac_instruction* size;
-    guac_instruction* audio;
-    guac_instruction* video;
-    guac_instruction* connect;
+    guac_parser* parser = guac_parser_alloc();
 
     /* Send args */
     if (guac_protocol_send_args(socket, client->args)
             || guac_socket_flush(socket)) {
         guacd_log_guac_error("Error sending \"args\" to new user");
-        return 1;
-    }
-
-    /* Get optimal screen size */
-    size = guac_instruction_expect(
-            socket, GUACD_USEC_TIMEOUT, "size");
-    if (size == NULL) {
-        guacd_log_guac_error("Error reading \"size\"");
-        return 1;
-    }
-
-    /* Get supported audio formats */
-    audio = guac_instruction_expect(
-            socket, GUACD_USEC_TIMEOUT, "audio");
-    if (audio == NULL) {
-        guacd_log_guac_error("Error reading \"audio\"");
-        return 1;
-    }
-
-    /* Get supported video formats */
-    video = guac_instruction_expect(
-            socket, GUACD_USEC_TIMEOUT, "video");
-    if (video == NULL) {
-        guacd_log_guac_error("Error reading \"video\"");
-        return 1;
-    }
-
-    /* Get args from connect instruction */
-    connect = guac_instruction_expect(
-            socket, GUACD_USEC_TIMEOUT, "connect");
-    if (connect == NULL) {
-        guacd_log_guac_error("Error reading \"connect\"");
         return 1;
     }
 
@@ -103,36 +103,62 @@ static int guacd_handle_user(guac_client* client, guac_socket* socket, int owner
     user->client = client;
     user->owner = owner;
 
+    /* Get optimal screen size */
+    if (guac_parser_expect(parser, socket, GUACD_USEC_TIMEOUT, "size")) {
+        guacd_log_guac_error("Error reading \"size\"");
+        return 1;
+    }
+
+    /* Validate content of size instruction */
+    if (parser->argc < 2) {
+        guacd_log_error("Received \"size\" instruction lacked required arguments.");
+        return 1;
+    }
+
     /* Parse optimal screen dimensions from size instruction */
-    user->info.optimal_width  = atoi(size->argv[0]);
-    user->info.optimal_height = atoi(size->argv[1]);
+    user->info.optimal_width  = atoi(parser->argv[0]);
+    user->info.optimal_height = atoi(parser->argv[1]);
 
     /* If DPI given, set the client resolution */
-    if (size->argc >= 3)
-        user->info.optimal_resolution = atoi(size->argv[2]);
+    if (parser->argc >= 3)
+        user->info.optimal_resolution = atoi(parser->argv[2]);
 
     /* Otherwise, use a safe default for rough backwards compatibility */
     else
         user->info.optimal_resolution = 96;
 
+    /* Get supported audio formats */
+    if (guac_parser_expect(parser, socket, GUACD_USEC_TIMEOUT, "audio")) {
+        guacd_log_guac_error("Error reading \"audio\"");
+        return 1;
+    }
+
     /* Store audio mimetypes */
-    user->info.audio_mimetypes = malloc(sizeof(char*) * (audio->argc+1));
-    memcpy(user->info.audio_mimetypes, audio->argv,
-            sizeof(char*) * audio->argc);
-    user->info.audio_mimetypes[audio->argc] = NULL;
+    char** audio_mimetypes = __dup_mimetypes(parser->argc, parser->argv);
+    user->info.audio_mimetypes = (const char**) audio_mimetypes;
+
+    /* Get supported video formats */
+    if (guac_parser_expect(parser, socket, GUACD_USEC_TIMEOUT, "video")) {
+        guacd_log_guac_error("Error reading \"video\"");
+        return 1;
+    }
 
     /* Store video mimetypes */
-    user->info.video_mimetypes = malloc(sizeof(char*) * (video->argc+1));
-    memcpy(user->info.video_mimetypes, video->argv,
-            sizeof(char*) * video->argc);
-    user->info.video_mimetypes[video->argc] = NULL;
+    char** video_mimetypes = __dup_mimetypes(parser->argc, parser->argv);
+    user->info.video_mimetypes = (const char**) video_mimetypes;
+
+    /* Get args from connect instruction */
+    if (guac_parser_expect(parser, socket, GUACD_USEC_TIMEOUT, "connect")) {
+        guacd_log_guac_error("Error reading \"connect\"");
+        return 1;
+    }
 
     /* Acknowledge connection availability */
     guac_protocol_send_ready(socket, client->connection_id);
     guac_socket_flush(socket);
 
     /* Attempt join */
-    if (guac_client_add_user(client, user, connect->argc, connect->argv))
+    if (guac_client_add_user(client, user, parser->argc, parser->argv))
         guacd_log_error("User \"%s\" could NOT join connection \"%s\"", user->user_id, client->connection_id);
 
     /* Begin user connection if join successful */
@@ -141,8 +167,13 @@ static int guacd_handle_user(guac_client* client, guac_socket* socket, int owner
         guacd_log_info("User \"%s\" joined connection \"%s\" (%i users now present)",
                 user->user_id, client->connection_id, client->connected_users);
 
+        guacd_user_context context = {
+            .parser = parser,
+            .user = user
+        };
+
         /* Handle user I/O, wait for connection to terminate */
-        guacd_user_start(user, socket);
+        guacd_user_start(&context);
 
         /* Remove/free user */
         guac_client_remove_user(client, user);
@@ -151,16 +182,9 @@ static int guacd_handle_user(guac_client* client, guac_socket* socket, int owner
 
     }
 
-    guac_instruction_free(connect);
-
     /* Free mimetype lists */
-    free(user->info.audio_mimetypes);
-    free(user->info.video_mimetypes);
-
-    /* Free remaining instructions */
-    guac_instruction_free(audio);
-    guac_instruction_free(video);
-    guac_instruction_free(size);
+    __free_mimetypes(audio_mimetypes);
+    __free_mimetypes(video_mimetypes);
 
     /* Successful disconnect */
     return 0;
@@ -236,7 +260,7 @@ static void guacd_exec_proc(guacd_proc* proc, const char* protocol) {
 
 }
 
-guacd_proc* guacd_create_proc(const char* protocol) {
+guacd_proc* guacd_create_proc(guac_parser* parser, const char* protocol) {
 
     int sockets[2];
 

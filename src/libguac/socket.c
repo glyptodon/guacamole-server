@@ -153,10 +153,6 @@ guac_socket* guac_socket_alloc() {
     socket->data = NULL;
     socket->state = GUAC_SOCKET_OPEN;
 
-    /* Init members */
-    socket->__instructionbuf_unparsed_start = socket->__instructionbuf;
-    socket->__instructionbuf_unparsed_end = socket->__instructionbuf;
-
     /* Default to unsafe threading */
     socket->__threadsafe_instructions = 0;
 

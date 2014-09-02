@@ -32,7 +32,6 @@
 #include "client-fntypes.h"
 #include "client-types.h"
 #include "client-constants.h"
-#include "instruction-types.h"
 #include "layer-types.h"
 #include "pool-types.h"
 #include "socket-types.h"

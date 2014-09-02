@@ -32,7 +32,6 @@
  */
 
 #include "client-types.h"
-#include "instruction-types.h"
 #include "pool-types.h"
 #include "socket-types.h"
 #include "stream-types.h"
@@ -408,10 +407,12 @@ void guac_user_free(guac_user* user);
  * will in turn call the user's handler (if defined).
  *
  * @param user The user whose handlers should be called.
- * @param instruction The instruction to pass to the user via the appropriate
- *                    handler.
+ * @param opcode The opcode of the instruction to pass to the user via the
+ *               appropriate handler.
+ * @param argc The number of arguments which are part of the instruction.
+ * @param argv An array of all arguments which are part of the instruction.
  */
-int guac_user_handle_instruction(guac_user* user, guac_instruction* instruction);
+int guac_user_handle_instruction(guac_user* user, const char* opcode, int argc, char** argv);
 
 /**
  * Allocates a new stream. An arbitrary index is automatically assigned

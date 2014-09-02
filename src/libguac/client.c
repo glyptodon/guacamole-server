@@ -25,7 +25,6 @@
 #include "client.h"
 #include "error.h"
 #include "id.h"
-#include "instruction.h"
 #include "layer.h"
 #include "pool.h"
 #include "plugin.h"

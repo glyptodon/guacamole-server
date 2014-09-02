@@ -31,7 +31,7 @@
 
 #include <guacamole/client.h>
 #include <guacamole/error.h>
-#include <guacamole/instruction.h>
+#include <guacamole/parser.h>
 #include <guacamole/plugin.h>
 #include <guacamole/protocol.h>
 #include <guacamole/socket.h>
@@ -86,26 +86,28 @@ static int guacd_add_user(guacd_proc* proc, guac_socket* socket) {
  */
 static int guacd_route_connection(guacd_proc_map* map, guac_socket* socket) {
 
+    guac_parser* parser = guac_parser_alloc();
+
     /* Reset guac_error */
     guac_error = GUAC_STATUS_SUCCESS;
     guac_error_message = NULL;
 
     /* Get protocol from select instruction */
-    guac_instruction* select = guac_instruction_expect(socket, GUACD_USEC_TIMEOUT, "select");
-    if (select == NULL) {
+    if (guac_parser_expect(parser, socket, GUACD_USEC_TIMEOUT, "select")) {
         guacd_log_guac_error("Error reading \"select\"");
         return 1;
     }
 
     /* Validate args to select */
-    if (select->argc != 1) {
-        guacd_log_error("Bad number of arguments to \"select\" (%i)", select->argc);
+    if (parser->argc != 1) {
+        guacd_log_error("Bad number of arguments to \"select\" (%i)", parser->argc);
+        guac_parser_free(parser);
         return 1;
     }
 
     guacd_proc* proc;
 
-    const char* identifier = select->argv[0];
+    const char* identifier = parser->argv[0];
 
     /* If connection ID, retrieve existing process */
     if (identifier[0] == GUAC_CLIENT_ID_PREFIX) {
@@ -122,11 +124,11 @@ static int guacd_route_connection(guacd_proc_map* map, guac_socket* socket) {
     else {
 
         guacd_log_info("Creating new client for protocol \"%s\"", identifier);
-        proc = guacd_create_proc(identifier);
+        proc = guacd_create_proc(parser, identifier);
 
     }
 
-    guac_instruction_free(select);
+    guac_parser_free(parser);
 
     if (proc == NULL)
         return 1;
