@@ -297,6 +297,25 @@ int guac_parser_length(guac_parser* parser) {
 
 }
 
+int guac_parser_shift(guac_parser* parser, void* buffer, int length) {
+
+    char* copy_end   = parser->__instructionbuf_unparsed_end;
+    char* copy_start = parser->__instructionbuf_unparsed_start;
+
+    /* Contain copy region within length */
+    if (copy_end - copy_start > length)
+        copy_end = copy_start + length;
+
+    /* Copy buffer */
+    length = copy_end - copy_start;
+    memcpy(buffer, copy_start, length);
+
+    parser->__instructionbuf_unparsed_start = copy_end;
+
+    return length;
+
+}
+
 void guac_parser_free(guac_parser* parser) {
     free(parser);
 }

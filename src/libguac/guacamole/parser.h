@@ -125,6 +125,17 @@ int guac_parser_push(guac_parser* parser, void* buffer, int length);
 int guac_parser_length(guac_parser* parser);
 
 /**
+ * Removes up to length bytes from internal buffer of unparsed bytes, storing
+ * them in the given buffer.
+ *
+ * @param parser The parser to remove unparsed bytes from.
+ * @param buffer The buffer to store the unparsed bytes within.
+ * @param length The length of the given buffer.
+ * @return The number of bytes stored in the given buffer.
+ */
+int guac_parser_shift(guac_parser* parser, void* buffer, int length);
+
+/**
  * Frees all memory allocated to the given parser.
  *
  * @param parser The parser to free.
@@ -132,7 +143,12 @@ int guac_parser_length(guac_parser* parser);
 void guac_parser_free(guac_parser* parser);
 
 /**
- * Reads a single instruction from the given guac_socket connection.
+ * Reads a single instruction from the given guac_socket connection. This
+ * may result in additional data being read from the guac_socket, stored
+ * internally within a buffer for future parsing. Future calls to
+ * guac_parser_next() will read from the interal buffer before reading
+ * from the guac_socket. Data from the internal buffer can be removed
+ * and used elsewhere through guac_parser_shift().
  *
  * If an error occurs reading the instruction, non-zero is returned,
  * and guac_error is set appropriately.
