@@ -84,7 +84,7 @@ void test_instruction_read() {
         CU_ASSERT_PTR_NOT_NULL_FATAL(parser);
 
         /* Read instruction */
-        CU_ASSERT_EQUAL_FATAL(guac_parser_next(parser, socket, 1000000), 0);
+        CU_ASSERT_EQUAL_FATAL(guac_parser_read(parser, socket, 1000000), 0);
         
         /* Validate contents */
         CU_ASSERT_STRING_EQUAL(parser->opcode, "test");
@@ -94,7 +94,7 @@ void test_instruction_read() {
         CU_ASSERT_STRING_EQUAL(parser->argv[2], "a" UTF8_8 "c");
         
         /* Read another instruction */
-        CU_ASSERT_EQUAL_FATAL(guac_parser_next(parser, socket, 1000000), 0);
+        CU_ASSERT_EQUAL_FATAL(guac_parser_read(parser, socket, 1000000), 0);
 
         /* Validate contents */
         CU_ASSERT_STRING_EQUAL(parser->opcode, "test2");

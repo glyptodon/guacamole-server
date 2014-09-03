@@ -47,7 +47,7 @@ void* __guacd_user_input_thread(void* data) {
     while (client->state == GUAC_CLIENT_RUNNING && user->active) {
 
         /* Read instruction, stop on error */
-        if (guac_parser_next(parser, socket, GUACD_USEC_TIMEOUT)) {
+        if (guac_parser_read(parser, socket, GUACD_USEC_TIMEOUT)) {
 
             if (guac_error == GUAC_STATUS_INPUT_TIMEOUT)
                 guac_user_abort(user, GUAC_PROTOCOL_STATUS_CLIENT_TIMEOUT, "User is not responding.");

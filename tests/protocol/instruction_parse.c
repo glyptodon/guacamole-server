@@ -46,7 +46,7 @@ void test_instruction_parse() {
     while (remaining > 18) {
 
         /* Parse more data */
-        int parsed = guac_parser_push(parser, current, remaining);
+        int parsed = guac_parser_append(parser, current, remaining);
         if (parsed == 0)
             break;
 
@@ -59,7 +59,7 @@ void test_instruction_parse() {
     CU_ASSERT_EQUAL(parser->state, GUAC_PARSE_COMPLETE);
 
     /* Parse is complete - no more data should be read */
-    CU_ASSERT_EQUAL(guac_parser_push(parser, current, 18), 0);
+    CU_ASSERT_EQUAL(guac_parser_append(parser, current, 18), 0);
     CU_ASSERT_EQUAL(parser->state, GUAC_PARSE_COMPLETE);
 
     /* Validate resulting structure */

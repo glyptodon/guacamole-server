@@ -58,7 +58,7 @@ guac_parser* guac_parser_alloc() {
 
 }
 
-int guac_parser_push(guac_parser* parser, void* buffer, int length) {
+int guac_parser_append(guac_parser* parser, void* buffer, int length) {
 
     char* char_buffer = (char*) buffer;
     int bytes_parsed = 0;
@@ -166,7 +166,7 @@ int guac_parser_push(guac_parser* parser, void* buffer, int length) {
 
 }
 
-int guac_parser_next(guac_parser* parser, guac_socket* socket, int usec_timeout) {
+int guac_parser_read(guac_parser* parser, guac_socket* socket, int usec_timeout) {
 
     char* unparsed_end   = parser->__instructionbuf_unparsed_end;
     char* unparsed_start = parser->__instructionbuf_unparsed_start;
@@ -181,7 +181,7 @@ int guac_parser_next(guac_parser* parser, guac_socket* socket, int usec_timeout)
         && parser->state != GUAC_PARSE_ERROR) {
 
         /* Add any available data to buffer */
-        int parsed = guac_parser_push(parser, unparsed_start, unparsed_end - unparsed_start);
+        int parsed = guac_parser_append(parser, unparsed_start, unparsed_end - unparsed_start);
 
         /* Read more data if not enough data to parse */
         if (parsed == 0) {
@@ -272,7 +272,7 @@ int guac_parser_next(guac_parser* parser, guac_socket* socket, int usec_timeout)
 int guac_parser_expect(guac_parser* parser, guac_socket* socket, int usec_timeout, const char* opcode) {
 
     /* Read next instruction */
-    if (guac_parser_next(parser, socket, usec_timeout) != 0)
+    if (guac_parser_read(parser, socket, usec_timeout) != 0)
         return -1;
 
     /* Validate instruction */

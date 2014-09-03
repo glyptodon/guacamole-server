@@ -113,7 +113,7 @@ guac_parser* guac_parser_alloc();
  * @return The number of bytes appended to this parser, which may be
  *         zero if more data is needed.
  */
-int guac_parser_push(guac_parser* parser, void* buffer, int length);
+int guac_parser_append(guac_parser* parser, void* buffer, int length);
 
 /**
  * Returns the number of unparsed bytes stored in the given parser's internal
@@ -146,7 +146,7 @@ void guac_parser_free(guac_parser* parser);
  * Reads a single instruction from the given guac_socket connection. This
  * may result in additional data being read from the guac_socket, stored
  * internally within a buffer for future parsing. Future calls to
- * guac_parser_next() will read from the interal buffer before reading
+ * guac_parser_read() will read from the interal buffer before reading
  * from the guac_socket. Data from the internal buffer can be removed
  * and used elsewhere through guac_parser_shift().
  *
@@ -161,13 +161,13 @@ void guac_parser_free(guac_parser* parser);
  *         non-zero if no instruction could be read. If the instruction
  *         could not be read completely because the timeout elapsed, in
  *         which case guac_error will be set to GUAC_STATUS_INPUT_TIMEOUT
- *         and additional calls to guac_parser_next() will be required.
+ *         and additional calls to guac_parser_read() will be required.
  */
-int guac_parser_next(guac_parser* parser, guac_socket* socket, int usec_timeout);
+int guac_parser_read(guac_parser* parser, guac_socket* socket, int usec_timeout);
 
 /**
  * Reads a single instruction from the given guac_socket. This operates
- * identically to guac_parser_next(), except that an error is returned if
+ * identically to guac_parser_read(), except that an error is returned if
  * the expected opcode is not received.
  *
  * If an error occurs reading the instruction, NULL is returned,
