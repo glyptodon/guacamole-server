@@ -273,7 +273,7 @@ int guac_parser_expect(guac_parser* parser, guac_socket* socket, int usec_timeou
 
     /* Read next instruction */
     if (guac_parser_next(parser, socket, usec_timeout) != 0)
-        return -1;            
+        return -1;
 
     /* Validate instruction */
     if (strcmp(parser->opcode, opcode) != 0) {
@@ -284,7 +284,7 @@ int guac_parser_expect(guac_parser* parser, guac_socket* socket, int usec_timeou
     }
 
     /* Return non-zero only if valid instruction read */
-    return parser->state == GUAC_PARSE_COMPLETE;
+    return parser->state != GUAC_PARSE_COMPLETE;
 
 }
 
