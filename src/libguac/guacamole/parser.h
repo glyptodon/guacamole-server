@@ -116,6 +116,15 @@ guac_parser* guac_parser_alloc();
 int guac_parser_push(guac_parser* parser, void* buffer, int length);
 
 /**
+ * Returns the number of unparsed bytes stored in the given parser's internal
+ * buffers.
+ *
+ * @param parser The parser to return the length of.
+ * @return The number of unparsed bytes stored in the given parser.
+ */
+int guac_parser_length(guac_parser* parser);
+
+/**
  * Frees all memory allocated to the given parser.
  *
  * @param parser The parser to free.

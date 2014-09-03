@@ -288,6 +288,15 @@ int guac_parser_expect(guac_parser* parser, guac_socket* socket, int usec_timeou
 
 }
 
+int guac_parser_length(guac_parser* parser) {
+
+    char* unparsed_end   = parser->__instructionbuf_unparsed_end;
+    char* unparsed_start = parser->__instructionbuf_unparsed_start;
+
+    return unparsed_end - unparsed_start;
+
+}
+
 void guac_parser_free(guac_parser* parser) {
     free(parser);
 }
