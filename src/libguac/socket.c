@@ -222,11 +222,11 @@ void guac_socket_update_buffer_end(guac_socket* socket) {
 
 void guac_socket_free(guac_socket* socket) {
 
+    guac_socket_flush(socket);
+
     /* Call free handler if defined */
     if (socket->free_handler)
         socket->free_handler(socket);
-
-    guac_socket_flush(socket);
 
     /* Mark as closed */
     socket->state = GUAC_SOCKET_CLOSED;
