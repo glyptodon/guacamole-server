@@ -68,10 +68,12 @@ static char** __dup_mimetypes(int argc, char** argv) {
  */
 static void __free_mimetypes(char** mimetypes) {
 
+    char** current = mimetypes;
+
     /* Free contents of mimetypes array */
-    while (*mimetypes != NULL) {
-        free(*mimetypes);
-        mimetypes++;
+    while (*current != NULL) {
+        free(*current);
+        current++;
     }
 
     free(mimetypes);
