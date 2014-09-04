@@ -69,6 +69,13 @@ void* guacd_connection_thread(void* data);
 typedef struct guacd_connection_io_thread_params {
 
     /**
+     * The guac_parser which may contain buffered, but unparsed, data from the
+     * original guac_socket which must be transferred to the
+     * connection-specific process.
+     */
+    guac_parser* parser;
+
+    /**
      * The guac_socket which is directly handling I/O from a user's connection
      * to guacd.
      */

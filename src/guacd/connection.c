@@ -48,6 +48,29 @@
 #include <sys/wait.h>
 
 /**
+ * Behaves exactly as write(), but writes as much as possible, returning
+ * successfully only if the entire buffer was written. If the write fails for
+ * any reason, a negative value is returned.
+ */
+static int __write_all(int fd, char* buffer, int length) {
+
+    /* Repeatedly write() until all data is written */
+    while (length > 0) {
+
+        int written = write(fd, buffer, length);
+        if (written < 0)
+            return -1;
+
+        length -= written;
+        buffer += written;
+
+    }
+
+    return length;
+
+}
+
+/**
  * Continuously reads from a guac_socket, writing all data read to a file
  * descriptor.
  */
@@ -58,21 +81,18 @@ static void* guacd_connection_write_thread(void* data) {
 
     int length;
 
+    while ((length = guac_parser_shift(params->parser, buffer, sizeof(buffer))) > 0) {
+        if (__write_all(params->fd, buffer, length) < 0)
+            break;
+    }
+
+    /* Parser is no longer needed */
+    guac_parser_free(params->parser);
+
     /* Transfer data from file descriptor to socket */
     while ((length = guac_socket_read(params->socket, buffer, sizeof(buffer))) > 0) {
-
-        char* remaining = buffer;
-        while (length > 0) {
-
-            int written = write(params->fd, remaining, length);
-            if (written < 0)
-                return NULL;
-
-            length    -= written;
-            remaining += written;
-
-        }
-
+        if (__write_all(params->fd, buffer, length) < 0)
+            break;
     }
 
     return NULL;
@@ -139,10 +159,9 @@ static int guacd_add_user(guacd_proc* proc, guac_parser* parser, guac_socket* so
     close(proc_fd);
 
     guacd_connection_io_thread_params* params = malloc(sizeof(guacd_connection_io_thread_params));
+    params->parser = parser;
     params->socket = socket;
     params->fd = user_fd;
-
-    /* FIXME: Read from parser before reading from socket in I/O thread */
 
     /* Start I/O thread */
     pthread_t io_thread;
