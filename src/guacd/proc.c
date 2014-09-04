@@ -214,7 +214,6 @@ static void guacd_proc_add_user(guacd_proc* proc, int fd, int owner) {
 
     /* Close socket */
     guac_socket_free(socket);
-    close(fd);
 
 }
 
