@@ -203,6 +203,7 @@ static int guacd_route_connection(guacd_proc_map* map, guac_socket* socket) {
     }
 
     guacd_proc* proc;
+    int new_process;
 
     const char* identifier = parser->argv[0];
 
@@ -215,6 +216,8 @@ static int guacd_route_connection(guacd_proc_map* map, guac_socket* socket) {
         else
             guacd_log_info("Joining existing connection \"%s\"", identifier);
 
+        new_process = 0;
+
     }
 
     /* Otherwise, create new client */
@@ -223,6 +226,8 @@ static int guacd_route_connection(guacd_proc_map* map, guac_socket* socket) {
         guacd_log_info("Creating new client for protocol \"%s\"", identifier);
         proc = guacd_create_proc(parser, identifier);
 
+        new_process = 1;
+
     }
 
     if (proc == NULL) {
@@ -230,34 +235,36 @@ static int guacd_route_connection(guacd_proc_map* map, guac_socket* socket) {
         return 1;
     }
 
-    /* Log connection ID */
-    guacd_log_info("Connection ID is \"%s\"", proc->client->connection_id);
-
     /* Add new user (in the case of a new process, this will be the owner */
     if (guacd_add_user(proc, parser, socket) == 0) {
 
-        /* FIXME: The following should ONLY be done for new processes */
-#if 0
-        /* Store process, allowing other users to join */
-        guacd_proc_map_add(map, proc);
+        /* If new process was created, manage that process */
+        if (new_process) {
 
-        /* Wait for child to finish */
-        waitpid(proc->pid, NULL, 0);
+            /* Log connection ID */
+            guacd_log_info("Connection ID is \"%s\"", proc->client->connection_id);
 
-        /* Remove client */
-        if (guacd_proc_map_remove(map, proc->client->connection_id) == NULL)
-            guacd_log_error("Internal failure removing client \"%s\". Client record will never be freed.",
-                    proc->client->connection_id);
-        else
-            guacd_log_info("Connection \"%s\" removed.", proc->client->connection_id);
+            /* Store process, allowing other users to join */
+            guacd_proc_map_add(map, proc);
 
-        /* Free skeleton client */
-        guac_client_free(proc->client);
+            /* Wait for child to finish */
+            waitpid(proc->pid, NULL, 0);
 
-        /* Clean up */
-        close(proc->fd_socket);
-        free(proc);
-#endif
+            /* Remove client */
+            if (guacd_proc_map_remove(map, proc->client->connection_id) == NULL)
+                guacd_log_error("Internal failure removing client \"%s\". Client record will never be freed.",
+                        proc->client->connection_id);
+            else
+                guacd_log_info("Connection \"%s\" removed.", proc->client->connection_id);
+
+            /* Free skeleton client */
+            guac_client_free(proc->client);
+
+            /* Clean up */
+            close(proc->fd_socket);
+            free(proc);
+
+        }
 
         return 0;
     }
