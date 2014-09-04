@@ -400,22 +400,22 @@ int main(int argc, char* argv[]) {
             continue;
         }
 
-        /* Create corresponding context */
-        guacd_connection_context* context = malloc(sizeof(guacd_connection_context));
-        if (context == NULL) {
-            guacd_log_error("Could not create connection context: %s", strerror(errno));
+        /* Create parameters for connection thread */
+        guacd_connection_thread_params* params = malloc(sizeof(guacd_connection_thread_params));
+        if (params == NULL) {
+            guacd_log_error("Could not create connection thread: %s", strerror(errno));
             continue;
         }
 
-        context->map = map;
-        context->connected_socket_fd = connected_socket_fd;
+        params->map = map;
+        params->connected_socket_fd = connected_socket_fd;
 
 #ifdef ENABLE_SSL
-        context->ssl_context = ssl_context;
+        params->ssl_context = ssl_context;
 #endif
 
         /* Spawn thread to handle connection */
-        pthread_create(&child_thread, NULL, guacd_connection_thread, context);
+        pthread_create(&child_thread, NULL, guacd_connection_thread, params);
         pthread_detach(child_thread);
 
     }

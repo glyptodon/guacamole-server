@@ -44,7 +44,68 @@
 
 #include <errno.h>
 #include <sys/types.h>
+#include <sys/socket.h>
 #include <sys/wait.h>
+
+/**
+ * Continuously reads from a guac_socket, writing all data read to a file
+ * descriptor.
+ */
+static void* guacd_connection_write_thread(void* data) {
+
+    guacd_connection_io_thread_params* params = (guacd_connection_io_thread_params*) data;
+    char buffer[8192];
+
+    int length;
+
+    /* Transfer data from file descriptor to socket */
+    while ((length = guac_socket_read(params->socket, buffer, sizeof(buffer))) > 0) {
+
+        char* remaining = buffer;
+        while (length > 0) {
+
+            int written = write(params->fd, remaining, length);
+            if (written < 0)
+                return NULL;
+
+            length    -= written;
+            remaining += written;
+
+        }
+
+    }
+
+    return NULL;
+
+}
+
+void* guacd_connection_io_thread(void* data) {
+
+    guacd_connection_io_thread_params* params = (guacd_connection_io_thread_params*) data;
+    char buffer[8192];
+
+    int length;
+
+    pthread_t write_thread;
+    pthread_create(&write_thread, NULL, guacd_connection_write_thread, params);
+
+    /* Transfer data from file descriptor to socket */
+    while ((length = read(params->fd, buffer, sizeof(buffer))) > 0) {
+        if (guac_socket_write(params->socket, buffer, length))
+            break;
+    }
+
+    /* Wait for write thread to die */
+    pthread_join(write_thread, NULL);
+
+    /* Clean up */
+    guac_socket_free(params->socket);
+    close(params->fd);
+    free(params);
+
+    return NULL;
+
+}
 
 /**
  * Adds the given socket as a new user to the given process, automatically
@@ -55,25 +116,36 @@
  * If adding the user fails for any reason, non-zero is returned. Zero is
  * returned upon success.
  */
-static int guacd_add_user(guacd_proc* proc, guac_socket* socket) {
+static int guacd_add_user(guacd_proc* proc, guac_parser* parser, guac_socket* socket) {
 
-    int user_fd = 0; /* FIXME: Use one end of socketpair */
+    int sockets[2];
+
+    /* Set up socket pair */
+    if (socketpair(AF_UNIX, SOCK_STREAM, 0, sockets) < 0) {
+        guacd_log_error("Unable to allocate file descriptors for I/O transfer: %s", strerror(errno));
+        return 1;
+    }
+
+    int user_fd = sockets[0];
+    int proc_fd = sockets[1];
 
     /* Send user file descriptor to process */
-    if (!guacd_send_fd(proc->fd_socket, user_fd)) {
+    if (!guacd_send_fd(proc->fd_socket, proc_fd)) {
         guacd_log_error("Unable to add user.");
         return 1;
     }
 
-    /* FIXME: 
-     *
-     * 0) Start I/O thread.
-     *    a) Start thread which reads from process, writes to socket.
-     *    b) In loop, read from socket, write to process.
-     *    c) After loop terminates, join on thread.
-     *    d) Clean up socket.
-     * 1) Detach thread.
-     */
+    /* Close our end of the process file descriptor */
+    close(proc_fd);
+
+    guacd_connection_io_thread_params* params = malloc(sizeof(guacd_connection_io_thread_params));
+    params->socket = socket;
+    params->fd = user_fd;
+
+    /* Start I/O thread */
+    pthread_t io_thread;
+    pthread_create(&io_thread,  NULL, guacd_connection_io_thread,  params);
+    pthread_detach(io_thread);
 
     return 0;
 
@@ -128,8 +200,6 @@ static int guacd_route_connection(guacd_proc_map* map, guac_socket* socket) {
 
     }
 
-    guac_parser_free(parser);
-
     if (proc == NULL)
         return 1;
 
@@ -137,7 +207,7 @@ static int guacd_route_connection(guacd_proc_map* map, guac_socket* socket) {
     guacd_log_info("Connection ID is \"%s\"", proc->client->connection_id);
 
     /* Add new user (in the case of a new process, this will be the owner */
-    if (guacd_add_user(proc, socket) == 0) {
+    if (guacd_add_user(proc, parser, socket) == 0) {
 
         /* FIXME: The following should ONLY be done for new processes */
 #if 0
@@ -173,23 +243,23 @@ static int guacd_route_connection(guacd_proc_map* map, guac_socket* socket) {
 
 void* guacd_connection_thread(void* data) {
 
-    guacd_connection_context* context = (guacd_connection_context*) data;
+    guacd_connection_thread_params* params = (guacd_connection_thread_params*) data;
 
-    guacd_proc_map* map = context->map;
-    int connected_socket_fd = context->connected_socket_fd;
+    guacd_proc_map* map = params->map;
+    int connected_socket_fd = params->connected_socket_fd;
 
     guac_socket* socket;
 
 #ifdef ENABLE_SSL
 
-    SSL_CTX* ssl_context = context->ssl_context;
+    SSL_CTX* ssl_context = params->ssl_context;
 
     /* If SSL chosen, use it */
     if (ssl_context != NULL) {
         socket = guac_socket_open_secure(ssl_context, connected_socket_fd);
         if (socket == NULL) {
             guacd_log_guac_error("Error opening secure connection");
-            free(context);
+            free(params);
             return NULL;
         }
     }
@@ -207,7 +277,7 @@ void* guacd_connection_thread(void* data) {
         close(connected_socket_fd);
     }
 
-    free(context);
+    free(params);
     return NULL;
 
 }

@@ -32,9 +32,9 @@
 #endif
 
 /**
- * Contextual information surrounding a new, inbound connection to guacd.
+ * Parameters required by each connection thread.
  */
-typedef struct guacd_connection_context {
+typedef struct guacd_connection_thread_params {
 
     /**
      * The shared map of all connected clients.
@@ -54,18 +54,39 @@ typedef struct guacd_connection_context {
      */
     int connected_socket_fd;
 
-} guacd_connection_context;
+} guacd_connection_thread_params;
 
 /**
- * Thread which accepts a guacd_connection_context and handles the connection
- * it describes. The guacd_connection_context must be dynamically allocated,
- * and this thread will automatically free the guacd_connection_context upon
- * termination.
- *
- * It is expected that this thread will operate detached. The creating process
- * need not join on the resulting thread.
+ * Handles an inbound connection to guacd, allowing guacd to continue listening
+ * for other connections. It is expected that this thread will operate
+ * detached. The creating process need not join on the resulting thread.
  */
 void* guacd_connection_thread(void* data);
+
+/**
+ * Parameters required by the per-connection I/O transfer thread.
+ */
+typedef struct guacd_connection_io_thread_params {
+
+    /**
+     * The guac_socket which is directly handling I/O from a user's connection
+     * to guacd.
+     */
+    guac_socket* socket;
+
+    /**
+     * The file descriptor which is being handled by a guac_socket within the
+     * connection-specific process.
+     */
+    int fd;
+
+} guacd_connection_io_thread_params;
+
+/**
+ * Transfers data back and forth between the guacd-side guac_socket and the
+ * file descriptor used by the process-side guac_socket.
+ */
+void* guacd_connection_io_thread(void* data);
 
 #endif
 

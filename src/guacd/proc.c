@@ -167,13 +167,8 @@ static int guacd_handle_user(guac_client* client, guac_socket* socket, int owner
         guacd_log_info("User \"%s\" joined connection \"%s\" (%i users now present)",
                 user->user_id, client->connection_id, client->connected_users);
 
-        guacd_user_context context = {
-            .parser = parser,
-            .user = user
-        };
-
         /* Handle user I/O, wait for connection to terminate */
-        guacd_user_start(&context);
+        guacd_user_start(parser, user);
 
         /* Remove/free user */
         guac_client_remove_user(client, user);
@@ -185,6 +180,8 @@ static int guacd_handle_user(guac_client* client, guac_socket* socket, int owner
     /* Free mimetype lists */
     __free_mimetypes(audio_mimetypes);
     __free_mimetypes(video_mimetypes);
+
+    guac_parser_free(parser);
 
     /* Successful disconnect */
     return 0;

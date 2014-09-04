@@ -35,11 +35,11 @@
 #include <pthread.h>
 #include <stdlib.h>
 
-void* __guacd_user_input_thread(void* data) {
+void* guacd_user_input_thread(void* data) {
 
-    guacd_user_context* context = (guacd_user_context*) data;
-    guac_user* user = context->user;
-    guac_parser* parser = context->parser;
+    guacd_user_input_thread_params* params = (guacd_user_input_thread_params*) data;
+    guac_user* user = params->user;
+    guac_parser* parser = params->parser;
     guac_client* client = user->client;
     guac_socket* socket = user->socket;
 
@@ -76,24 +76,27 @@ void* __guacd_user_input_thread(void* data) {
             guac_user_log_info(user, "Failing instruction handler in user was \"%s\"", parser->opcode);
 
             guac_user_stop(user);
-            guac_parser_free(parser);
             return NULL;
         }
 
     }
 
-    guac_parser_free(parser);
     return NULL;
 
 }
 
-int guacd_user_start(guacd_user_context* context) {
+int guacd_user_start(guac_parser* parser, guac_user* user) {
+
+    guacd_user_input_thread_params params = {
+        .parser = parser,
+        .user = user
+    };
 
     pthread_t input_thread;
 
-    if (pthread_create(&input_thread, NULL, __guacd_user_input_thread, (void*) context)) {
-        guac_user_log_error(context->user, "Unable to start input thread");
-        guac_user_stop(context->user);
+    if (pthread_create(&input_thread, NULL, guacd_user_input_thread, (void*) &params)) {
+        guac_user_log_error(user, "Unable to start input thread");
+        guac_user_stop(user);
         return -1;
     }
 

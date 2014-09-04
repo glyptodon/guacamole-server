@@ -50,10 +50,9 @@
 #define GUACD_CLIENT_MAX_CONNECTIONS 65536
 
 /**
- * Information tied to a particular user's session, including a reference to
- * the guac_user and the guac_parser being used for received instructions.
+ * Parameters required by the user input thread.
  */
-typedef struct guacd_user_context {
+typedef struct guacd_user_input_thread_params {
 
     /**
      * The parser which will be used throughout the user's session.
@@ -65,13 +64,19 @@ typedef struct guacd_user_context {
      */
     guac_user* user;
 
-} guacd_user_context;
+} guacd_user_input_thread_params;
 
 /**
  * Starts the input/output threads of a new user. This function will block
  * until the user disconnects.
  */
-int guacd_user_start(guacd_user_context* context);
+int guacd_user_start(guac_parser* parser, guac_user* user);
+
+/**
+ * The thread which handles all user input, calling event handlers for received
+ * instructions.
+ */
+void* guacd_user_input_thread(void* data);
 
 #endif
 
