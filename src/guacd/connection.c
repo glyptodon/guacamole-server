@@ -58,19 +58,26 @@ static void* guacd_connection_write_thread(void* data) {
 
     int length;
 
+    fprintf(stderr, "guacd_connection_write_thread: starting\n");
+
     /* Transfer data from file descriptor to socket */
     while ((length = guac_socket_read(params->socket, buffer, sizeof(buffer))) > 0) {
+
+        fprintf(stderr, "guacd_connection_write_thread: read %i bytes\n", length);
 
         char* remaining = buffer;
         while (length > 0) {
 
             int written = write(params->fd, remaining, length);
-            if (written < 0)
+            if (written < 0) {
+                fprintf(stderr, "guacd_connection_write_thread: write failed: %s\n", strerror(errno));
                 return NULL;
+            }
 
             length    -= written;
             remaining += written;
 
+            fprintf(stderr, "guacd_connection_write_thread: wrote %i bytes\n", written);
         }
 
     }
@@ -86,23 +93,32 @@ void* guacd_connection_io_thread(void* data) {
 
     int length;
 
+    fprintf(stderr, "guacd_connection_io_thread: starting\n");
+
     pthread_t write_thread;
     pthread_create(&write_thread, NULL, guacd_connection_write_thread, params);
 
     /* Transfer data from file descriptor to socket */
     while ((length = read(params->fd, buffer, sizeof(buffer))) > 0) {
-        if (guac_socket_write(params->socket, buffer, length))
+        fprintf(stderr, "guacd_connection_io_thread: read %i bytes\n", length);
+        if (guac_socket_write(params->socket, buffer, length)) {
+            fprintf(stderr, "guacd_connection_io_thread: write failed\n");
             break;
+        }
+        fprintf(stderr, "guacd_connection_io_thread: wrote %i bytes\n", length);
     }
 
     /* Wait for write thread to die */
+    fprintf(stderr, "guacd_connection_io_thread: waiting for write thread\n");
     pthread_join(write_thread, NULL);
 
     /* Clean up */
+    fprintf(stderr, "guacd_connection_io_thread: cleaning up\n");
     guac_socket_free(params->socket);
     close(params->fd);
     free(params);
 
+    fprintf(stderr, "guacd_connection_io_thread: done\n");
     return NULL;
 
 }
@@ -272,10 +288,8 @@ void* guacd_connection_thread(void* data) {
 #endif
 
     /* Route connection according to Guacamole, creating a new process if needed */
-    if (guacd_route_connection(map, socket)) {
+    if (guacd_route_connection(map, socket))
         guac_socket_free(socket);
-        close(connected_socket_fd);
-    }
 
     free(params);
     return NULL;
