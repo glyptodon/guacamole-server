@@ -172,7 +172,6 @@ static int guacd_handle_user(guac_user* user) {
         /* Remove/free user */
         guac_client_remove_user(client, user);
         guacd_log_info("User \"%s\" disconnected (%i users remain)", user->user_id, client->connected_users);
-        guac_user_free(user);
 
     }
 
