@@ -81,16 +81,12 @@ static void __free_mimetypes(char** mimetypes) {
 }
 
 /**
- * Handles the initial handshake of a user, associating that new user with the
- * existing client. This function blocks until the user's connection is
- * finished.
- *
- * Note that if this user is the owner of the client, the owner parameter MUST
- * be set to a non-zero value.
+ * Handles the initial handshake of a user and all subsequent I/O.
  */
-static int guacd_handle_user(guac_client* client, guac_socket* socket, int owner) {
+static int guacd_handle_user(guac_user* user) {
 
-    guac_parser* parser = guac_parser_alloc();
+    guac_socket* socket = user->socket;
+    guac_client* client = user->client;
 
     /* Send args */
     if (guac_protocol_send_args(socket, client->args)
@@ -99,21 +95,19 @@ static int guacd_handle_user(guac_client* client, guac_socket* socket, int owner
         return 1;
     }
 
-    /* Create skeleton user */
-    guac_user* user = guac_user_alloc();
-    user->socket = socket;
-    user->client = client;
-    user->owner = owner;
+    guac_parser* parser = guac_parser_alloc();
 
     /* Get optimal screen size */
     if (guac_parser_expect(parser, socket, GUACD_USEC_TIMEOUT, "size")) {
         guacd_log_guac_error("Error reading \"size\"");
+        guac_parser_free(parser);
         return 1;
     }
 
     /* Validate content of size instruction */
     if (parser->argc < 2) {
         guacd_log_error("Received \"size\" instruction lacked required arguments.");
+        guac_parser_free(parser);
         return 1;
     }
 
@@ -132,6 +126,7 @@ static int guacd_handle_user(guac_client* client, guac_socket* socket, int owner
     /* Get supported audio formats */
     if (guac_parser_expect(parser, socket, GUACD_USEC_TIMEOUT, "audio")) {
         guacd_log_guac_error("Error reading \"audio\"");
+        guac_parser_free(parser);
         return 1;
     }
 
@@ -142,6 +137,7 @@ static int guacd_handle_user(guac_client* client, guac_socket* socket, int owner
     /* Get supported video formats */
     if (guac_parser_expect(parser, socket, GUACD_USEC_TIMEOUT, "video")) {
         guacd_log_guac_error("Error reading \"video\"");
+        guac_parser_free(parser);
         return 1;
     }
 
@@ -152,6 +148,7 @@ static int guacd_handle_user(guac_client* client, guac_socket* socket, int owner
     /* Get args from connect instruction */
     if (guac_parser_expect(parser, socket, GUACD_USEC_TIMEOUT, "connect")) {
         guacd_log_guac_error("Error reading \"connect\"");
+        guac_parser_free(parser);
         return 1;
     }
 
@@ -191,20 +188,49 @@ static int guacd_handle_user(guac_client* client, guac_socket* socket, int owner
 }
 
 /**
- * Begins a new user connection under a given process, using the given file
- * descriptor.
+ * Parameters for the user thread.
  */
-static void guacd_proc_add_user(guacd_proc* proc, int fd, int owner) {
+typedef struct guacd_user_thread_params {
 
+    /**
+     * The process being joined.
+     */
+    guacd_proc* proc;
+
+    /**
+     * The file descriptor of the joining user's socket.
+     */
+    int fd;
+
+    /**
+     * Whether the joining user is the connection owner.
+     */
+    int owner;
+
+} guacd_user_thread_params;
+
+/**
+ * Handles a user's entire connection and socket lifecycle.
+ */
+void* guacd_user_thread(void* data) {
+
+    guacd_user_thread_params* params = (guacd_user_thread_params*) data;
+    guacd_proc* proc = params->proc;
     guac_client* client = proc->client;
 
-    /* Get guac_socket for given file descriptor */
-    guac_socket* socket = guac_socket_open(fd);
+    /* Get guac_socket for user's file descriptor */
+    guac_socket* socket = guac_socket_open(params->fd);
     if (socket == NULL)
-        return;
+        return NULL;
+
+    /* Create skeleton user */
+    guac_user* user = guac_user_alloc();
+    user->socket = socket;
+    user->client = client;
+    user->owner  = params->owner;
 
     /* Handle user connection from handshake until disconnect/completion */
-    guacd_handle_user(client, socket, owner);
+    guacd_handle_user(user);
 
     /* Stop client and prevent future users if all users are disconnected */
     if (client->connected_users == 0) {
@@ -212,8 +238,30 @@ static void guacd_proc_add_user(guacd_proc* proc, int fd, int owner) {
         guacd_proc_stop(proc);
     }
 
-    /* Close socket */
+    /* Clean up */
     guac_socket_free(socket);
+    guac_user_free(user);
+    free(params);
+
+    return NULL;
+
+}
+
+/**
+ * Begins a new user connection under a given process, using the given file
+ * descriptor.
+ */
+static void guacd_proc_add_user(guacd_proc* proc, int fd, int owner) {
+
+    guacd_user_thread_params* params = malloc(sizeof(guacd_user_thread_params));
+    params->proc = proc;
+    params->fd = fd;
+    params->owner = owner;
+
+    /* Start user thread */
+    pthread_t user_thread;
+    pthread_create(&user_thread, NULL, guacd_user_thread, params);
+    pthread_detach(user_thread);
 
 }
 
