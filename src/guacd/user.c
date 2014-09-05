@@ -57,7 +57,6 @@ void* guacd_user_input_thread(void* data) {
                 guac_user_stop(user);
             }
 
-            guac_parser_free(parser);
             return NULL;
         }
 
