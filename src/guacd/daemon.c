@@ -22,8 +22,6 @@
 
 #include "config.h"
 
-#include "client.h"
-#include "client-map.h"
 #include "connection.h"
 #include "conf-args.h"
 #include "conf-file.h"

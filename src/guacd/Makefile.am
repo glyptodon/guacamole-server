@@ -31,8 +31,6 @@ man_MANS =           \
     man/guacd.conf.5
 
 noinst_HEADERS =  \
-    client.h      \
-    client-map.h  \
     conf-args.h   \
     conf-file.h   \
     conf-parse.h  \
@@ -44,8 +42,6 @@ noinst_HEADERS =  \
     user.h
 
 guacd_SOURCES =  \
-	client.c     \
-	client-map.c \
 	conf-args.c  \
 	conf-file.c  \
 	conf-parse.c \
