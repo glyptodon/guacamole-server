@@ -22,7 +22,11 @@
 
 #include "config.h"
 
+#include "client.h"
+#include "client-map.h"
 #include "connection.h"
+#include "conf-args.h"
+#include "conf-file.h"
 #include "log.h"
 #include "proc-map.h"
 #include "user.h"
@@ -33,7 +37,6 @@
 
 #include <errno.h>
 #include <fcntl.h>
-#include <getopt.h>
 #include <libgen.h>
 #include <netdb.h>
 #include <netinet/in.h>
@@ -153,17 +156,7 @@ int main(int argc, char* argv[]) {
     socklen_t client_addr_len;
     int connected_socket_fd;
 
-    /* Arguments */
-    char* listen_address = NULL; /* Default address of INADDR_ANY */
-    char* listen_port = "4822";  /* Default port */
-    char* pidfile = NULL;
-    int opt;
-    int foreground = 0;
-
 #ifdef ENABLE_SSL
-    /* SSL */
-    char* cert_file = NULL;
-    char* key_file = NULL;
     SSL_CTX* ssl_context = NULL;
 #endif
 
@@ -172,53 +165,10 @@ int main(int argc, char* argv[]) {
     /* General */
     int retval;
 
-    /* Parse arguments */
-    while ((opt = getopt(argc, argv, "l:b:p:C:K:f")) != -1) {
-        if (opt == 'l') {
-            listen_port = strdup(optarg);
-        }
-        else if (opt == 'b') {
-            listen_address = strdup(optarg);
-        }
-        else if (opt == 'f') {
-            foreground = 1;
-        }
-        else if (opt == 'p') {
-            pidfile = strdup(optarg);
-        }
-#ifdef ENABLE_SSL
-        else if (opt == 'C') {
-            cert_file = strdup(optarg);
-        }
-        else if (opt == 'K') {
-            key_file = strdup(optarg);
-        }
-#else
-        else if (opt == 'C' || opt == 'K') {
-            fprintf(stderr,
-                    "This guacd does not have SSL/TLS support compiled in.\n\n"
-
-                    "If you wish to enable support for the -%c option, please install libssl and\n"
-                    "recompile guacd.\n",
-                    opt);
-            exit(EXIT_FAILURE);
-        }
-#endif
-        else {
-
-            fprintf(stderr, "USAGE: %s"
-                    " [-l LISTENPORT]"
-                    " [-b LISTENADDRESS]"
-                    " [-p PIDFILE]"
-#ifdef ENABLE_SSL
-                    " [-C CERTIFICATE_FILE]"
-                    " [-K PEM_FILE]"
-#endif
-                    " [-f]\n", argv[0]);
-
-            exit(EXIT_FAILURE);
-        }
-    }
+    /* Load configuration */
+    guacd_config* config = guacd_conf_load();
+    if (config == NULL || guacd_conf_parse_args(config, argc, argv))
+       exit(EXIT_FAILURE);
 
     /* Set up logging prefix */
     strncpy(log_prefix, basename(argv[0]), sizeof(log_prefix));
@@ -230,7 +180,7 @@ int main(int argc, char* argv[]) {
     guacd_log_info("Guacamole proxy daemon (guacd) version " VERSION);
 
     /* Get addresses for binding */
-    if ((retval = getaddrinfo(listen_address, listen_port,
+    if ((retval = getaddrinfo(config->bind_host, config->bind_port,
                     &hints, &addresses))) {
 
         guacd_log_error("Error parsing given address or port: %s",
@@ -299,7 +249,7 @@ int main(int argc, char* argv[]) {
 
 #ifdef ENABLE_SSL
     /* Init SSL if enabled */
-    if (key_file != NULL || cert_file != NULL) {
+    if (config->key_file != NULL || config->cert_file != NULL) {
 
         /* Init SSL */
         guacd_log_info("Communication will require SSL/TLS.");
@@ -308,9 +258,9 @@ int main(int argc, char* argv[]) {
         ssl_context = SSL_CTX_new(SSLv23_server_method());
 
         /* Load key */
-        if (key_file != NULL) {
-            guacd_log_info("Using PEM keyfile %s", key_file);
-            if (!SSL_CTX_use_PrivateKey_file(ssl_context, key_file, SSL_FILETYPE_PEM)) {
+        if (config->key_file != NULL) {
+            guacd_log_info("Using PEM keyfile %s", config->key_file);
+            if (!SSL_CTX_use_PrivateKey_file(ssl_context, config->key_file, SSL_FILETYPE_PEM)) {
                 guacd_log_error("Unable to load keyfile.");
                 exit(EXIT_FAILURE);
             }
@@ -319,9 +269,9 @@ int main(int argc, char* argv[]) {
             guacd_log_info("No PEM keyfile given - SSL/TLS may not work.");
 
         /* Load cert file if specified */
-        if (cert_file != NULL) {
-            guacd_log_info("Using certificate file %s", cert_file);
-            if (!SSL_CTX_use_certificate_chain_file(ssl_context, cert_file)) {
+        if (config->cert_file != NULL) {
+            guacd_log_info("Using certificate file %s", config->cert_file);
+            if (!SSL_CTX_use_certificate_chain_file(ssl_context, config->cert_file)) {
                 guacd_log_error("Unable to load certificate.");
                 exit(EXIT_FAILURE);
             }
@@ -333,7 +283,7 @@ int main(int argc, char* argv[]) {
 #endif
 
     /* Daemonize if requested */
-    if (!foreground) {
+    if (!config->foreground) {
 
         /* Attempt to daemonize process */
         if (daemonize()) {
@@ -344,10 +294,10 @@ int main(int argc, char* argv[]) {
     }
 
     /* Write PID file if requested */
-    if (pidfile != NULL) {
+    if (config->pidfile != NULL) {
 
         /* Attempt to open pidfile and write PID */
-        FILE* pidf = fopen(pidfile, "w");
+        FILE* pidf = fopen(config->pidfile, "w");
         if (pidf) {
             fprintf(pidf, "%d\n", getpid());
             fclose(pidf);

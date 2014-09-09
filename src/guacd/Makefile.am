@@ -25,9 +25,17 @@ AUTOMAKE_OPTIONS = foreign
 AM_CFLAGS = -Werror -Wall -pedantic @LIBGUAC_INCLUDE@ @COMMON_INCLUDE@
 
 sbin_PROGRAMS = guacd
-man_MANS = man/guacd.8
+
+man_MANS =           \
+    man/guacd.8      \
+    man/guacd.conf.5
 
 noinst_HEADERS =  \
+    client.h      \
+    client-map.h  \
+    conf-args.h   \
+    conf-file.h   \
+    conf-parse.h  \
     connection.h  \
     log.h         \
     move-fd.h     \
@@ -36,6 +44,11 @@ noinst_HEADERS =  \
     user.h
 
 guacd_SOURCES =  \
+	client.c     \
+	client-map.c \
+	conf-args.c  \
+	conf-file.c  \
+	conf-parse.c \
     connection.c \
     daemon.c     \
     log.c        \
@@ -44,8 +57,8 @@ guacd_SOURCES =  \
     proc-map.c   \
     user.c
 
-guacd_LDADD    = @LIBGUAC_LTLIB@ @COMMON_LTLIB@
-guacd_LDFLAGS  = @PTHREAD_LIBS@ @SSL_LIBS@
+guacd_LDADD   = @LIBGUAC_LTLIB@ @COMMON_LTLIB@
+guacd_LDFLAGS = @PTHREAD_LIBS@ @SSL_LIBS@
 
 EXTRA_DIST = init.d/guacd.in man/guacd.8
 CLEANFILES = $(init_SCRIPTS)
