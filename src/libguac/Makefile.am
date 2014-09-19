@@ -93,6 +93,6 @@ if ENABLE_OGG
 endif
 
 lib_LTLIBRARIES = libguac.la
-libguac_la_LDFLAGS = -version-info 8:0:1 @PTHREAD_LIBS@ @CAIRO_LIBS@ @PNG_LIBS@ @VORBIS_LIBS@ @UUID_LIBS@
+libguac_la_LDFLAGS = -version-info 8:1:1 @PTHREAD_LIBS@ @CAIRO_LIBS@ @PNG_LIBS@ @VORBIS_LIBS@ @UUID_LIBS@
 libguac_la_LIBADD = @LIBADD_DLOPEN@ 
 
