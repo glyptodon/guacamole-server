@@ -183,6 +183,8 @@ BOOL rdp_freerdp_pre_connect(freerdp* instance) {
         guac_client_log(client, GUAC_LOG_WARNING,
                 "Failed to load cliprdr plugin. Clipboard will not work.");
 
+/* FIXME: Audio disabled for now */
+#if 0
     /* If audio enabled, choose an encoder */
     if (guac_client_data->settings.audio_enabled) {
 
@@ -203,7 +205,10 @@ BOOL rdp_freerdp_pre_connect(freerdp* instance) {
                     "No available audio encoding. Sound disabled.");
 
     } /* end if audio enabled */
+#endif
 
+/* FIXME: Drive disabled for now */
+#if 0
     /* Load filesystem if drive enabled */
     if (guac_client_data->settings.drive_enabled) {
         guac_client_data->filesystem =
@@ -222,6 +227,7 @@ BOOL rdp_freerdp_pre_connect(freerdp* instance) {
                     "Failed to load guacdr plugin. Drive redirection and printing will not work.");
 
     }
+#endif
 
     /* Load RAIL plugin if RemoteApp in use */
     if (guac_client_data->settings.remote_app != NULL) {
@@ -252,6 +258,8 @@ BOOL rdp_freerdp_pre_connect(freerdp* instance) {
 
     }
 
+/* FIXME: Static channels disabled for now */
+#if 0
     /* Load SVC plugin instances for all static channels */
     if (guac_client_data->settings.svc_names != NULL) {
 
@@ -279,6 +287,7 @@ BOOL rdp_freerdp_pre_connect(freerdp* instance) {
         } while (*(++current) != NULL);
 
     }
+#endif
 
     /* Init color conversion structure */
     clrconv = calloc(1, sizeof(CLRCONV));
