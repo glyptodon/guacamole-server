@@ -376,9 +376,6 @@ AC_ARG_WITH([rdp],
             [],
             [with_rdp=check])
 
-# FIXME: Temporarily disabled
-with_rdp=no
-
 if test "x$with_rdp" != "xno"
 then
     have_winpr=yes
