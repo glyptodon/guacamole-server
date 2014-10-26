@@ -107,6 +107,32 @@ void guac_rdp_push_settings(guac_rdp_settings* guac_settings, freerdp* rdp) {
     rdp_settings->RemoteConsoleAudio = guac_settings->console_audio;
 #endif
 
+    /* Audio */
+#ifdef LEGACY_RDPSETTINGS
+#ifdef HAVE_RDPSETTINGS_AUDIOPLAYBACK
+    rdp_settings->audio_playback = guac_settings->audio_enabled;
+#endif
+#else
+#ifdef HAVE_RDPSETTINGS_AUDIOPLAYBACK
+    rdp_settings->AudioPlayback = guac_settings->audio_enabled;
+#endif
+#endif
+
+    /* Device redirection */
+#ifdef LEGACY_RDPSETTINGS
+#ifdef HAVE_RDPSETTINGS_DEVICEREDIRECTION
+    rdp_settings->device_redirection =  guac_settings->audio_enabled
+                                     || guac_settings->drive_enabled
+                                     || guac_settings->printing_enabled;
+#endif
+#else
+#ifdef HAVE_RDPSETTINGS_DEVICEREDIRECTION
+    rdp_settings->DeviceRedirection =  guac_settings->audio_enabled
+                                    || guac_settings->drive_enabled
+                                    || guac_settings->printing_enabled;
+#endif
+#endif
+
     /* Security */
     switch (guac_settings->security_mode) {
 
@@ -206,10 +232,6 @@ void guac_rdp_push_settings(guac_rdp_settings* guac_settings, freerdp* rdp) {
     bitmap_cache = rdp_settings->bitmap_cache;
     rdp_settings->os_major_type = OSMAJORTYPE_UNSPECIFIED;
     rdp_settings->os_minor_type = OSMINORTYPE_UNSPECIFIED;
-#ifdef HAVE_RDPSETTINGS_FASTPATH
-    rdp_settings->fast_path_input = FALSE;
-    rdp_settings->fast_path_output = FALSE;
-#endif
     rdp_settings->desktop_resize = TRUE;
     rdp_settings->order_support[NEG_DSTBLT_INDEX] = TRUE;
     rdp_settings->order_support[NEG_PATBLT_INDEX] = FALSE; /* PATBLT not yet supported */
@@ -239,10 +261,6 @@ void guac_rdp_push_settings(guac_rdp_settings* guac_settings, freerdp* rdp) {
     bitmap_cache = rdp_settings->BitmapCacheEnabled;
     rdp_settings->OsMajorType = OSMAJORTYPE_UNSPECIFIED;
     rdp_settings->OsMinorType = OSMINORTYPE_UNSPECIFIED;
-#ifdef HAVE_RDPSETTINGS_FASTPATH
-    rdp_settings->FastPathInput = FALSE;
-    rdp_settings->FastPathOutput = FALSE;
-#endif
     rdp_settings->DesktopResize = TRUE;
     rdp_settings->OrderSupport[NEG_DSTBLT_INDEX] = TRUE;
     rdp_settings->OrderSupport[NEG_PATBLT_INDEX] = FALSE; /* PATBLT not yet supported */

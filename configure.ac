@@ -385,7 +385,8 @@ then
     have_freerdp=yes
     legacy_freerdp_extensions=no
     rdpsettings_interface=unknown
-    rdpsettings_fastpath=yes
+    rdpsettings_audioplayback=yes
+    rdpsettings_deviceredirection=yes
     freerdp_interface=unknown
     event_interface=unknown
 
@@ -608,10 +609,14 @@ then
         AC_DEFINE([LEGACY_RDPSETTINGS],,
                   [Whether the legacy version of the rdpSettings API was found])
 
-        # Legacy interface may not have FastPath settings
-        AC_CHECK_MEMBERS([rdpSettings.fast_path_input,
-                          rdpSettings.fast_path_output],,
-                         [rdpsettings_fastpath=no],
+        # Legacy interface may not have AudioPlayback settings
+        AC_CHECK_MEMBERS([rdpSettings.audio_playback],,
+                         [rdpsettings_audioplayback=no],
+                         [[#include <freerdp/freerdp.h>]])
+
+        # Legacy interface may not have DeviceRedirection settings
+        AC_CHECK_MEMBERS([rdpSettings.device_redirection],,
+                         [rdpsettings_deviceredirection=no],
                          [[#include <freerdp/freerdp.h>]])
 
     elif test "x${rdpsettings_interface}" = "xunknown"; then
@@ -624,10 +629,16 @@ then
     fi
 fi
 
-# Activate FastPath settings if present
-if test "x${have_freerdp}" = "xyes" -a "x${rdpsettings_fastpath}" = "xyes"; then
-    AC_DEFINE([HAVE_RDPSETTINGS_FASTPATH],,
-              [Whether the rdpSettings structure has FastPath settings])
+# Activate audio playback settings if present
+if test "x${have_freerdp}" = "xyes" -a "x${rdpsettings_audioplayback}" = "xyes"; then
+    AC_DEFINE([HAVE_RDPSETTINGS_AUDIOPLAYBACK],,
+              [Whether the rdpSettings structure has AudioPlayback settings])
+fi
+
+# Activate device redirection settings if present
+if test "x${have_freerdp}" = "xyes" -a "x${rdpsettings_deviceredirection}" = "xyes"; then
+    AC_DEFINE([HAVE_RDPSETTINGS_DEVICEREDIRECTION],,
+              [Whether the rdpSettings structure has DeviceRedirection settings])
 fi
 
 # Check if the type CHANNEL_ENTRY_POINTS_FREERDP exists, if not define it to CHANNEL_ENTRY_POINTS_EX
