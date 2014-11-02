@@ -119,15 +119,17 @@ void guac_vnc_cursor(rfbClient* client, int x, int y, int w, int h, int bpp) {
         }
     }
 
-    /* Send cursor data*/
     surface = cairo_image_surface_create_for_data(buffer, CAIRO_FORMAT_ARGB32, w, h, stride);
-    
-    guac_protocol_send_png(socket,
-            GUAC_COMP_SRC, cursor_layer, 0, 0, surface);
-    
+
+    /* Update stored cursor information */
+    guac_protocol_send_png(socket, GUAC_COMP_SRC, cursor_layer, 0, 0, surface);
+    guac_protocol_send_size(socket, cursor_layer, w, h);
+    vnc_client->hotspot_x = x;
+    vnc_client->hotspot_y = y;
+
     /* Update cursor */
     guac_protocol_send_cursor(socket, x, y, cursor_layer, 0, 0, w, h);
-    
+
     /* Free surface */
     cairo_surface_destroy(surface);
     free(buffer);

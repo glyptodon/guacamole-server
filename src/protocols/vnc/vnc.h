@@ -76,7 +76,27 @@ typedef struct guac_vnc_client {
      * The layer holding the cursor image.
      */
     guac_layer* cursor;
-    
+
+    /**
+     * The X coordinate of the current location of the mouse cursor.
+     */
+    int mouse_x;
+
+    /**
+     * The Y coordinate of the current location of the mouse cursor.
+     */
+    int mouse_y;
+
+    /**
+     * The X coordinate of the mouse hotspot.
+     */
+    int hotspot_x;
+
+    /**
+     * The Y coordinate of the mouse hotspot.
+     */
+    int hotspot_y;
+
     /**
      * Internal clipboard.
      */

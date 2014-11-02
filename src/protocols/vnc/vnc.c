@@ -208,7 +208,7 @@ void* guac_vnc_client_thread(void* data) {
 
     /* Set remaining client data */
     vnc_client->rfb_client = rfb_client;
-    vnc_client->cursor = guac_client_alloc_buffer(client);
+    vnc_client->cursor = guac_client_alloc_layer(client);
 
     /* Send name */
     guac_protocol_send_name(client->socket, rfb_client->desktopName);
