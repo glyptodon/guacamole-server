@@ -98,8 +98,8 @@ struct guac_client {
     guac_client_free_handler* free_handler;
 
     /**
-     * Handler for logging informational messages. This handler will be called
-     * via guac_client_log_info() when the client needs to log information.
+     * Logging handler. This handler will be called via guac_client_log() when
+     * the client needs to log messages of any type.
      *
      * In general, only programs loading the client should implement this
      * handler, as those are the programs that would provide the logging
@@ -110,7 +110,7 @@ struct guac_client {
      *
      * Example:
      * @code
-     *     void log_handler(guac_client* client, const char* format, va_list args);
+     *     void log_handler(guac_client* client, guac_client_log_level level, const char* format, va_list args);
      *
      *     void function_of_daemon() {
      *
@@ -119,31 +119,7 @@ struct guac_client {
      *     }
      * @endcode
      */
-    guac_client_log_handler* log_info_handler;
-
-    /**
-     * Handler for logging error messages. This handler will be called
-     * via guac_client_log_error() when the client needs to log an error.
-     *
-     * In general, only programs loading the client should implement this
-     * handler, as those are the programs that would provide the logging
-     * facilities.
-     *
-     * Client implementations should expect these handlers to already be
-     * set.
-     *
-     * Example:
-     * @code
-     *     void log_handler(guac_client* client, const char* format, va_list args);
-     *
-     *     void function_of_daemon() {
-     *
-     *         guac_client* client = [pass log_handler to guac_client_plugin_get_client()];
-     *
-     *     }
-     * @endcode
-     */
-    guac_client_log_handler* log_error_handler;
+    guac_client_log_handler* log_handler;
 
     /**
      * Pool of buffer indices. Buffers are simply layers with negative indices.
@@ -273,54 +249,31 @@ guac_client* guac_client_alloc();
 void guac_client_free(guac_client* client);
 
 /**
- * Logs an informational message in the log used by the given client. The
- * logger used will normally be defined by guacd (or whichever program loads
- * the proxy client) by setting the logging handlers of the client when it is
- * loaded.
+ * Writes a message in the log used by the given client. The logger used will
+ * normally be defined by guacd (or whichever program loads the proxy client)
+ * by setting the logging handlers of the client when it is loaded.
  *
- * @param client The proxy client to log an informational message for.
+ * @param client The proxy client logging this message.
+ * @param level The level at which to log this message.
  * @param format A printf-style format string to log.
  * @param ... Arguments to use when filling the format string for printing.
  */
-void guac_client_log_info(guac_client* client, const char* format, ...);
+void guac_client_log(guac_client* client, guac_client_log_level level,
+        const char* format, ...);
 
 /**
- * Logs an error message in the log used by the given client. The logger
- * used will normally be defined by guacd (or whichever program loads the
- * proxy client) by setting the logging handlers of the client when it is
- * loaded.
+ * Writes a message in the log used by the given client. The logger used will
+ * normally be defined by guacd (or whichever program loads the proxy client)
+ * by setting the logging handlers of the client when it is loaded.
  *
- * @param client The proxy client to log an error for.
- * @param format A printf-style format string to log.
- * @param ... Arguments to use when filling the format string for printing.
- */
-void guac_client_log_error(guac_client* client, const char* format, ...);
-
-/**
- * Logs an informational message in the log used by the given client. The
- * logger used will normally be defined by guacd (or whichever program loads
- * the proxy client) by setting the logging handlers of the client when it is
- * loaded.
- *
- * @param client The proxy client to log an informational message for.
+ * @param client The proxy client logging this message.
+ * @param level The level at which to log this message.
  * @param format A printf-style format string to log.
  * @param ap The va_list containing the arguments to be used when filling the
  *           format string for printing.
  */
-void vguac_client_log_info(guac_client* client, const char* format, va_list ap);
-
-/**
- * Logs an error message in the log used by the given client. The logger
- * used will normally be defined by guacd (or whichever program loads the
- * proxy client) by setting the logging handlers of the client when it is
- * loaded.
- *
- * @param client The proxy client to log an error for.
- * @param format A printf-style format string to log.
- * @param ap The va_list containing the arguments to be used when filling the
- *           format string for printing.
- */
-void vguac_client_log_error(guac_client* client, const char* format, va_list ap);
+void vguac_client_log(guac_client* client, guac_client_log_level level,
+        const char* format, va_list ap);
 
 /**
  * Signals the given client to stop gracefully. This is a completely

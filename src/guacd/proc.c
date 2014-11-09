@@ -106,7 +106,7 @@ static int guacd_handle_user(guac_user* user) {
 
     /* Validate content of size instruction */
     if (parser->argc < 2) {
-        guacd_log_error("Received \"size\" instruction lacked required arguments.");
+        guacd_log(GUAC_LOG_ERROR, "Received \"size\" instruction lacked required arguments.");
         guac_parser_free(parser);
         return 1;
     }
@@ -158,12 +158,12 @@ static int guacd_handle_user(guac_user* user) {
 
     /* Attempt join */
     if (guac_client_add_user(client, user, parser->argc, parser->argv))
-        guacd_log_error("User \"%s\" could NOT join connection \"%s\"", user->user_id, client->connection_id);
+        guacd_log(GUAC_LOG_ERROR, "User \"%s\" could NOT join connection \"%s\"", user->user_id, client->connection_id);
 
     /* Begin user connection if join successful */
     else {
 
-        guacd_log_info("User \"%s\" joined connection \"%s\" (%i users now present)",
+        guacd_log(GUAC_LOG_INFO, "User \"%s\" joined connection \"%s\" (%i users now present)",
                 user->user_id, client->connection_id, client->connected_users);
 
         /* Handle user I/O, wait for connection to terminate */
@@ -171,7 +171,7 @@ static int guacd_handle_user(guac_user* user) {
 
         /* Remove/free user */
         guac_client_remove_user(client, user);
-        guacd_log_info("User \"%s\" disconnected (%i users remain)", user->user_id, client->connected_users);
+        guacd_log(GUAC_LOG_INFO, "User \"%s\" disconnected (%i users remain)", user->user_id, client->connected_users);
 
     }
 
@@ -233,7 +233,7 @@ void* guacd_user_thread(void* data) {
 
     /* Stop client and prevent future users if all users are disconnected */
     if (client->connected_users == 0) {
-        guacd_log_info("Last user of connection \"%s\" disconnected", client->connection_id);
+        guacd_log(GUAC_LOG_INFO, "Last user of connection \"%s\" disconnected", client->connection_id);
         guacd_proc_stop(proc);
     }
 
@@ -311,7 +311,7 @@ guacd_proc* guacd_create_proc(guac_parser* parser, const char* protocol) {
 
     /* Open UNIX socket pair */
     if (socketpair(AF_UNIX, SOCK_DGRAM, 0, sockets) < 0) {
-        guacd_log_error("Error opening socket pair: %s", strerror(errno));
+        guacd_log(GUAC_LOG_ERROR, "Error opening socket pair: %s", strerror(errno));
         return NULL;
     }
 
@@ -336,13 +336,12 @@ guacd_proc* guacd_create_proc(guac_parser* parser, const char* protocol) {
     }
 
     /* Init logging */
-    proc->client->log_info_handler  = guacd_client_log_info;
-    proc->client->log_error_handler = guacd_client_log_error;
+    proc->client->log_handler = guacd_client_log;
 
     /* Fork */
     proc->pid = fork();
     if (proc->pid < 0) {
-        guacd_log_error("Cannot fork child process: %s", strerror(errno));
+        guacd_log(GUAC_LOG_ERROR, "Cannot fork child process: %s", strerror(errno));
         close(parent_socket);
         close(child_socket);
         guac_client_free(proc->client);

@@ -106,7 +106,7 @@ rfbClient* guac_vnc_get_client(guac_client* client) {
     /* If reverse connection enabled, start listening */
     if (vnc_settings->reverse_connect) {
 
-        guac_client_log_info(client, "Listening for connections on port %i", vnc_settings->port);
+        guac_client_log(client, GUAC_LOG_INFO, "Listening for connections on port %i", vnc_settings->port);
 
         /* Listen for connection from server */
         rfb_client->listenPort = vnc_settings->port;
@@ -153,7 +153,7 @@ void* guac_vnc_client_thread(void* data) {
             .tv_nsec = (GUAC_VNC_CONNECT_INTERVAL%1000)*1000000
         };
 
-        guac_client_log_info(client,
+        guac_client_log(client, GUAC_LOG_INFO,
                 "Connect failed. Waiting %ims before retrying...",
                 GUAC_VNC_CONNECT_INTERVAL);
 
@@ -186,7 +186,7 @@ void* guac_vnc_client_thread(void* data) {
         /* If successful, init audio system */
         if (guac_client_data->audio != NULL) {
             
-            guac_client_log_info(client,
+            guac_client_log(client, GUAC_LOG_INFO,
                     "Audio will be encoded as %s",
                     guac_client_data->audio->encoder->mimetype);
 
@@ -200,7 +200,7 @@ void* guac_vnc_client_thread(void* data) {
 
         /* Otherwise, audio loading failed */
         else
-            guac_client_log_info(client,
+            guac_client_log(client, GUAC_LOG_INFO,
                     "No available audio encoding. Sound disabled.");
 
     } /* end if audio enabled */
@@ -259,7 +259,7 @@ void* guac_vnc_client_thread(void* data) {
 
     }
 
-    guac_client_log_info(client, "Internal VNC client disconnected");
+    guac_client_log(client, GUAC_LOG_INFO, "Internal VNC client disconnected");
     return NULL;
 
 }

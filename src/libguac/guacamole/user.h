@@ -470,54 +470,31 @@ void vguac_user_abort(guac_user* user, guac_protocol_status status,
         const char* format, va_list ap);
 
 /**
- * Logs an informational message in the log used by the given user. The
- * logger used will normally be defined by guacd (or whichever program loads
- * the user) by setting the logging handlers of the user when it is
- * loaded.
+ * Writes a message in the log used by the given user. The logger used will
+ * normally be defined by guacd (or whichever program loads the user)
+ * by setting the logging handlers of the user when it is loaded.
  *
- * @param user The user to log an informational message for.
+ * @param user The user logging this message.
+ * @param level The level at which to log this message.
  * @param format A printf-style format string to log.
  * @param ... Arguments to use when filling the format string for printing.
  */
-void guac_user_log_info(guac_user* user, const char* format, ...);
+void guac_user_log(guac_user* user, guac_client_log_level level,
+        const char* format, ...);
 
 /**
- * Logs an error message in the log used by the given user. The logger
- * used will normally be defined by guacd (or whichever program loads the
- * user) by setting the logging handlers of the user when it is
- * loaded.
+ * Writes a message in the log used by the given user. The logger used will
+ * normally be defined by guacd (or whichever program loads the user)
+ * by setting the logging handlers of the user when it is loaded.
  *
- * @param user The user to log an error for.
- * @param format A printf-style format string to log.
- * @param ... Arguments to use when filling the format string for printing.
- */
-void guac_user_log_error(guac_user* user, const char* format, ...);
-
-/**
- * Logs an informational message in the log used by the given user. The
- * logger used will normally be defined by guacd (or whichever program loads
- * the user) by setting the logging handlers of the user when it is
- * loaded.
- *
- * @param user The user to log an informational message for.
+ * @param user The user logging this message.
+ * @param level The level at which to log this message.
  * @param format A printf-style format string to log.
  * @param ap The va_list containing the arguments to be used when filling the
  *           format string for printing.
  */
-void vguac_user_log_info(guac_user* user, const char* format, va_list ap);
-
-/**
- * Logs an error message in the log used by the given user. The logger
- * used will normally be defined by guacd (or whichever program loads the
- * user) by setting the logging handlers of the user when it is
- * loaded.
- *
- * @param user The user to log an error for.
- * @param format A printf-style format string to log.
- * @param ap The va_list containing the arguments to be used when filling the
- *           format string for printing.
- */
-void vguac_user_log_error(guac_user* user, const char* format, va_list ap);
+void vguac_user_log(guac_user* user, guac_client_log_level level,
+        const char* format, va_list ap);
 
 #endif
 

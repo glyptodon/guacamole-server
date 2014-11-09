@@ -72,7 +72,7 @@ void* guacd_user_input_thread(void* data) {
             guacd_client_log_guac_error(client, "User instruction handler error");
 
             /* Log handler details */
-            guac_user_log_info(user, "Failing instruction handler in user was \"%s\"", parser->opcode);
+            guac_user_log(user, GUAC_LOG_INFO, "Failing instruction handler in user was \"%s\"", parser->opcode);
 
             guac_user_stop(user);
             return NULL;
@@ -94,7 +94,7 @@ int guacd_user_start(guac_parser* parser, guac_user* user) {
     pthread_t input_thread;
 
     if (pthread_create(&input_thread, NULL, guacd_user_input_thread, (void*) &params)) {
-        guac_user_log_error(user, "Unable to start input thread");
+        guac_user_log(user, GUAC_LOG_ERROR, "Unable to start input thread");
         guac_user_stop(user);
         return -1;
     }

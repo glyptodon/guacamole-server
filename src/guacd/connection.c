@@ -142,7 +142,7 @@ static int guacd_add_user(guacd_proc* proc, guac_parser* parser, guac_socket* so
 
     /* Set up socket pair */
     if (socketpair(AF_UNIX, SOCK_STREAM, 0, sockets) < 0) {
-        guacd_log_error("Unable to allocate file descriptors for I/O transfer: %s", strerror(errno));
+        guacd_log(GUAC_LOG_ERROR, "Unable to allocate file descriptors for I/O transfer: %s", strerror(errno));
         return 1;
     }
 
@@ -151,7 +151,7 @@ static int guacd_add_user(guacd_proc* proc, guac_parser* parser, guac_socket* so
 
     /* Send user file descriptor to process */
     if (!guacd_send_fd(proc->fd_socket, proc_fd)) {
-        guacd_log_error("Unable to add user.");
+        guacd_log(GUAC_LOG_ERROR, "Unable to add user.");
         return 1;
     }
 
@@ -197,7 +197,7 @@ static int guacd_route_connection(guacd_proc_map* map, guac_socket* socket) {
 
     /* Validate args to select */
     if (parser->argc != 1) {
-        guacd_log_error("Bad number of arguments to \"select\" (%i)", parser->argc);
+        guacd_log(GUAC_LOG_ERROR, "Bad number of arguments to \"select\" (%i)", parser->argc);
         guac_parser_free(parser);
         return 1;
     }
@@ -212,9 +212,9 @@ static int guacd_route_connection(guacd_proc_map* map, guac_socket* socket) {
 
         proc = guacd_proc_map_retrieve(map, identifier);
         if (proc == NULL)
-            guacd_log_info("Connection \"%s\" does not exist.", identifier);
+            guacd_log(GUAC_LOG_INFO, "Connection \"%s\" does not exist.", identifier);
         else
-            guacd_log_info("Joining existing connection \"%s\"", identifier);
+            guacd_log(GUAC_LOG_INFO, "Joining existing connection \"%s\"", identifier);
 
         new_process = 0;
 
@@ -223,7 +223,7 @@ static int guacd_route_connection(guacd_proc_map* map, guac_socket* socket) {
     /* Otherwise, create new client */
     else {
 
-        guacd_log_info("Creating new client for protocol \"%s\"", identifier);
+        guacd_log(GUAC_LOG_INFO, "Creating new client for protocol \"%s\"", identifier);
         proc = guacd_create_proc(parser, identifier);
 
         new_process = 1;
@@ -242,7 +242,7 @@ static int guacd_route_connection(guacd_proc_map* map, guac_socket* socket) {
         if (new_process) {
 
             /* Log connection ID */
-            guacd_log_info("Connection ID is \"%s\"", proc->client->connection_id);
+            guacd_log(GUAC_LOG_INFO, "Connection ID is \"%s\"", proc->client->connection_id);
 
             /* Store process, allowing other users to join */
             guacd_proc_map_add(map, proc);
@@ -252,10 +252,10 @@ static int guacd_route_connection(guacd_proc_map* map, guac_socket* socket) {
 
             /* Remove client */
             if (guacd_proc_map_remove(map, proc->client->connection_id) == NULL)
-                guacd_log_error("Internal failure removing client \"%s\". Client record will never be freed.",
+                guacd_log(GUAC_LOG_ERROR, "Internal failure removing client \"%s\". Client record will never be freed.",
                         proc->client->connection_id);
             else
-                guacd_log_info("Connection \"%s\" removed.", proc->client->connection_id);
+                guacd_log(GUAC_LOG_INFO, "Connection \"%s\" removed.", proc->client->connection_id);
 
             /* Free skeleton client */
             guac_client_free(proc->client);

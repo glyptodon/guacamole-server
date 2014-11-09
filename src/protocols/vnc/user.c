@@ -48,13 +48,13 @@ int guac_vnc_user_join_handler(guac_user* user, int argc, char** argv) {
 
         /* Parse arguments into client */
         if (guac_vnc_parse_args(&(vnc_client->settings), argc, (const char**) argv)) {
-            guac_user_log_info(user, "Badly formatted client arguments.");
+            guac_user_log(user, GUAC_LOG_INFO, "Badly formatted client arguments.");
             return 1;
         }
 
         /* Start client thread */
         if (pthread_create(&vnc_client->client_thread, NULL, guac_vnc_client_thread, user->client)) {
-            guac_user_log_error(user, "Unable to start VNC client thread.");
+            guac_user_log(user, GUAC_LOG_ERROR, "Unable to start VNC client thread.");
             return 1;
         }
 

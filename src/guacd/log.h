@@ -34,34 +34,16 @@
 extern char log_prefix[64];
 
 /**
- * Prints an informational message to guacd's logs. This function takes a
- * format and va_list, similar to vprintf.
+ * Writes a message to guacd's logs. This function takes a format and va_list,
+ * similar to vprintf.
  */
-void vguacd_log_info(const char* format, va_list args);
+void vguacd_log(guac_client_log_level level, const char* format, va_list args);
 
 /**
- * Prints an error message to guacd's logs. This function takes a format and
- * va_list, similar to vprintf.
- */
-void vguacd_log_error(const char* format, va_list args);
-
-/**
- * Prints an informational message to guacd's logs. This function accepts
- * parameters identically to printf.
- */
-void guacd_log_info(const char* format, ...);
-
-/**
- * Prints an error message to guacd's logs. This function accepts parameters
+ * Writes a message to guacd's logs. This function accepts parameters
  * identically to printf.
  */
-void guacd_log_error(const char* format, ...);
-
-/**
- * Prints an error message to guacd's logs. This function accepts parameters
- * identically to printf.
- */
-void guacd_log_error(const char* format, ...);
+void guacd_log(guac_client_log_level level, const char* format, ...);
 
 /**
  * Prints an error message to guacd's logs, automatically including any
@@ -78,14 +60,12 @@ void guacd_log_guac_error(const char* message);
 void guacd_client_log_guac_error(guac_client* client, const char* message);
 
 /**
- * Handler for logging informational messages at the guac_client level.
+ * Writes a message using the logging facilities of the given client,
+ * automatically including any information present in guac_error. This function
+ * accepts parameters identically to printf.
  */
-void guacd_client_log_info(guac_client* client, const char* format, va_list args);
-
-/**
- * Handler for logging error messages at the guac_client level.
- */
-void guacd_client_log_error(guac_client* client, const char* format, va_list args);
+void guacd_client_log(guac_client* client, guac_client_log_level level,
+        const char* format, va_list args);
 
 #endif
 

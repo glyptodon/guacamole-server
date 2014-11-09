@@ -144,7 +144,7 @@ void vguac_user_abort(guac_user* user, guac_protocol_status status,
     if (user->active) {
 
         /* Log detail of error */
-        vguac_user_log_error(user, format, ap);
+        vguac_user_log(user, GUAC_LOG_ERROR, format, ap);
 
         /* Send error immediately, limit information given */
         guac_protocol_send_error(user->socket, "Aborted. See logs.", status);
@@ -169,37 +169,20 @@ void guac_user_abort(guac_user* user, guac_protocol_status status,
 
 }
 
-void vguac_user_log_info(guac_user* user, const char* format,
-        va_list ap) {
+void vguac_user_log(guac_user* user, guac_client_log_level level,
+        const char* format, va_list ap) {
 
-    vguac_client_log_info(user->client, format, ap);
-
-}
-
-void vguac_user_log_error(guac_user* user, const char* format,
-        va_list ap) {
-
-    vguac_client_log_error(user->client, format, ap);
+    vguac_client_log(user->client, level, format, ap);
 
 }
 
-void guac_user_log_info(guac_user* user, const char* format, ...) {
+void guac_user_log(guac_user* user, guac_client_log_level level,
+        const char* format, ...) {
 
     va_list args;
     va_start(args, format);
 
-    vguac_client_log_info(user->client, format, args);
-
-    va_end(args);
-
-}
-
-void guac_user_log_error(guac_user* user, const char* format, ...) {
-
-    va_list args;
-    va_start(args, format);
-
-    vguac_client_log_error(user->client, format, args);
+    vguac_client_log(user->client, level, format, args);
 
     va_end(args);
 
