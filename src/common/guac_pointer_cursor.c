@@ -91,5 +91,8 @@ void guac_common_set_pointer_cursor(guac_user* user) {
     /* Free buffer */
     guac_client_free_buffer(client, cursor);
 
+    guac_client_log(client, GUAC_LOG_DEBUG,
+            "Client cursor image set to generic built-in pointer.");
+
 }
 

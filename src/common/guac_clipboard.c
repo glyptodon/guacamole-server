@@ -64,6 +64,10 @@ static void __send_user_clipboard(guac_user* user, void* data) {
     guac_stream* stream = guac_user_alloc_stream(user);
     guac_protocol_send_clipboard(user->socket, stream, clipboard->mimetype);
 
+    guac_user_log(user, GUAC_LOG_DEBUG,
+            "Created stream %i for %s clipboard data.",
+            stream->index, clipboard->mimetype);
+
     /* Split clipboard into chunks */
     while (remaining > 0) {
 
@@ -74,12 +78,19 @@ static void __send_user_clipboard(guac_user* user, void* data) {
 
         /* Send block */
         guac_protocol_send_blob(user->socket, stream, current, block_size);
+        guac_user_log(user, GUAC_LOG_DEBUG,
+                "Sent %i bytes of clipboard data on stream %i.",
+                block_size, stream->index);
 
         /* Next block */
         remaining -= block_size;
         current += block_size;
 
     }
+
+    guac_user_log(user, GUAC_LOG_DEBUG,
+            "Clipboard stream %i complete.",
+            stream->index);
 
     /* End stream */
     guac_protocol_send_end(user->socket, stream);
@@ -88,7 +99,9 @@ static void __send_user_clipboard(guac_user* user, void* data) {
 }
 
 void guac_common_clipboard_send(guac_common_clipboard* clipboard, guac_client* client) {
+    guac_client_log(client, GUAC_LOG_DEBUG, "Broadcasting clipboard to all connected users.");
     guac_client_foreach_user(client, __send_user_clipboard, clipboard);
+    guac_client_log(client, GUAC_LOG_DEBUG, "Broadcast of clipboard complete.");
 }
 
 void guac_common_clipboard_reset(guac_common_clipboard* clipboard, const char* mimetype) {
