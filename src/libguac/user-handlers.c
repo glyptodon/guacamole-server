@@ -324,8 +324,6 @@ int __guac_handle_end(guac_user* user, int argc, char** argv) {
 }
 
 int __guac_handle_disconnect(guac_user* user, int argc, char** argv) {
-    guac_user_log(user, GUAC_LOG_INFO,
-            "Disconnect requested. Ending user session...");
     guac_user_stop(user);
     return 0;
 }
