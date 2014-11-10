@@ -168,11 +168,9 @@ int main(int argc, char* argv[]) {
     if (config == NULL || guacd_conf_parse_args(config, argc, argv))
        exit(EXIT_FAILURE);
 
-    /* Set up logging prefix */
-    strncpy(log_prefix, basename(argv[0]), sizeof(log_prefix));
-
-    /* Open log as early as we can */
-    openlog("guacd", LOG_PID, LOG_DAEMON);
+    /* Init logging as early as possible */
+    guacd_log_level = config->max_log_level;
+    openlog(GUACD_LOG_NAME, LOG_PID, LOG_DAEMON);
 
     /* Log start */
     guacd_log(GUAC_LOG_INFO, "Guacamole proxy daemon (guacd) version " VERSION);
