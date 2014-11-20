@@ -83,3 +83,8 @@ void guac_common_cursor_set_dot(guac_common_cursor* cursor) {
     /* STUB */
 }
 
+void guac_common_cursor_remove_user(guac_common_cursor* cursor,
+        guac_user* user) {
+    /* STUB */
+}
+
