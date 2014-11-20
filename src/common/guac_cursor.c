@@ -31,12 +31,34 @@
 #include <stdlib.h>
 
 guac_common_cursor* guac_common_cursor_alloc(guac_client* client) {
-    /* STUB */
-    return NULL;
+
+    guac_common_cursor* cursor = malloc(sizeof(guac_common_cursor));
+
+    /* Associate cursor with client and allocate cursor layer */
+    cursor->client = client;
+    cursor->layer= guac_client_alloc_layer(client);
+
+    /* No cursor image yet */
+    cursor->width = 0;
+    cursor->height = 0;
+    cursor->surface = NULL;
+    cursor->hotspot_x = 0;
+    cursor->hotspot_y = 0;
+
+    /* No user has moved the mouse yet */
+    cursor->user = NULL;
+
+    /* Start cursor in upper-left */
+    cursor->x = 0;
+    cursor->y = 0;
+
+    return cursor;
+
 }
 
 void guac_common_cursor_free(guac_common_cursor* cursor) {
-    /* STUB */
+    guac_client_free_layer(cursor->client, cursor->layer);
+    free(cursor);
 }
 
 void guac_common_cursor_dup(guac_common_cursor* cursor, guac_socket* socket) {
