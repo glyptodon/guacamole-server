@@ -70,14 +70,16 @@ rfbClient* guac_vnc_get_client(guac_client* client) {
         rfb_client->GotXCutText = guac_vnc_cut_text;
 
         /* Set remote cursor */
-        if (vnc_settings->remote_cursor)
+        if (vnc_settings->remote_cursor) {
             rfb_client->appData.useRemoteCursor = FALSE;
+        }
 
         else {
             /* Enable client-side cursor */
             rfb_client->appData.useRemoteCursor = TRUE;
             rfb_client->GotCursorShape = guac_vnc_cursor;
         }
+
     }
 
     /* Password */
@@ -210,6 +212,16 @@ void* guac_vnc_client_thread(void* data) {
     /* Set remaining client data */
     vnc_client->rfb_client = rfb_client;
     vnc_client->cursor = guac_common_cursor_alloc(client);
+
+    /* If not read-only, set an appropriate cursor */
+    if (vnc_client->settings.read_only == 0) {
+
+        if (vnc_client->settings.remote_cursor)
+            guac_common_cursor_set_dot(vnc_client->cursor);
+        else
+            guac_common_cursor_set_pointer(vnc_client->cursor);
+
+    }
 
     /* Send name */
     guac_protocol_send_name(client->socket, rfb_client->desktopName);

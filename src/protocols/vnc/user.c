@@ -67,24 +67,11 @@ int guac_vnc_user_join_handler(guac_user* user, int argc, char** argv) {
         guac_socket_flush(user->socket);
     }
 
-    /* If not read-only, set input handlers and pointer */
+    /* Only handle mouse/keyboard/clipboard if not read-only */
     if (vnc_settings->read_only == 0) {
-
-        /* Only handle mouse/keyboard/clipboard if not read-only */
         user->mouse_handler = guac_vnc_user_mouse_handler;
         user->key_handler = guac_vnc_user_key_handler;
         user->clipboard_handler = guac_vnc_clipboard_handler;
-
-#if 0
-        /* If not read-only but cursor is remote, set a dot cursor */
-        if (vnc_settings->remote_cursor)
-            guac_common_cursor_set_dot(vnc_client->cursor);
-
-        /* Otherwise, set pointer until explicitly requested otherwise */
-        else
-            guac_common_cursor_set_pointer(vnc_client->cursor);
-#endif
-
     }
 
     return 0;
