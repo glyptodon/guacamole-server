@@ -63,6 +63,7 @@ int guac_vnc_user_join_handler(guac_user* user, int argc, char** argv) {
     /* If not owner, synchronize with current display */
     else {
         guac_common_surface_dup(vnc_client->default_surface, user->socket);
+        guac_common_cursor_dup(vnc_client->cursor, user->socket);
         guac_socket_flush(user->socket);
     }
 
@@ -74,13 +75,15 @@ int guac_vnc_user_join_handler(guac_user* user, int argc, char** argv) {
         user->key_handler = guac_vnc_user_key_handler;
         user->clipboard_handler = guac_vnc_clipboard_handler;
 
+#if 0
         /* If not read-only but cursor is remote, set a dot cursor */
         if (vnc_settings->remote_cursor)
-            guac_common_set_dot_cursor(user);
+            guac_common_cursor_set_dot(vnc_client->cursor);
 
         /* Otherwise, set pointer until explicitly requested otherwise */
         else
-            guac_common_set_pointer_cursor(user);
+            guac_common_cursor_set_pointer(vnc_client->cursor);
+#endif
 
     }
 
@@ -89,7 +92,11 @@ int guac_vnc_user_join_handler(guac_user* user, int argc, char** argv) {
 }
 
 int guac_vnc_user_leave_handler(guac_user* user) {
-    /* STUB */
+
+    guac_vnc_client* vnc_client = (guac_vnc_client*) user->client->data;
+
+    guac_common_cursor_remove_user(vnc_client->cursor, user);
+
     return 0;
 }
 

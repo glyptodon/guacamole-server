@@ -87,6 +87,9 @@ int guac_vnc_client_free_handler(guac_client* client) {
     if (vnc_client->settings.encodings != NULL)
         free(vnc_client->settings.encodings);
 
+    /* Free mousr cursor */
+    guac_common_cursor_free(vnc_client->cursor);
+
     /* Free clipboard */
     if (vnc_client->clipboard != NULL)
         guac_common_clipboard_free(vnc_client->clipboard);

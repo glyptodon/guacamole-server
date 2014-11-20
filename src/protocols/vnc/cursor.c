@@ -23,7 +23,7 @@
 #include "config.h"
 
 #include "client.h"
-#include "guac_iconv.h"
+#include "guac_cursor.h"
 #include "guac_surface.h"
 #include "vnc.h"
 
@@ -48,15 +48,12 @@
 void guac_vnc_cursor(rfbClient* client, int x, int y, int w, int h, int bpp) {
 
     guac_client* gc = rfbClientGetClientData(client, GUAC_VNC_CLIENT_KEY);
-    guac_socket* socket = gc->socket;
     guac_vnc_client* vnc_client = (guac_vnc_client*) gc->data;
-    const guac_layer* cursor_layer = vnc_client->cursor;
 
     /* Cairo image buffer */
     int stride = cairo_format_stride_for_width(CAIRO_FORMAT_ARGB32, w);
     unsigned char* buffer = malloc(h*stride);
     unsigned char* buffer_row_current = buffer;
-    cairo_surface_t* surface;
 
     /* VNC image buffer */
     unsigned int fb_stride = bpp * w;
@@ -119,19 +116,10 @@ void guac_vnc_cursor(rfbClient* client, int x, int y, int w, int h, int bpp) {
         }
     }
 
-    surface = cairo_image_surface_create_for_data(buffer, CAIRO_FORMAT_ARGB32, w, h, stride);
-
     /* Update stored cursor information */
-    guac_protocol_send_png(socket, GUAC_COMP_SRC, cursor_layer, 0, 0, surface);
-    guac_protocol_send_size(socket, cursor_layer, w, h);
-    vnc_client->hotspot_x = x;
-    vnc_client->hotspot_y = y;
-
-    /* Update cursor */
-    guac_protocol_send_cursor(socket, x, y, cursor_layer, 0, 0, w, h);
+    guac_common_cursor_set_argb(vnc_client->cursor, x, y, buffer, w, h, stride);
 
     /* Free surface */
-    cairo_surface_destroy(surface);
     free(buffer);
 
     /* libvncclient does not free rcMask as it does rcSource */

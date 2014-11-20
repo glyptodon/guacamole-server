@@ -26,6 +26,7 @@
 #include "config.h"
 
 #include "guac_clipboard.h"
+#include "guac_cursor.h"
 #include "guac_surface.h"
 #include "settings.h"
 
@@ -73,29 +74,9 @@ typedef struct guac_vnc_client {
     guac_vnc_settings settings;
 
     /**
-     * The layer holding the cursor image.
+     * Mouse cursor.
      */
-    guac_layer* cursor;
-
-    /**
-     * The X coordinate of the current location of the mouse cursor.
-     */
-    int mouse_x;
-
-    /**
-     * The Y coordinate of the current location of the mouse cursor.
-     */
-    int mouse_y;
-
-    /**
-     * The X coordinate of the mouse hotspot.
-     */
-    int hotspot_x;
-
-    /**
-     * The Y coordinate of the mouse hotspot.
-     */
-    int hotspot_y;
+    guac_common_cursor* cursor;
 
     /**
      * Internal clipboard.

@@ -28,6 +28,7 @@
 #include "cursor.h"
 #include "display.h"
 #include "guac_clipboard.h"
+#include "guac_cursor.h"
 #include "log.h"
 #include "settings.h"
 #include "vnc.h"
@@ -208,7 +209,7 @@ void* guac_vnc_client_thread(void* data) {
 
     /* Set remaining client data */
     vnc_client->rfb_client = rfb_client;
-    vnc_client->cursor = guac_client_alloc_layer(client);
+    vnc_client->cursor = guac_common_cursor_alloc(client);
 
     /* Send name */
     guac_protocol_send_name(client->socket, rfb_client->desktopName);
