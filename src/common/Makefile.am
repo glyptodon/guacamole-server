@@ -29,6 +29,7 @@ noinst_LTLIBRARIES = libguac_common.la
 noinst_HEADERS =          \
     guac_io.h             \
     guac_clipboard.h      \
+    guac_cursor.h         \
     guac_dot_cursor.h     \
     guac_iconv.h          \
     guac_list.h           \
@@ -40,6 +41,7 @@ noinst_HEADERS =          \
 libguac_common_la_SOURCES = \
     guac_io.c               \
     guac_clipboard.c        \
+    guac_cursor.c           \
     guac_dot_cursor.c       \
     guac_iconv.c            \
     guac_list.c             \
