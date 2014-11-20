@@ -30,6 +30,11 @@
 #include <guacamole/user.h>
 
 /**
+ * The default size of the cursor image buffer.
+ */
+#define GUAC_COMMON_CURSOR_DEFAULT_SIZE 64*64*4
+
+/**
  * Cursor object which maintains and synchronizes the current mouse cursor
  * state across all users of a specific client.
  */
@@ -55,6 +60,17 @@ typedef struct guac_common_cursor {
      * The height of the cursor image, in pixels.
      */
     int height;
+
+    /**
+     * Arbitrary image data buffer, backing the Cairo surface used to store
+     * the cursor image.
+     */
+    unsigned char* image_buffer;
+
+    /**
+     * The size of the image data buffer, in bytes.
+     */
+    int image_buffer_size;
 
     /**
      * The current cursor image, if any. If the mouse cursor has not yet been
