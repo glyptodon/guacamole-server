@@ -53,7 +53,9 @@ void* guacd_user_input_thread(void* data) {
                 guac_user_abort(user, GUAC_PROTOCOL_STATUS_CLIENT_TIMEOUT, "User is not responding.");
 
             else {
-                guacd_client_log_guac_error(client, "Error reading instruction");
+                if (guac_error != GUAC_STATUS_CLOSED)
+                    guacd_client_log_guac_error(client, GUAC_LOG_WARNING,
+                            "Guacamole connection failure");
                 guac_user_stop(user);
             }
 
@@ -69,10 +71,11 @@ void* guacd_user_input_thread(void* data) {
         if (guac_user_handle_instruction(user, parser->opcode, parser->argc, parser->argv) < 0) {
 
             /* Log error */
-            guacd_client_log_guac_error(client, "User instruction handler error");
+            guacd_client_log_guac_error(client, GUAC_LOG_WARNING,
+                    "User connection aborted");
 
             /* Log handler details */
-            guac_user_log(user, GUAC_LOG_INFO, "Failing instruction handler in user was \"%s\"", parser->opcode);
+            guac_user_log(user, GUAC_LOG_DEBUG, "Failing instruction handler in user was \"%s\"", parser->opcode);
 
             guac_user_stop(user);
             return NULL;

@@ -33,6 +33,7 @@ libguac_client_rdp_la_SOURCES = \
 	guac_handlers.c             \
 	rdp_bitmap.c                \
 	rdp_cliprdr.c               \
+	rdp_color.c                 \
 	rdp_fs.c                    \
 	rdp_gdi.c                   \
 	rdp_glyph.c                 \
@@ -80,10 +81,10 @@ noinst_HEADERS =                             \
 	guac_rdpsnd/rdpsnd_service.h             \
 	guac_svc/svc_service.h                   \
 	client.h                                 \
-	debug.h                                  \
 	guac_handlers.h                          \
 	rdp_bitmap.h                             \
 	rdp_cliprdr.h                            \
+	rdp_color.h                              \
 	rdp_fs.h                                 \
 	rdp_gdi.h                                \
 	rdp_glyph.h                              \
@@ -103,6 +104,12 @@ libguac_client_rdp_la_SOURCES += compat/winpr-stream.c
 guacsvc_sources += compat/winpr-stream.c
 guacsnd_sources += compat/winpr-stream.c
 guacdr_sources  += compat/winpr-stream.c
+endif
+
+# Add display update channel support, if supported by FreeRDP
+if ENABLE_DISPLAY_UPDATE
+noinst_HEADERS += rdp_disp.h
+libguac_client_rdp_la_SOURCES += rdp_disp.c
 endif
 
 libguac_client_rdp_la_LDFLAGS = -version-info 0:0:0 @RDP_LIBS@ @PTHREAD_LIBS@ @CAIRO_LIBS@

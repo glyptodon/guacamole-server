@@ -190,14 +190,24 @@ static int guacd_route_connection(guacd_proc_map* map, guac_socket* socket) {
 
     /* Get protocol from select instruction */
     if (guac_parser_expect(parser, socket, GUACD_USEC_TIMEOUT, "select")) {
-        guacd_log_guac_error("Error reading \"select\"");
+
+        /* Log error */
+        guacd_log_handshake_failure();
+        guacd_log_guac_error(GUAC_LOG_DEBUG,
+                "Error reading \"select\"");
+
         guac_parser_free(parser);
         return 1;
     }
 
     /* Validate args to select */
     if (parser->argc != 1) {
-        guacd_log(GUAC_LOG_ERROR, "Bad number of arguments to \"select\" (%i)", parser->argc);
+
+        /* Log error */
+        guacd_log_handshake_failure();
+        guacd_log(GUAC_LOG_ERROR, "Bad number of arguments to \"select\" (%i)",
+                parser->argc);
+
         guac_parser_free(parser);
         return 1;
     }
@@ -231,6 +241,7 @@ static int guacd_route_connection(guacd_proc_map* map, guac_socket* socket) {
     }
 
     if (proc == NULL) {
+        guacd_log_guac_error(GUAC_LOG_INFO, "Connection did not succeed");
         guac_parser_free(parser);
         return 1;
     }
@@ -294,7 +305,7 @@ void* guacd_connection_thread(void* data) {
     if (ssl_context != NULL) {
         socket = guac_socket_open_secure(ssl_context, connected_socket_fd);
         if (socket == NULL) {
-            guacd_log_guac_error("Error opening secure connection");
+            guacd_log_guac_error(GUAC_LOG_ERROR, "Unable to set up SSL/TLS");
             free(params);
             return NULL;
         }

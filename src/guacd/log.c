@@ -86,7 +86,7 @@ void vguacd_log(guac_client_log_level level, const char* format,
     syslog(priority, "%s", message);
 
     /* Log to STDERR */
-    fprintf(stderr, GUACD_LOG_NAME "[%i]: %s:  %s\n",
+    fprintf(stderr, GUACD_LOG_NAME "[%i]: %s:\t%s\n",
             getpid(), priority_name, message);
 
 }
@@ -103,20 +103,19 @@ void guacd_client_log(guac_client* client, guac_client_log_level level,
     vguacd_log(level, format, args);
 }
 
-void guacd_log_guac_error(const char* message) {
+void guacd_log_guac_error(guac_client_log_level level, const char* message) {
 
     if (guac_error != GUAC_STATUS_SUCCESS) {
 
         /* If error message provided, include in log */
         if (guac_error_message != NULL)
-            guacd_log(GUAC_LOG_ERROR, "%s: %s: %s",
+            guacd_log(level, "%s: %s",
                     message,
-                    guac_status_string(guac_error),
                     guac_error_message);
 
         /* Otherwise just log with standard status string */
         else
-            guacd_log(GUAC_LOG_ERROR, "%s: %s",
+            guacd_log(level, "%s: %s",
                     message,
                     guac_status_string(guac_error));
 
@@ -124,24 +123,24 @@ void guacd_log_guac_error(const char* message) {
 
     /* Just log message if no status code */
     else
-        guacd_log(GUAC_LOG_ERROR, "%s", message);
+        guacd_log(level, "%s", message);
 
 }
 
-void guacd_client_log_guac_error(guac_client* client, const char* message) {
+void guacd_client_log_guac_error(guac_client* client,
+        guac_client_log_level level, const char* message) {
 
     if (guac_error != GUAC_STATUS_SUCCESS) {
 
         /* If error message provided, include in log */
         if (guac_error_message != NULL)
-            guac_client_log(client, GUAC_LOG_ERROR, "%s: %s: %s",
+            guac_client_log(client, level, "%s: %s",
                     message,
-                    guac_status_string(guac_error),
                     guac_error_message);
 
         /* Otherwise just log with standard status string */
         else
-            guac_client_log(client, GUAC_LOG_ERROR, "%s: %s",
+            guac_client_log(client, level, "%s: %s",
                     message,
                     guac_status_string(guac_error));
 
@@ -149,7 +148,24 @@ void guacd_client_log_guac_error(guac_client* client, const char* message) {
 
     /* Just log message if no status code */
     else
-        guac_client_log(client, GUAC_LOG_ERROR, "%s", message);
+        guac_client_log(client, level, "%s", message);
+
+}
+
+void guacd_log_handshake_failure() {
+
+    if (guac_error == GUAC_STATUS_CLOSED)
+        guacd_log(GUAC_LOG_INFO,
+                "Guacamole connection closed during handshake");
+    else if (guac_error == GUAC_STATUS_PROTOCOL_ERROR)
+        guacd_log(GUAC_LOG_ERROR,
+                "Guacamole protocol violation. Perhaps the version of "
+                "guacamole-client is incompatible with this version of "
+                "guacd?");
+    else
+        guacd_log(GUAC_LOG_WARNING,
+                "Guacamole handshake failed: %s",
+                guac_status_string(guac_error));
 
 }
 

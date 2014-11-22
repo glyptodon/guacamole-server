@@ -88,7 +88,7 @@ static int daemonize() {
 
     /* Exit if we are the parent */
     if (pid > 0) {
-        guacd_log(GUAC_LOG_INFO, "Exiting and passing control to PID %i", pid);
+        guacd_log(GUAC_LOG_DEBUG, "Exiting and passing control to PID %i", pid);
         _exit(0);
     }
 
@@ -104,7 +104,7 @@ static int daemonize() {
 
     /* Exit if we are the parent */
     if (pid > 0) {
-        guacd_log(GUAC_LOG_INFO, "Exiting and passing control to PID %i", pid);
+        guacd_log(GUAC_LOG_DEBUG, "Exiting and passing control to PID %i", pid);
         _exit(0);
     }
 
@@ -173,7 +173,7 @@ int main(int argc, char* argv[]) {
     openlog(GUACD_LOG_NAME, LOG_PID, LOG_DAEMON);
 
     /* Log start */
-    guacd_log(GUAC_LOG_INFO, "Guacamole proxy daemon (guacd) version " VERSION);
+    guacd_log(GUAC_LOG_INFO, "Guacamole proxy daemon (guacd) version " VERSION " started");
 
     /* Get addresses for binding */
     if ((retval = getaddrinfo(config->bind_host, config->bind_port,

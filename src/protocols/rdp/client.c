@@ -34,6 +34,10 @@
 #include "rdp_stream.h"
 #include "rdp_svc.h"
 
+#ifdef HAVE_FREERDP_DISPLAY_UPDATE_SUPPORT
+#include "rdp_disp.h"
+#endif
+
 #include <freerdp/cache/bitmap.h>
 #include <freerdp/cache/brush.h>
 #include <freerdp/cache/glyph.h>
@@ -85,6 +89,7 @@ const char* GUAC_CLIENT_ARGS[] = {
     "password",
     "width",
     "height",
+    "dpi",
     "initial-program",
     "color-depth",
     "disable-audio",
@@ -113,6 +118,7 @@ enum RDP_ARGS_IDX {
     IDX_PASSWORD,
     IDX_WIDTH,
     IDX_HEIGHT,
+    IDX_DPI,
     IDX_INITIAL_PROGRAM,
     IDX_COLOR_DEPTH,
     IDX_DISABLE_AUDIO,
@@ -159,10 +165,23 @@ BOOL rdp_freerdp_pre_connect(freerdp* instance) {
     freerdp_register_addin_provider(freerdp_channels_load_static_addin_entry, 0);
 #endif
 
+    /* Load virtual channel management plugin */
+    if (freerdp_channels_load_plugin(channels, instance->settings,
+                "drdynvc", instance->settings))
+        guac_client_log(client, GUAC_LOG_WARNING,
+                "Failed to load drdynvc plugin.");
+
+#ifdef HAVE_FREERDP_DISPLAY_UPDATE_SUPPORT
+    /* Init display update plugin */
+    guac_client_data->disp = NULL;
+    guac_rdp_disp_load_plugin(instance->context);
+#endif
+
     /* Load clipboard plugin */
     if (freerdp_channels_load_plugin(channels, instance->settings,
                 "cliprdr", NULL))
-        guac_client_log(client, GUAC_LOG_ERROR, "Failed to load cliprdr plugin.");
+        guac_client_log(client, GUAC_LOG_WARNING,
+                "Failed to load cliprdr plugin. Clipboard will not work.");
 
     /* If audio enabled, choose an encoder */
     if (guac_client_data->settings.audio_enabled) {
@@ -175,8 +194,8 @@ BOOL rdp_freerdp_pre_connect(freerdp* instance) {
             /* Load sound plugin */
             if (freerdp_channels_load_plugin(channels, instance->settings,
                         "guacsnd", guac_client_data->audio))
-                guac_client_log(client, GUAC_LOG_ERROR,
-                        "Failed to load guacsnd plugin.");
+                guac_client_log(client, GUAC_LOG_WARNING,
+                        "Failed to load guacsnd plugin. Audio will not work.");
 
         }
         else
@@ -188,7 +207,7 @@ BOOL rdp_freerdp_pre_connect(freerdp* instance) {
     /* Load filesystem if drive enabled */
     if (guac_client_data->settings.drive_enabled) {
         guac_client_data->filesystem =
-            guac_rdp_fs_alloc(guac_client_data->settings.drive_path);
+            guac_rdp_fs_alloc(client, guac_client_data->settings.drive_path);
     }
 
     /* If RDPDR required, load it */
@@ -199,8 +218,8 @@ BOOL rdp_freerdp_pre_connect(freerdp* instance) {
         /* Load RDPDR plugin */
         if (freerdp_channels_load_plugin(channels, instance->settings,
                     "guacdr", client))
-            guac_client_log(client, GUAC_LOG_ERROR,
-                    "Failed to load guacdr plugin.");
+            guac_client_log(client, GUAC_LOG_WARNING,
+                    "Failed to load guacdr plugin. Drive redirection and printing will not work.");
 
     }
 
@@ -221,12 +240,14 @@ BOOL rdp_freerdp_pre_connect(freerdp* instance) {
         /* Attempt to load rail */
         if (freerdp_channels_load_plugin(channels, instance->settings,
                     "rail", plugin_data))
-            guac_client_log(client, GUAC_LOG_ERROR, "Failed to load rail plugin.");
+            guac_client_log(client, GUAC_LOG_WARNING,
+                    "Failed to load rail plugin. RemoteApp will not work.");
 #else
         /* Attempt to load rail */
         if (freerdp_channels_load_plugin(channels, instance->settings,
                     "rail", instance->settings))
-            guac_client_log(client, GUAC_LOG_ERROR, "Failed to load rail plugin.");
+            guac_client_log(client, GUAC_LOG_WARNING,
+                    "Failed to load rail plugin. RemoteApp will not work.");
 #endif
 
     }
@@ -242,8 +263,8 @@ BOOL rdp_freerdp_pre_connect(freerdp* instance) {
             /* Attempt to load guacsvc plugin for new static channel */
             if (freerdp_channels_load_plugin(channels, instance->settings,
                         "guacsvc", svc)) {
-                guac_client_log(client, GUAC_LOG_ERROR,
-                        "Failed to load guacsvc plugin for channel \"%s\".",
+                guac_client_log(client, GUAC_LOG_WARNING,
+                        "Cannot create static channel \"%s\": failed to load guacsvc plugin.",
                         svc->name);
                 guac_rdp_free_svc(svc);
             }
@@ -354,6 +375,7 @@ BOOL rdp_freerdp_post_connect(freerdp* instance) {
     client->handle_messages = rdp_guac_client_handle_messages;
     client->mouse_handler = rdp_guac_client_mouse_handler;
     client->key_handler = rdp_guac_client_key_handler;
+    client->size_handler = rdp_guac_client_size_handler;
 
     /* Stream handlers */
     client->clipboard_handler = guac_rdp_clipboard_handler;
@@ -449,12 +471,38 @@ static int __guac_rdp_reduce_resolution(guac_client* client, int resolution) {
         client->info.optimal_width = width;
         client->info.optimal_height = height;
         client->info.optimal_resolution = resolution;
-        guac_client_log(client, GUAC_LOG_INFO, "Reducing resolution to %ix%i at %i DPI", width, height, resolution);
+        guac_client_log(client, GUAC_LOG_INFO,
+                "Reducing resolution to %i DPI (%ix%i)", resolution, width, height);
         return 1;
     }
 
     /* No reduction performed */
     return 0;
+
+}
+
+/**
+ * Forces the client resolution to the given value, without checking whether
+ * the resulting width and height are reasonable.
+ */
+static void __guac_rdp_force_resolution(guac_client* client, int resolution) {
+
+    int width  = client->info.optimal_width  * resolution / client->info.optimal_resolution;
+    int height = client->info.optimal_height * resolution / client->info.optimal_resolution;
+
+    /* Do not force DPI to zero */
+    if (resolution == 0) {
+        guac_client_log(client, GUAC_LOG_WARNING,
+                "Cowardly refusing to force resolution to %i DPI", resolution);
+        return;
+    }
+
+    /* Reduced resolution if result is reasonably sized */
+    client->info.optimal_width = width;
+    client->info.optimal_height = height;
+    client->info.optimal_resolution = resolution;
+    guac_client_log(client, GUAC_LOG_INFO,
+            "Resolution forced to %i DPI (%ix%i)", resolution, width, height);
 
 }
 
@@ -552,8 +600,12 @@ int guac_client_init(guac_client* client, int argc, char** argv) {
             client->info.optimal_height,
             client->info.optimal_resolution);
 
-    /* Attempt to reduce resolution for high DPI */
-    if (client->info.optimal_resolution > GUAC_RDP_NATIVE_RESOLUTION
+    /* Use optimal resolution unless overridden */
+    if (argv[IDX_DPI][0] != '\0')
+        __guac_rdp_force_resolution(client, atoi(argv[IDX_DPI]));
+
+    /* If resolution not forced, attempt to reduce resolution for high DPI */
+    else if (client->info.optimal_resolution > GUAC_RDP_NATIVE_RESOLUTION
             && !__guac_rdp_reduce_resolution(client, GUAC_RDP_NATIVE_RESOLUTION)
             && !__guac_rdp_reduce_resolution(client, GUAC_RDP_HIGH_RESOLUTION))
         guac_client_log(client, GUAC_LOG_INFO, "No reasonable lower resolution");

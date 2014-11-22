@@ -383,6 +383,7 @@ if test "x$with_rdp" != "xno"
 then
     have_winpr=yes
     have_freerdp=yes
+    have_disp=yes
     legacy_freerdp_extensions=no
     rdpsettings_interface=unknown
     rdpsettings_audioplayback=yes
@@ -390,15 +391,17 @@ then
     freerdp_interface=unknown
     event_interface=unknown
 
-    # libfreerdp-core
+    # libfreerdp-core / libfreerdp
     AC_CHECK_LIB([freerdp-core], [freerdp_new],
                  [RDP_LIBS="$RDP_LIBS -lfreerdp-core"],
-                 [AC_MSG_WARN([
+                 [AC_CHECK_LIB([freerdp], [freerdp_new],
+                               [RDP_LIBS="$RDP_LIBS -lfreerdp -lfreerdp-client"],
+                               [AC_MSG_WARN([
   --------------------------------------------
-   Unable to find libfreerdp-core
+   Unable to find libfreerdp-core / libfreerdp
    RDP will be disabled.
   --------------------------------------------])
-                  have_freerdp=no])
+                  have_freerdp=no])])
 fi
 
 
@@ -406,13 +409,7 @@ fi
 if test "x${have_freerdp}" = "xyes"
 then
     AC_CHECK_LIB([freerdp-cache], [glyph_cache_register_callbacks],
-                 [RDP_LIBS="$RDP_LIBS -lfreerdp-cache"],
-                 [AC_MSG_WARN([
-  --------------------------------------------
-   Unable to find libfreerdp-cache
-   RDP will be disabled.
-  --------------------------------------------])
-                  have_freerdp=no])
+                 [RDP_LIBS="$RDP_LIBS -lfreerdp-cache"])
 fi
 
 # libfreerdp-channels (1.0) / libfreerdp-client (1.1)
@@ -429,26 +426,23 @@ fi
 if test "x${have_freerdp}" = "xyes"
 then
     AC_CHECK_LIB([freerdp-utils], [svc_plugin_init],
-                 [RDP_LIBS="$RDP_LIBS -lfreerdp-utils"],
-                 [AC_MSG_WARN([
-  --------------------------------------------
-   Unable to find libfreerdp-utils
-   RDP will be disabled.
-  --------------------------------------------])
-                  have_freerdp=no])
+                 [RDP_LIBS="$RDP_LIBS -lfreerdp-utils"])
 fi
 
 # libfreerdp-codec
 if test "x${have_freerdp}" = "xyes"
 then
     AC_CHECK_LIB([freerdp-codec], [freerdp_image_convert],
-                 [RDP_LIBS="$RDP_LIBS -lfreerdp-codec"],
-                 [AC_MSG_WARN([
-  --------------------------------------------
-   Unable to find libfreerdp-codec
-   RDP will be disabled.
-  --------------------------------------------])
-                  have_freerdp=no])
+                 [RDP_LIBS="$RDP_LIBS -lfreerdp-codec"])
+fi
+
+# Available color conversion functions
+if test "x${have_freerdp}" = "xyes"
+then
+    AC_CHECK_DECL([freerdp_convert_gdi_order_color],
+        [AC_DEFINE([HAVE_FREERDP_CONVERT_GDI_ORDER_COLOR],,
+                   [Whether freerdp_convert_gdi_order_color() id defined])],,
+        [#include <freerdp/codec/color.h>])
 fi
 
 # Check for interval polling in plugins
@@ -489,6 +483,19 @@ then
   --------------------------------------------])
                                         have_freerdp=no],
                                        [#include <freerdp/types.h>])],
+                     [#include <winpr/wtypes.h>
+                      #include <winpr/collections.h>])
+fi
+
+# Header defining display update channel
+if test "x${have_freerdp}" = "xyes"
+then
+    AC_CHECK_HEADERS([freerdp/client/disp.h],
+                     [AC_DEFINE([HAVE_FREERDP_DISPLAY_UPDATE_SUPPORT],,
+                                [Whether FreeRDP supports the display update channel])]
+                     [AC_CHECK_MEMBERS([rdpSettings.SupportDisplayControl],,,
+                                       [[#include <freerdp/freerdp.h>]])],
+                     have_disp=no,
                      [#include <winpr/wtypes.h>
                       #include <winpr/collections.h>])
 fi
@@ -681,6 +688,19 @@ then
 fi
 
 #
+# FreeRDP: rdpContext
+#
+
+# Check for rdpContext.codecs
+if test "x${have_freerdp}" = "xyes"
+then
+    AC_CHECK_MEMBERS([rdpContext.codecs],
+                     [AC_DEFINE([FREERDP_BITMAP_REQUIRES_ALIGNED_MALLOC],,
+                                [Whether this version of FreeRDP requires _aligned_malloc() for bitmap data])],,
+                     [[#include <freerdp/freerdp.h>]])
+fi
+
+#
 # FreeRDP: rdpPalette
 #
 
@@ -743,6 +763,7 @@ then
 fi
 
 AM_CONDITIONAL([LEGACY_FREERDP_EXTENSIONS], [test "x${legacy_freerdp_extensions}" = "xyes"])
+AM_CONDITIONAL([ENABLE_DISPLAY_UPDATE], [test "x${have_disp}" = "xyes"])
 AM_CONDITIONAL([ENABLE_WINPR], [test "x${have_winpr}"   = "xyes"])
 AM_CONDITIONAL([ENABLE_RDP],   [test "x${have_freerdp}" = "xyes"])
 

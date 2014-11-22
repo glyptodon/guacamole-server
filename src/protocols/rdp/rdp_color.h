@@ -20,19 +20,23 @@
  * THE SOFTWARE.
  */
 
+#ifndef GUAC_RDP_COLOR_H
+#define GUAC_RDP_COLOR_H
 
-#ifndef _GUAC_RDP_GUAC_HANDLERS_H
-#define _GUAC_RDP_GUAC_HANDLERS_H
+#include <freerdp/freerdp.h>
 
-#include "config.h"
+#ifdef ENABLE_WINPR
+#include <winpr/wtypes.h>
+#else
+#include "compat/winpr-wtypes.h"
+#endif
 
-#include <guacamole/client.h>
-
-int rdp_guac_client_free_handler(guac_client* client);
-int rdp_guac_client_handle_messages(guac_client* client);
-int rdp_guac_client_mouse_handler(guac_client* client, int x, int y, int mask);
-int rdp_guac_client_key_handler(guac_client* client, int keysym, int pressed);
-int rdp_guac_client_size_handler(guac_client* client, int width, int height);
+/**
+ * Converts the given color to ARGB32. The color given may be an index
+ * referring to the palette, a 16-bit or 32-bit color, etc. all depending on
+ * the current color depth of the RDP session.
+ */
+UINT32 guac_rdp_convert_color(rdpContext* context, UINT32 color);
 
 #endif
 

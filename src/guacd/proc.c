@@ -91,7 +91,11 @@ static int guacd_handle_user(guac_user* user) {
     /* Send args */
     if (guac_protocol_send_args(socket, client->args)
             || guac_socket_flush(socket)) {
-        guacd_log_guac_error("Error sending \"args\" to new user");
+
+        /* Log error */
+        guacd_log_handshake_failure();
+        guacd_log_guac_error(GUAC_LOG_DEBUG, "Error sending \"args\" to new user");
+
         return 1;
     }
 
@@ -99,7 +103,11 @@ static int guacd_handle_user(guac_user* user) {
 
     /* Get optimal screen size */
     if (guac_parser_expect(parser, socket, GUACD_USEC_TIMEOUT, "size")) {
-        guacd_log_guac_error("Error reading \"size\"");
+
+        /* Log error */
+        guacd_log_handshake_failure();
+        guacd_log_guac_error(GUAC_LOG_DEBUG, "Error reading \"size\"");
+
         guac_parser_free(parser);
         return 1;
     }
@@ -125,7 +133,11 @@ static int guacd_handle_user(guac_user* user) {
 
     /* Get supported audio formats */
     if (guac_parser_expect(parser, socket, GUACD_USEC_TIMEOUT, "audio")) {
-        guacd_log_guac_error("Error reading \"audio\"");
+
+        /* Log error */
+        guacd_log_handshake_failure();
+        guacd_log_guac_error(GUAC_LOG_DEBUG, "Error reading \"audio\"");
+
         guac_parser_free(parser);
         return 1;
     }
@@ -136,7 +148,11 @@ static int guacd_handle_user(guac_user* user) {
 
     /* Get supported video formats */
     if (guac_parser_expect(parser, socket, GUACD_USEC_TIMEOUT, "video")) {
-        guacd_log_guac_error("Error reading \"video\"");
+
+        /* Log error */
+        guacd_log_handshake_failure();
+        guacd_log_guac_error(GUAC_LOG_DEBUG, "Error reading \"video\"");
+
         guac_parser_free(parser);
         return 1;
     }
@@ -147,7 +163,11 @@ static int guacd_handle_user(guac_user* user) {
 
     /* Get args from connect instruction */
     if (guac_parser_expect(parser, socket, GUACD_USEC_TIMEOUT, "connect")) {
-        guacd_log_guac_error("Error reading \"connect\"");
+
+        /* Log error */
+        guacd_log_handshake_failure();
+        guacd_log_guac_error(GUAC_LOG_DEBUG, "Error reading \"connect\"");
+
         guac_parser_free(parser);
         return 1;
     }
@@ -273,7 +293,15 @@ static void guacd_exec_proc(guacd_proc* proc, const char* protocol) {
 
     /* Init client for selected protocol */
     if (guac_client_load_plugin(proc->client, protocol)) {
-        guacd_log_guac_error("Protocol initialization failed");
+
+        /* Log error */
+        if (guac_error == GUAC_STATUS_NOT_FOUND)
+            guacd_log(GUAC_LOG_WARNING,
+                    "Support for protocol \"%s\" is not installed", protocol);
+        else
+            guacd_log_guac_error(GUAC_LOG_ERROR,
+                    "Unable to load client plugin");
+
         guac_client_free(proc->client);
         close(proc->fd_socket);
         free(proc);
@@ -329,6 +357,7 @@ guacd_proc* guacd_create_proc(guac_parser* parser, const char* protocol) {
     /* Associate new client */
     proc->client = guac_client_alloc();
     if (proc->client == NULL) {
+        guacd_log_guac_error(GUAC_LOG_ERROR, "Unable to create client");
         close(parent_socket);
         close(child_socket);
         free(proc);

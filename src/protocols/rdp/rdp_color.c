@@ -20,35 +20,37 @@
  * THE SOFTWARE.
  */
 
-
-#ifndef __GUAC_RDP_DEBUG_H
-#define __GUAC_RDP_DEBUG_H
-
 #include "config.h"
 
-#include <stdio.h>
+#include "client.h"
+#include "rdp_settings.h"
 
-/* Ensure GUAC_RDP_DEBUG_LEVEL is defined to a constant */
-#ifndef GUAC_RDP_DEBUG_LEVEL
-#define GUAC_RDP_DEBUG_LEVEL 0
+#include <freerdp/codec/color.h>
+#include <freerdp/freerdp.h>
+
+#ifdef ENABLE_WINPR
+#include <winpr/wtypes.h>
+#else
+#include "compat/winpr-wtypes.h"
 #endif
 
-/**
- * Prints a message to STDERR using the given printf format string and
- * arguments. This will only do anything if the GUAC_RDP_DEBUG_LEVEL
- * macro is defined and greater than the given log level.
- *
- * @param level The desired log level (an integer).
- * @param fmt The format to use when printing.
- * @param ... Arguments corresponding to conversion specifiers in the format
- *            string.
- */
-#define GUAC_RDP_DEBUG(level, fmt, ...)                           \
-    do {                                                          \
-        if (GUAC_RDP_DEBUG_LEVEL >= level)                        \
-            fprintf(stderr, "%s:%d: %s(): " fmt "\n",             \
-                    __FILE__, __LINE__, __func__, __VA_ARGS__);   \
-    } while (0);
+UINT32 guac_rdp_convert_color(rdpContext* context, UINT32 color) {
 
+#ifdef HAVE_FREERDP_CONVERT_GDI_ORDER_COLOR
+    UINT32* palette = ((rdp_freerdp_context*) context)->palette;
+
+    /* Convert given color to ARGB32 */
+    return freerdp_convert_gdi_order_color(color,
+            guac_rdp_get_depth(context->instance), PIXEL_FORMAT_ARGB32,
+            (BYTE*) palette);
+#else
+    CLRCONV* clrconv = ((rdp_freerdp_context*) context)->clrconv;
+
+    /* Convert given color to ARGB32 */
+    return freerdp_color_convert_var(color,
+            guac_rdp_get_depth(context->instance), 32,
+            clrconv);
 #endif
+
+}
 
