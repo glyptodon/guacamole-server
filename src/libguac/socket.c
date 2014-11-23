@@ -152,6 +152,7 @@ guac_socket* guac_socket_alloc() {
     socket->__written = 0;
     socket->data = NULL;
     socket->state = GUAC_SOCKET_OPEN;
+    socket->last_write_timestamp = guac_timestamp_current();
 
     /* Default to unsafe threading */
     socket->__threadsafe_instructions = 0;
