@@ -59,6 +59,12 @@
 #include "compat/client-cliprdr.h"
 #endif
 
+#ifdef LEGACY_FREERDP
+#include "compat/rail.h"
+#else
+#include <freerdp/rail.h>
+#endif
+
 #ifdef ENABLE_WINPR
 #include <winpr/wtypes.h>
 #else
