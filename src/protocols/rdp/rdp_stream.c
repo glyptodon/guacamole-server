@@ -24,6 +24,7 @@
 #include "config.h"
 #include "client.h"
 #include "guac_clipboard.h"
+#include "rdp.h"
 #include "rdp_fs.h"
 #include "rdp_svc.h"
 #include "rdp_stream.h"
@@ -51,6 +52,7 @@
 
 #include <stdlib.h>
 
+#if 0
 /**
  * Writes the given filename to the given upload path, sanitizing the filename
  * and translating the filename to the root directory.
@@ -90,7 +92,7 @@ int guac_rdp_upload_file_handler(guac_client* client, guac_stream* stream,
     char file_path[GUAC_RDP_FS_MAX_PATH];
 
     /* Get filesystem, return error if no filesystem */
-    guac_rdp_fs* fs = ((rdp_guac_client_data*) client->data)->filesystem;
+    guac_rdp_fs* fs = ((guac_rdp_client*) client->data)->filesystem;
     if (fs == NULL) {
         guac_protocol_send_ack(client->socket, stream, "FAIL (NO FS)",
                 GUAC_PROTOCOL_STATUS_SERVER_ERROR);
@@ -158,11 +160,13 @@ int guac_rdp_svc_pipe_handler(guac_client* client, guac_stream* stream,
     return 0;
 
 }
+#endif
 
-int guac_rdp_clipboard_handler(guac_client* client, guac_stream* stream,
+int guac_rdp_clipboard_handler(guac_user* user, guac_stream* stream,
         char* mimetype) {
 
-    rdp_guac_client_data* client_data = (rdp_guac_client_data*) client->data;
+    guac_client* client = user->client;
+    guac_rdp_client* rdp_client = (guac_rdp_client*) client->data;
     guac_rdp_stream* rdp_stream;
 
     /* Init stream data */
@@ -171,11 +175,12 @@ int guac_rdp_clipboard_handler(guac_client* client, guac_stream* stream,
     stream->end_handler = guac_rdp_clipboard_end_handler;
     rdp_stream->type = GUAC_RDP_INBOUND_CLIPBOARD_STREAM;
 
-    guac_common_clipboard_reset(client_data->clipboard, mimetype);
+    guac_common_clipboard_reset(rdp_client->clipboard, mimetype);
     return 0;
 
 }
 
+#if 0
 int guac_rdp_upload_blob_handler(guac_client* client, guac_stream* stream,
         void* data, int length) {
 
@@ -183,7 +188,7 @@ int guac_rdp_upload_blob_handler(guac_client* client, guac_stream* stream,
     guac_rdp_stream* rdp_stream = (guac_rdp_stream*) stream->data;
 
     /* Get filesystem, return error if no filesystem 0*/
-    guac_rdp_fs* fs = ((rdp_guac_client_data*) client->data)->filesystem;
+    guac_rdp_fs* fs = ((guac_rdp_client*) client->data)->filesystem;
     if (fs == NULL) {
         guac_protocol_send_ack(client->socket, stream, "FAIL (NO FS)",
                 GUAC_PROTOCOL_STATUS_SERVER_ERROR);
@@ -237,22 +242,25 @@ int guac_rdp_svc_blob_handler(guac_client* client, guac_stream* stream,
     return 0;
 
 }
+#endif
 
-int guac_rdp_clipboard_blob_handler(guac_client* client, guac_stream* stream,
+int guac_rdp_clipboard_blob_handler(guac_user* user, guac_stream* stream,
         void* data, int length) {
 
-    rdp_guac_client_data* client_data = (rdp_guac_client_data*) client->data;
-    guac_common_clipboard_append(client_data->clipboard, (char*) data, length);
+    guac_client* client = user->client;
+    guac_rdp_client* rdp_client = (guac_rdp_client*) client->data;
+    guac_common_clipboard_append(rdp_client->clipboard, (char*) data, length);
 
     return 0;
 }
 
+#if 0
 int guac_rdp_upload_end_handler(guac_client* client, guac_stream* stream) {
 
     guac_rdp_stream* rdp_stream = (guac_rdp_stream*) stream->data;
 
     /* Get filesystem, return error if no filesystem */
-    guac_rdp_fs* fs = ((rdp_guac_client_data*) client->data)->filesystem;
+    guac_rdp_fs* fs = ((guac_rdp_client*) client->data)->filesystem;
     if (fs == NULL) {
         guac_protocol_send_ack(client->socket, stream, "FAIL (NO FS)",
                 GUAC_PROTOCOL_STATUS_SERVER_ERROR);
@@ -272,11 +280,13 @@ int guac_rdp_upload_end_handler(guac_client* client, guac_stream* stream) {
     return 0;
 
 }
+#endif
 
-int guac_rdp_clipboard_end_handler(guac_client* client, guac_stream* stream) {
+int guac_rdp_clipboard_end_handler(guac_user* user, guac_stream* stream) {
 
-    rdp_guac_client_data* client_data = (rdp_guac_client_data*) client->data;
-    rdpChannels* channels = client_data->rdp_inst->context->channels;
+    guac_client* client = user->client;
+    guac_rdp_client* rdp_client = (guac_rdp_client*) client->data;
+    rdpChannels* channels = rdp_client->rdp_inst->context->channels;
 
     RDP_CB_FORMAT_LIST_EVENT* format_list =
         (RDP_CB_FORMAT_LIST_EVENT*) freerdp_event_new(
@@ -285,7 +295,7 @@ int guac_rdp_clipboard_end_handler(guac_client* client, guac_stream* stream) {
             NULL, NULL);
 
     /* Terminate clipboard data with NULL */
-    guac_common_clipboard_append(client_data->clipboard, "", 1);
+    guac_common_clipboard_append(rdp_client->clipboard, "", 1);
 
     /* Notify server that text data is now available */
     format_list->formats = (UINT32*) malloc(sizeof(UINT32));
@@ -298,13 +308,14 @@ int guac_rdp_clipboard_end_handler(guac_client* client, guac_stream* stream) {
     return 0;
 }
 
+#if 0
 int guac_rdp_download_ack_handler(guac_client* client, guac_stream* stream,
         char* message, guac_protocol_status status) {
 
     guac_rdp_stream* rdp_stream = (guac_rdp_stream*) stream->data;
 
     /* Get filesystem, return error if no filesystem */
-    guac_rdp_fs* fs = ((rdp_guac_client_data*) client->data)->filesystem;
+    guac_rdp_fs* fs = ((guac_rdp_client*) client->data)->filesystem;
     if (fs == NULL) {
         guac_protocol_send_ack(client->socket, stream, "FAIL (NO FS)",
                 GUAC_PROTOCOL_STATUS_SERVER_ERROR);
@@ -355,5 +366,5 @@ int guac_rdp_download_ack_handler(guac_client* client, guac_stream* stream,
     return 0;
 
 }
-
+#endif
 

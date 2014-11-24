@@ -204,6 +204,19 @@ typedef struct guac_rdp_settings {
 } guac_rdp_settings;
 
 /**
+ * Parses all given args, storing them in the given settings. If the args are
+ * successfully parsed, zero is returned. Non-zero is returned if an error
+ * occurs.
+ */
+int guac_rdp_parse_args(guac_rdp_settings* settings, guac_user* user,
+        int argc, const char** argv);
+
+/**
+ * NULL-terminated array of accepted client args.
+ */
+extern const char* GUAC_RDP_CLIENT_ARGS[];
+
+/**
  * Save all given settings to the given freerdp instance.
  */
 void guac_rdp_push_settings(guac_rdp_settings* guac_settings, freerdp* rdp);

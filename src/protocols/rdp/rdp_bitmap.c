@@ -24,6 +24,7 @@
 
 #include "client.h"
 #include "guac_surface.h"
+#include "rdp.h"
 #include "rdp_bitmap.h"
 #include "rdp_settings.h"
 
@@ -111,7 +112,7 @@ void guac_rdp_bitmap_new(rdpContext* context, rdpBitmap* bitmap) {
 void guac_rdp_bitmap_paint(rdpContext* context, rdpBitmap* bitmap) {
 
     guac_client* client = ((rdp_freerdp_context*) context)->client;
-    rdp_guac_client_data* client_data = (rdp_guac_client_data*) client->data;
+    guac_rdp_client* client_data = (guac_rdp_client*) client->data;
 
     guac_common_surface* surface = ((guac_rdp_bitmap*) bitmap)->surface;
 
@@ -167,7 +168,7 @@ void guac_rdp_bitmap_free(rdpContext* context, rdpBitmap* bitmap) {
 void guac_rdp_bitmap_setsurface(rdpContext* context, rdpBitmap* bitmap, BOOL primary) {
 
     guac_client* client = ((rdp_freerdp_context*) context)->client;
-    rdp_guac_client_data* client_data = (rdp_guac_client_data*) client->data;
+    guac_rdp_client* client_data = (guac_rdp_client*) client->data;
 
     if (primary)
         client_data->current_surface = client_data->default_surface;

@@ -30,7 +30,8 @@ lib_LTLIBRARIES = libguac-client-rdp.la
 libguac_client_rdp_la_SOURCES = \
 	_generated_keymaps.c        \
 	client.c                    \
-	guac_handlers.c             \
+	input.c                     \
+	rdp.c                       \
 	rdp_bitmap.c                \
 	rdp_cliprdr.c               \
 	rdp_color.c                 \
@@ -43,7 +44,8 @@ libguac_client_rdp_la_SOURCES = \
 	rdp_settings.c              \
 	rdp_stream.c                \
 	rdp_svc.c                   \
-	unicode.c
+	unicode.c                   \
+	user.c
 
 # FIXME: Stream-related things disabled for now
 
@@ -83,7 +85,8 @@ noinst_HEADERS =                             \
 	guac_rdpsnd/rdpsnd_service.h             \
 	guac_svc/svc_service.h                   \
 	client.h                                 \
-	guac_handlers.h                          \
+	input.h                                  \
+	rdp.h                                    \
 	rdp_bitmap.h                             \
 	rdp_cliprdr.h                            \
 	rdp_color.h                              \
@@ -97,7 +100,8 @@ noinst_HEADERS =                             \
 	rdp_status.h                             \
 	rdp_stream.h                             \
 	rdp_svc.h                                \
-	unicode.h
+	unicode.h                                \
+	user.h
 
 # Add compatibility layer for WinPR if not available
 if ! ENABLE_WINPR

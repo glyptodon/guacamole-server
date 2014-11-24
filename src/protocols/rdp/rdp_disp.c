@@ -22,6 +22,7 @@
 
 #include "config.h"
 #include "client.h"
+#include "rdp.h"
 
 #include <freerdp/freerdp.h>
 #include <freerdp/client/disp.h>
@@ -41,10 +42,10 @@ static void guac_rdp_disp_channel_connected(rdpContext* context,
         DispClientContext* disp = (DispClientContext*) e->pInterface;
 
         guac_client* client = ((rdp_freerdp_context*) context)->client;
-        rdp_guac_client_data* guac_client_data =
-            (rdp_guac_client_data*) client->data;
+        guac_rdp_client* rdp_client =
+            (guac_rdp_client*) client->data;
 
-        guac_client_data->disp = disp;
+        rdp_client->disp = disp;
 
         guac_client_log(client, GUAC_LOG_DEBUG,
                 "Display update channel connected.");
@@ -76,11 +77,11 @@ void guac_rdp_disp_send_size(rdpContext* context, int width, int height) {
 
     guac_client* client = ((rdp_freerdp_context*) context)->client;
 
-    rdp_guac_client_data* guac_client_data =
-        (rdp_guac_client_data*) client->data;
+    guac_rdp_client* rdp_client =
+        (guac_rdp_client*) client->data;
 
     /* Send display update notification if display channel is connected */
-    if (guac_client_data->disp != NULL) {
+    if (rdp_client->disp != NULL) {
 
         guac_client_log(client, GUAC_LOG_DEBUG,
                 "Resizing remote display to %ix%i",
@@ -99,7 +100,7 @@ void guac_rdp_disp_send_size(rdpContext* context, int width, int height) {
             .DeviceScaleFactor = 0
         }};
 
-        guac_client_data->disp->SendMonitorLayout(guac_client_data->disp, 1,
+        rdp_client->disp->SendMonitorLayout(rdp_client->disp, 1,
                 monitors);
 
     }

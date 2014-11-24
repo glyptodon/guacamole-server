@@ -40,8 +40,9 @@ int guac_client_init(guac_client* client) {
     guac_vnc_client* vnc_client = calloc(1, sizeof(guac_vnc_client));
     client->data = vnc_client;
 
-    /* Init clipboard */
+    /* Init clipboard and shared mouse */
     vnc_client->clipboard = guac_common_clipboard_alloc(GUAC_VNC_CLIPBOARD_MAX_LENGTH);
+    vnc_client->cursor = guac_common_cursor_alloc(client);
 
     /* Set handlers */
     client->join_handler = guac_vnc_user_join_handler;

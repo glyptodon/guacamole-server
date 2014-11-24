@@ -20,38 +20,42 @@
  * THE SOFTWARE.
  */
 
-#include "config.h"
+#ifndef GUAC_RDP_INPUT_H
+#define GUAC_RDP_INPUT_H
 
-#include "client.h"
-#include "rdp.h"
-#include "rdp_settings.h"
+#include <guacamole/client.h>
+#include <guacamole/user.h>
 
-#include <freerdp/codec/color.h>
-#include <freerdp/freerdp.h>
+/**
+ * Presses or releases the given keysym, sending an appropriate set of key
+ * events to the RDP server. The key events sent will depend on the current
+ * keymap.
+ */
+int guac_rdp_send_keysym(guac_client* client, int keysym, int pressed);
 
-#ifdef ENABLE_WINPR
-#include <winpr/wtypes.h>
-#else
-#include "compat/winpr-wtypes.h"
+/**
+ * For every keysym in the given NULL-terminated array of keysyms, update
+ * the current state of that key conditionally. For each key in the "from"
+ * state (0 being released and 1 being pressed), that key will be updated
+ * to the "to" state.
+ */
+void guac_rdp_update_keysyms(guac_client* client, const int* keysym_string,
+        int from, int to);
+
+/**
+ * Handler for Guacamole user mouse events.
+ */
+int guac_rdp_user_mouse_handler(guac_user* user, int x, int y, int mask);
+
+/**
+ * Handler for Guacamole user key events.
+ */
+int guac_rdp_user_key_handler(guac_user* user, int keysym, int pressed);
+
+/**
+ * Handler for Guacamole user size events.
+ */
+int guac_rdp_user_size_handler(guac_user* user, int width, int height);
+
 #endif
-
-UINT32 guac_rdp_convert_color(rdpContext* context, UINT32 color) {
-
-#ifdef HAVE_FREERDP_CONVERT_GDI_ORDER_COLOR
-    UINT32* palette = ((rdp_freerdp_context*) context)->palette;
-
-    /* Convert given color to ARGB32 */
-    return freerdp_convert_gdi_order_color(color,
-            guac_rdp_get_depth(context->instance), PIXEL_FORMAT_ARGB32,
-            (BYTE*) palette);
-#else
-    CLRCONV* clrconv = ((rdp_freerdp_context*) context)->clrconv;
-
-    /* Convert given color to ARGB32 */
-    return freerdp_color_convert_var(color,
-            guac_rdp_get_depth(context->instance), 32,
-            clrconv);
-#endif
-
-}
 

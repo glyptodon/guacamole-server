@@ -27,7 +27,7 @@
 #include "config.h"
 #include "rdp_svc.h"
 
-#include <guacamole/client.h>
+#include <guacamole/user.h>
 #include <guacamole/protocol.h>
 #include <guacamole/stream.h>
 
@@ -125,53 +125,53 @@ typedef struct guac_rdp_stream {
 /**
  * Handler for inbound files related to file uploads.
  */
-int guac_rdp_upload_file_handler(guac_client* client, guac_stream* stream,
+int guac_rdp_upload_file_handler(guac_user* user, guac_stream* stream,
         char* mimetype, char* filename);
 
 /**
  * Handler for inbound pipes related to static virtual channels.
  */
-int guac_rdp_svc_pipe_handler(guac_client* client, guac_stream* stream,
+int guac_rdp_svc_pipe_handler(guac_user* user, guac_stream* stream,
         char* mimetype, char* name);
 
 /**
  * Handler for inbound clipboard data.
  */
-int guac_rdp_clipboard_handler(guac_client* client, guac_stream* stream,
+int guac_rdp_clipboard_handler(guac_user* user, guac_stream* stream,
         char* mimetype);
 
 /**
  * Handler for stream data related to file uploads.
  */
-int guac_rdp_upload_blob_handler(guac_client* client, guac_stream* stream,
+int guac_rdp_upload_blob_handler(guac_user* user, guac_stream* stream,
         void* data, int length);
 
 /**
  * Handler for stream data related to static virtual channels.
  */
-int guac_rdp_svc_blob_handler(guac_client* client, guac_stream* stream,
+int guac_rdp_svc_blob_handler(guac_user* user, guac_stream* stream,
         void* data, int length);
 
 /**
  * Handler for stream data related to clipboard.
  */
-int guac_rdp_clipboard_blob_handler(guac_client* client, guac_stream* stream,
+int guac_rdp_clipboard_blob_handler(guac_user* user, guac_stream* stream,
         void* data, int length);
 
 /**
  * Handler for end-of-stream related to file uploads.
  */
-int guac_rdp_upload_end_handler(guac_client* client, guac_stream* stream);
+int guac_rdp_upload_end_handler(guac_user* user, guac_stream* stream);
 
 /**
  * Handler for end-of-stream related to clipboard.
  */
-int guac_rdp_clipboard_end_handler(guac_client* client, guac_stream* stream);
+int guac_rdp_clipboard_end_handler(guac_user* user, guac_stream* stream);
 
 /**
  * Handler for acknowledgements of receipt of data related to file downloads.
  */
-int guac_rdp_download_ack_handler(guac_client* client, guac_stream* stream,
+int guac_rdp_download_ack_handler(guac_user* user, guac_stream* stream,
         char* message, guac_protocol_status status);
 
 #endif

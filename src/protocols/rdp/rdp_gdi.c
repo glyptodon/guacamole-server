@@ -24,6 +24,7 @@
 
 #include "client.h"
 #include "guac_surface.h"
+#include "rdp.h"
 #include "rdp_bitmap.h"
 #include "rdp_color.h"
 #include "rdp_settings.h"
@@ -102,7 +103,7 @@ guac_transfer_function guac_rdp_rop3_transfer_function(guac_client* client,
 void guac_rdp_gdi_dstblt(rdpContext* context, DSTBLT_ORDER* dstblt) {
 
     guac_client* client = ((rdp_freerdp_context*) context)->client;
-    guac_common_surface* current_surface = ((rdp_guac_client_data*) client->data)->current_surface;
+    guac_common_surface* current_surface = ((guac_rdp_client*) client->data)->current_surface;
 
     int x = dstblt->nLeftRect;
     int y = dstblt->nTopRect;
@@ -158,7 +159,7 @@ void guac_rdp_gdi_patblt(rdpContext* context, PATBLT_ORDER* patblt) {
     /* Get client and current layer */
     guac_client* client = ((rdp_freerdp_context*) context)->client;
     guac_common_surface* current_surface =
-        ((rdp_guac_client_data*) client->data)->current_surface;
+        ((guac_rdp_client*) client->data)->current_surface;
 
     int x = patblt->nLeftRect;
     int y = patblt->nTopRect;
@@ -210,7 +211,7 @@ void guac_rdp_gdi_patblt(rdpContext* context, PATBLT_ORDER* patblt) {
 void guac_rdp_gdi_scrblt(rdpContext* context, SCRBLT_ORDER* scrblt) {
 
     guac_client* client = ((rdp_freerdp_context*) context)->client;
-    guac_common_surface* current_surface = ((rdp_guac_client_data*) client->data)->current_surface;
+    guac_common_surface* current_surface = ((guac_rdp_client*) client->data)->current_surface;
     
     int x = scrblt->nLeftRect;
     int y = scrblt->nTopRect;
@@ -220,7 +221,7 @@ void guac_rdp_gdi_scrblt(rdpContext* context, SCRBLT_ORDER* scrblt) {
     int x_src = scrblt->nXSrc;
     int y_src = scrblt->nYSrc;
 
-    rdp_guac_client_data* data = (rdp_guac_client_data*) client->data;
+    guac_rdp_client* data = (guac_rdp_client*) client->data;
 
     /* Copy screen rect to current surface */
     guac_common_surface_copy(data->default_surface, x_src, y_src, w, h,
@@ -231,7 +232,7 @@ void guac_rdp_gdi_scrblt(rdpContext* context, SCRBLT_ORDER* scrblt) {
 void guac_rdp_gdi_memblt(rdpContext* context, MEMBLT_ORDER* memblt) {
 
     guac_client* client = ((rdp_freerdp_context*) context)->client;
-    guac_common_surface* current_surface = ((rdp_guac_client_data*) client->data)->current_surface;
+    guac_common_surface* current_surface = ((guac_rdp_client*) client->data)->current_surface;
     guac_rdp_bitmap* bitmap = (guac_rdp_bitmap*) memblt->bitmap;
 
     int x = memblt->nLeftRect;
@@ -324,7 +325,7 @@ void guac_rdp_gdi_opaquerect(rdpContext* context, OPAQUE_RECT_ORDER* opaque_rect
 
     UINT32 color = guac_rdp_convert_color(context, opaque_rect->color);
 
-    guac_common_surface* current_surface = ((rdp_guac_client_data*) client->data)->current_surface;
+    guac_common_surface* current_surface = ((guac_rdp_client*) client->data)->current_surface;
 
     int x = opaque_rect->nLeftRect;
     int y = opaque_rect->nTopRect;
@@ -393,7 +394,7 @@ void guac_rdp_gdi_palette_update(rdpContext* context, PALETTE_UPDATE* palette) {
 void guac_rdp_gdi_set_bounds(rdpContext* context, rdpBounds* bounds) {
 
     guac_client* client = ((rdp_freerdp_context*) context)->client;
-    rdp_guac_client_data* data = (rdp_guac_client_data*) client->data;
+    guac_rdp_client* data = (guac_rdp_client*) client->data;
 
     /* If no bounds given, clear bounding rect */
     if (bounds == NULL)
@@ -413,7 +414,7 @@ void guac_rdp_gdi_end_paint(rdpContext* context) {
 void guac_rdp_gdi_desktop_resize(rdpContext* context) {
 
     guac_client* client = ((rdp_freerdp_context*) context)->client;
-    rdp_guac_client_data* data = (rdp_guac_client_data*) client->data;
+    guac_rdp_client* data = (guac_rdp_client*) client->data;
 
     guac_common_surface_resize(data->default_surface,
             guac_rdp_get_width(context->instance),

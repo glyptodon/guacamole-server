@@ -22,9 +22,14 @@
 
 #include "config.h"
 
+#include "client.h"
+#include "guac_string.h"
+#include "rdp.h"
 #include "rdp_settings.h"
 
 #include <freerdp/constants.h>
+#include <guacamole/client.h>
+#include <guacamole/user.h>
 
 #ifdef ENABLE_WINPR
 #include <winpr/wtypes.h>
@@ -33,6 +38,298 @@
 #endif
 
 #include <stddef.h>
+
+/* Client plugin arguments */
+const char* GUAC_RDP_CLIENT_ARGS[] = {
+    "hostname",
+    "port",
+    "domain",
+    "username",
+    "password",
+    "width",
+    "height",
+    "dpi",
+    "initial-program",
+    "color-depth",
+    "disable-audio",
+    "enable-printing",
+    "enable-drive",
+    "drive-path",
+    "console",
+    "console-audio",
+    "server-layout",
+    "security",
+    "ignore-cert",
+    "disable-auth",
+    "remote-app",
+    "remote-app-dir",
+    "remote-app-args",
+    "static-channels",
+    NULL
+};
+
+enum RDP_ARGS_IDX {
+
+    IDX_HOSTNAME,
+    IDX_PORT,
+    IDX_DOMAIN,
+    IDX_USERNAME,
+    IDX_PASSWORD,
+    IDX_WIDTH,
+    IDX_HEIGHT,
+    IDX_DPI,
+    IDX_INITIAL_PROGRAM,
+    IDX_COLOR_DEPTH,
+    IDX_DISABLE_AUDIO,
+    IDX_ENABLE_PRINTING,
+    IDX_ENABLE_DRIVE,
+    IDX_DRIVE_PATH,
+    IDX_CONSOLE,
+    IDX_CONSOLE_AUDIO,
+    IDX_SERVER_LAYOUT,
+    IDX_SECURITY,
+    IDX_IGNORE_CERT,
+    IDX_DISABLE_AUTH,
+    IDX_REMOTE_APP,
+    IDX_REMOTE_APP_DIR,
+    IDX_REMOTE_APP_ARGS,
+    IDX_STATIC_CHANNELS,
+
+    RDP_ARGS_COUNT
+};
+
+/**
+ * Reduces the resolution of the client to the given resolution in DPI if
+ * doing so is reasonable. This function returns non-zero if the resolution
+ * was successfully reduced to the given DPI, and zero if reduction failed.
+ */
+static int __guac_rdp_reduce_resolution(guac_user* user, int resolution) {
+
+    int width  = user->info.optimal_width  * resolution / user->info.optimal_resolution;
+    int height = user->info.optimal_height * resolution / user->info.optimal_resolution;
+
+    /* Reduced resolution if result is reasonably sized */
+    if (width*height >= GUAC_RDP_REASONABLE_AREA) {
+        user->info.optimal_width = width;
+        user->info.optimal_height = height;
+        user->info.optimal_resolution = resolution;
+        guac_client_log(user->client, GUAC_LOG_INFO,
+                "Reducing resolution to %i DPI (%ix%i)", resolution, width, height);
+        return 1;
+    }
+
+    /* No reduction performed */
+    return 0;
+
+}
+
+/**
+ * Forces the client resolution to the given value, without checking whether
+ * the resulting width and height are reasonable.
+ */
+static void __guac_rdp_force_resolution(guac_user* user, int resolution) {
+
+    int width  = user->info.optimal_width  * resolution / user->info.optimal_resolution;
+    int height = user->info.optimal_height * resolution / user->info.optimal_resolution;
+
+    /* Do not force DPI to zero */
+    if (resolution == 0) {
+        guac_client_log(user->client, GUAC_LOG_WARNING,
+                "Cowardly refusing to force resolution to %i DPI", resolution);
+        return;
+    }
+
+    /* Reduced resolution if result is reasonably sized */
+    user->info.optimal_width = width;
+    user->info.optimal_height = height;
+    user->info.optimal_resolution = resolution;
+    guac_client_log(user->client, GUAC_LOG_INFO,
+            "Resolution forced to %i DPI (%ix%i)", resolution, width, height);
+
+}
+
+int guac_rdp_parse_args(guac_rdp_settings* settings, guac_user* user,
+        int argc, const char** argv) {
+
+    /* Validate arguments count */
+    if (argc != RDP_ARGS_COUNT)
+        return 1;
+
+    guac_client* client = user->client;
+
+    /* Console */
+    settings->console = (strcmp(argv[IDX_CONSOLE], "true") == 0);
+    settings->console_audio = (strcmp(argv[IDX_CONSOLE_AUDIO], "true") == 0);
+
+    /* Certificate and auth */
+    settings->ignore_certificate = (strcmp(argv[IDX_IGNORE_CERT], "true") == 0);
+    settings->disable_authentication = (strcmp(argv[IDX_DISABLE_AUTH], "true") == 0);
+
+    /* NLA security */
+    if (strcmp(argv[IDX_SECURITY], "nla") == 0) {
+        guac_client_log(client, GUAC_LOG_INFO, "Security mode: NLA");
+        settings->security_mode = GUAC_SECURITY_NLA;
+    }
+
+    /* TLS security */
+    else if (strcmp(argv[IDX_SECURITY], "tls") == 0) {
+        guac_client_log(client, GUAC_LOG_INFO, "Security mode: TLS");
+        settings->security_mode = GUAC_SECURITY_TLS;
+    }
+
+    /* RDP security */
+    else if (strcmp(argv[IDX_SECURITY], "rdp") == 0) {
+        guac_client_log(client, GUAC_LOG_INFO, "Security mode: RDP");
+        settings->security_mode = GUAC_SECURITY_RDP;
+    }
+
+    /* ANY security (allow server to choose) */
+    else if (strcmp(argv[IDX_SECURITY], "any") == 0) {
+        guac_client_log(client, GUAC_LOG_INFO, "Security mode: ANY");
+        settings->security_mode = GUAC_SECURITY_ANY;
+    }
+
+    /* If nothing given, default to RDP */
+    else {
+        guac_client_log(client, GUAC_LOG_INFO, "No security mode specified. Defaulting to RDP.");
+        settings->security_mode = GUAC_SECURITY_RDP;
+    }
+
+    /* Set hostname */
+    settings->hostname = strdup(argv[IDX_HOSTNAME]);
+
+    /* If port specified, use it */
+    settings->port = RDP_DEFAULT_PORT;
+    if (argv[IDX_PORT][0] != '\0')
+        settings->port = atoi(argv[IDX_PORT]);
+
+    guac_client_log(client, GUAC_LOG_INFO,
+            "Client resolution is %ix%i at %i DPI",
+            user->info.optimal_width,
+            user->info.optimal_height,
+            user->info.optimal_resolution);
+
+    /* Use optimal resolution unless overridden */
+    if (argv[IDX_DPI][0] != '\0')
+        __guac_rdp_force_resolution(user, atoi(argv[IDX_DPI]));
+
+    /* If resolution not forced, attempt to reduce resolution for high DPI */
+    else if (user->info.optimal_resolution > GUAC_RDP_NATIVE_RESOLUTION
+            && !__guac_rdp_reduce_resolution(user, GUAC_RDP_NATIVE_RESOLUTION)
+            && !__guac_rdp_reduce_resolution(user, GUAC_RDP_HIGH_RESOLUTION))
+        guac_client_log(client, GUAC_LOG_INFO,
+                "No reasonable lower resolution");
+
+    /* Use optimal width unless overridden */
+    settings->width = user->info.optimal_width;
+    if (argv[IDX_WIDTH][0] != '\0')
+        settings->width = atoi(argv[IDX_WIDTH]);
+
+    /* Use default width if given width is invalid. */
+    if (settings->width <= 0) {
+        settings->width = RDP_DEFAULT_WIDTH;
+        guac_client_log(client, GUAC_LOG_ERROR,
+                "Invalid width: \"%s\". Using default of %i.",
+                argv[IDX_WIDTH], settings->width);
+    }
+
+    /* Round width down to nearest multiple of 4 */
+    settings->width = settings->width & ~0x3;
+
+    /* Use optimal height unless overridden */
+    settings->height = user->info.optimal_height;
+    if (argv[IDX_HEIGHT][0] != '\0')
+        settings->height = atoi(argv[IDX_HEIGHT]);
+
+    /* Use default height if given height is invalid. */
+    if (settings->height <= 0) {
+        settings->height = RDP_DEFAULT_HEIGHT;
+        guac_client_log(client, GUAC_LOG_ERROR,
+                "Invalid height: \"%s\". Using default of %i.",
+                argv[IDX_WIDTH], settings->height);
+    }
+
+    /* Domain */
+    settings->domain = NULL;
+    if (argv[IDX_DOMAIN][0] != '\0')
+        settings->domain = strdup(argv[IDX_DOMAIN]);
+
+    /* Username */
+    settings->username = NULL;
+    if (argv[IDX_USERNAME][0] != '\0')
+        settings->username = strdup(argv[IDX_USERNAME]);
+
+    /* Password */
+    settings->password = NULL;
+    if (argv[IDX_PASSWORD][0] != '\0')
+        settings->password = strdup(argv[IDX_PASSWORD]);
+
+    /* Initial program */
+    settings->initial_program = NULL;
+    if (argv[IDX_INITIAL_PROGRAM][0] != '\0')
+        settings->initial_program = strdup(argv[IDX_INITIAL_PROGRAM]);
+
+    /* RemoteApp program */
+    settings->remote_app = NULL;
+    if (argv[IDX_REMOTE_APP][0] != '\0')
+        settings->remote_app = strdup(argv[IDX_REMOTE_APP]);
+
+    /* RemoteApp working directory */
+    settings->remote_app_dir = NULL;
+    if (argv[IDX_REMOTE_APP_DIR][0] != '\0')
+        settings->remote_app_dir = strdup(argv[IDX_REMOTE_APP_DIR]);
+
+    /* RemoteApp arguments */
+    settings->remote_app_args = NULL;
+    if (argv[IDX_REMOTE_APP_ARGS][0] != '\0')
+        settings->remote_app_args = strdup(argv[IDX_REMOTE_APP_ARGS]);
+
+    /* Static virtual channels */
+    settings->svc_names = NULL;
+    if (argv[IDX_STATIC_CHANNELS][0] != '\0')
+        settings->svc_names = guac_split(argv[IDX_STATIC_CHANNELS], ',');
+
+    /* Session color depth */
+    settings->color_depth = RDP_DEFAULT_DEPTH;
+    if (argv[IDX_COLOR_DEPTH][0] != '\0')
+        settings->color_depth = atoi(argv[IDX_COLOR_DEPTH]);
+
+    /* Use default depth if given depth is invalid. */
+    if (settings->color_depth == 0) {
+        settings->color_depth = RDP_DEFAULT_DEPTH;
+        guac_client_log(client, GUAC_LOG_ERROR,
+                "Invalid color-depth: \"%s\". Using default of %i.",
+                argv[IDX_WIDTH], settings->color_depth);
+    }
+
+    /* Audio enable/disable */
+    settings->audio_enabled =
+        (strcmp(argv[IDX_DISABLE_AUDIO], "true") != 0);
+
+    /* Printing enable/disable */
+    settings->printing_enabled =
+        (strcmp(argv[IDX_ENABLE_PRINTING], "true") == 0);
+
+    /* Drive enable/disable */
+    settings->drive_enabled =
+        (strcmp(argv[IDX_ENABLE_DRIVE], "true") == 0);
+
+    settings->drive_path = strdup(argv[IDX_DRIVE_PATH]);
+
+    /* Pick keymap based on argument */
+    settings->server_layout = NULL;
+    if (argv[IDX_SERVER_LAYOUT][0] != '\0')
+        settings->server_layout =
+            guac_rdp_keymap_find(argv[IDX_SERVER_LAYOUT]);
+
+    /* If no keymap requested, use default */
+    if (settings->server_layout == NULL)
+        settings->server_layout = guac_rdp_keymap_find(GUAC_DEFAULT_KEYMAP);
+
+    /* Success */
+    return 0;
+
+}
 
 int guac_rdp_get_width(freerdp* rdp) {
 #ifdef LEGACY_RDPSETTINGS
