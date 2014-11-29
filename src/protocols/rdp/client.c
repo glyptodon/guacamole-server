@@ -28,6 +28,10 @@
 #include "rdp_keymap.h"
 #include "user.h"
 
+#ifdef HAVE_FREERDP_DISPLAY_UPDATE_SUPPORT
+#include "rdp_disp.h"
+#endif
+
 #include <freerdp/cache/cache.h>
 #include <freerdp/channels/channels.h>
 #include <freerdp/freerdp.h>
@@ -106,6 +110,11 @@ int guac_rdp_client_free_handler(guac_client* client) {
     /* Clean up filesystem, if allocated */
     if (rdp_client->filesystem != NULL)
         guac_rdp_fs_free(rdp_client->filesystem);
+
+#ifdef HAVE_FREERDP_DISPLAY_UPDATE_SUPPORT
+    /* Free display update module */
+    guac_rdp_disp_free(rdp_client->disp);
+#endif
 
     /* Free SVC list */
     guac_common_list_free(rdp_client->available_svc);

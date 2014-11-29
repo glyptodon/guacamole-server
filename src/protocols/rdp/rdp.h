@@ -38,8 +38,8 @@
 #include <guacamole/audio.h>
 #include <guacamole/client.h>
 
-#ifdef HAVE_FREERDP_CLIENT_DISP_H
-#include <freerdp/client/disp.h>
+#ifdef HAVE_FREERDP_DISPLAY_UPDATE_SUPPORT
+#include "rdp_disp.h"
 #endif
 
 #include <pthread.h>
@@ -168,9 +168,9 @@ typedef struct guac_rdp_client {
 
 #ifdef HAVE_FREERDP_DISPLAY_UPDATE_SUPPORT
     /**
-     * Display control interface.
+     * Display size update module.
      */
-    DispClientContext* disp;
+    guac_rdp_disp* disp;
 #endif
 
     /**

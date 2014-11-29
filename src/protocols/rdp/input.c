@@ -260,7 +260,7 @@ int guac_rdp_user_size_handler(guac_user* user, int width, int height) {
 
     /* Send display update */
     pthread_mutex_lock(&(rdp_client->rdp_lock));
-    guac_rdp_disp_send_size(rdp_inst->context, width, height);
+    guac_rdp_disp_set_size(rdp_client->disp, rdp_inst->context, width, height);
     pthread_mutex_unlock(&(rdp_client->rdp_lock));
 #endif
 
