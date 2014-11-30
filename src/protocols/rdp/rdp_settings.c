@@ -288,5 +288,14 @@ void guac_rdp_push_settings(guac_rdp_settings* guac_settings, freerdp* rdp) {
     rdp_settings->OrderSupport[NEG_ELLIPSE_CB_INDEX] = FALSE;
 #endif
 
+#ifdef LEGACY_RDPSETTINGS
+    if (guac_settings->font_smoothing_enabled) {
+      rdp_settings->performance_flags |= PERF_ENABLE_FONT_SMOOTHING;
+    }
+#else
+    if (guac_settings->font_smoothing_enabled) {
+      rdp_settings->PerformanceFlags |= PERF_ENABLE_FONT_SMOOTHING;
+    }
+#endif
 }
 

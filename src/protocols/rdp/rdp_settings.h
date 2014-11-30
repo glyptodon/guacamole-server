@@ -123,6 +123,11 @@ typedef struct guac_rdp_settings {
     int height;
 
     /**
+     * Whether or not font-smoothing is enabled.
+     */
+    int font_smoothing_enabled;
+    
+    /**
      * Whether audio is enabled.
      */
     int audio_enabled;

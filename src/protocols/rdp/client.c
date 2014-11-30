@@ -114,6 +114,7 @@ const char* GUAC_CLIENT_ARGS[] = {
     "remote-app-dir",
     "remote-app-args",
     "static-channels",
+    "enable-font-smoothing",
     NULL
 };
 
@@ -143,6 +144,7 @@ enum RDP_ARGS_IDX {
     IDX_REMOTE_APP_DIR,
     IDX_REMOTE_APP_ARGS,
     IDX_STATIC_CHANNELS,
+    IDX_ENABLE_FONT_SMOOTHING,
     RDP_ARGS_COUNT
 };
 
@@ -756,6 +758,10 @@ int guac_client_init(guac_client* client, int argc, char** argv) {
     /* Drive enable/disable */
     guac_client_data->settings.drive_enabled =
         (strcmp(argv[IDX_ENABLE_DRIVE], "true") == 0);
+        
+    /* Font smoothing enable/disable */
+    guac_client_data->settings.font_smoothing_enabled = 
+        (strcmp(argv[IDX_ENABLE_FONT_SMOOTHING], "true") == 0);
 
     guac_client_data->settings.drive_path = strdup(argv[IDX_DRIVE_PATH]);
 
