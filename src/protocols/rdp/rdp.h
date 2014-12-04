@@ -46,42 +46,6 @@
 #include <stdint.h>
 
 /**
- * The maximum duration of a frame in milliseconds.
- */
-#define GUAC_RDP_FRAME_DURATION 60
-
-/**
- * The amount of time to allow per message read within a frame, in
- * milliseconds. If the server is silent for at least this amount of time, the
- * frame will be considered finished.
- */
-#define GUAC_RDP_FRAME_TIMEOUT 10
-
-/**
- * The native resolution of most RDP connections. As Windows and other systems
- * rely heavily on forced 96 DPI, we must assume 96 DPI.
- */
-#define GUAC_RDP_NATIVE_RESOLUTION 96
-
-/**
- * The resolution of an RDP connection that would be considered high, but is
- * tolerable in the case that the client display would be unreasonably small
- * otherwise.
- */
-#define GUAC_RDP_HIGH_RESOLUTION 120
-
-/**
- * The smallest area, in pixels^2, that would be considered reasonable large
- * screen DPI needs to be adjusted.
- */
-#define GUAC_RDP_REASONABLE_AREA (800*600)
-
-/**
- * The maximum number of bytes to allow within the clipboard.
- */
-#define GUAC_RDP_CLIPBOARD_MAX_LENGTH 262144
-
-/**
  * RDP-specific client data.
  */
 typedef struct guac_rdp_client {
