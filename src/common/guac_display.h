@@ -30,6 +30,12 @@
 #include <guacamole/socket.h>
 
 /**
+ * The initial number of layers/buffers to provide to all newly-allocated
+ * displays.
+ */
+#define GUAC_COMMON_DISPLAY_POOL_SIZE 256
+
+/**
  * Abstracts a remote Guacamole display, having an associated client,
  * default surface, mouse cursor, and various allocated buffers and layers.
  */
@@ -53,15 +59,29 @@ typedef struct guac_common_display {
     /**
      * All currently-allocated layers. Each layer is stored by index, with
      * layer #1 being layers[0]. The default layer, layer #0, is stored within
-     * default_surface;
+     * default_surface. Not all slots within this array will be used, and any
+     * unused slots will be set to NULL.
      */
-    guac_common_surface* layers;
+    guac_common_surface** layers;
+
+    /**
+     * The number of available slots within the layers array.
+     */
+    int layers_size;
 
     /**
      * All currently-allocated buffers. Each buffer is stored by index, with
-     * buffer #-1 being buffers[0]. There are no buffers with index >= 0.
+     * buffer #-1 being buffers[0]. There are no buffers with index >= 0. Not
+     * all slots within this array will be used, and any unused slots will be
+     * set to NULL.
      */
-    guac_common_surface* buffers;
+    guac_common_surface** buffers;
+
+    /**
+     * The number of available slots within the buffers array.
+     */
+    int buffers_size;
+
 
 } guac_common_display;
 
@@ -71,9 +91,12 @@ typedef struct guac_common_display {
  * synchronized to joining users.
  *
  * @param client The guac_client to associate with this display.
+ * @param width The initial width of the display, in pixels.
+ * @param height The initial height of the display, in pixels.
  * @return The newly-allocated display.
  */
-guac_common_display* guac_common_display_alloc(guac_client* client);
+guac_common_display* guac_common_display_alloc(guac_client* client,
+        int width, int height);
 
 /**
  * Frees the given display, and any associated resources, including any
