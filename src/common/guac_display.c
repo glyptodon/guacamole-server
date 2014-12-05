@@ -103,11 +103,44 @@ void guac_common_display_free(guac_common_display* display) {
 
 void guac_common_display_dup(guac_common_display* display,
         guac_socket* socket) {
-    /* STUB */
+
+    int i;
+    guac_common_surface** current;
+
+    /* Sunchronize shared cursor */
+    guac_common_cursor_dup(display->cursor, socket);
+
+    /* Synchronize default surface */
+    guac_common_surface_dup(display->default_surface, socket);
+
+    /* Synchronize all layers */
+    current = display->layers;
+    for (i=0; i < display->layers_size; i++) {
+
+        /* Synchronize layer, if allocated */
+        if (*current != NULL)
+            guac_common_surface_dup(*current, socket);
+
+        current++;
+
+    }
+
+    /* Synchronize all buffers */
+    current = display->buffers;
+    for (i=0; i < display->buffers_size; i++) {
+
+        /* Synchronize buffer, if allocated */
+        if (*current != NULL)
+            guac_common_surface_dup(*current, socket);
+
+        current++;
+
+    }
+
 }
 
 void guac_common_display_flush(guac_common_display* display) {
-    /* STUB */
+    guac_common_surface_flush(display->default_surface);
 }
 
 guac_common_surface* guac_common_display_alloc_layer(
