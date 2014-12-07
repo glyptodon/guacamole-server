@@ -36,6 +36,24 @@
 #define GUAC_COMMON_DISPLAY_POOL_SIZE 256
 
 /**
+ * Pairing of a Guacamole layer with a corresponding surface which wraps that
+ * layer.
+ */
+typedef struct guac_common_display_layer {
+
+    /**
+     * A Guacamole layer.
+     */
+    guac_layer* layer;
+
+    /**
+     * The surface which wraps the associated layer.
+     */
+    guac_common_surface* surface;
+
+} guac_common_display_layer;
+
+/**
  * Abstracts a remote Guacamole display, having an associated client,
  * default surface, mouse cursor, and various allocated buffers and layers.
  */
@@ -62,7 +80,7 @@ typedef struct guac_common_display {
      * default_surface. Not all slots within this array will be used, and any
      * unused slots will be set to NULL.
      */
-    guac_common_surface** layers;
+    guac_common_display_layer* layers;
 
     /**
      * The number of available slots within the layers array.
@@ -75,7 +93,7 @@ typedef struct guac_common_display {
      * all slots within this array will be used, and any unused slots will be
      * set to NULL.
      */
-    guac_common_surface** buffers;
+    guac_common_display_layer* buffers;
 
     /**
      * The number of available slots within the buffers array.
@@ -125,25 +143,25 @@ void guac_common_display_dup(guac_common_display* display,
 void guac_common_display_flush(guac_common_display* display);
 
 /**
- * Allocates a new layer, returning a new surface which wraps that layer. The
- * layer may be reused from a previous allocation, if that layer has since been
- * freed.
+ * Allocates a new layer, returning a new wrapped layer and corresponding
+ * surface. The layer may be reused from a previous allocation, if that layer
+ * has since been freed.
  *
  * @param display The display to allocate a new layer from.
- * @return A newly-allocated surface wrapping a new layer.
+ * @return A newly-allocated layer.
  */
-guac_common_surface* guac_common_display_alloc_layer(
+guac_common_display_layer* guac_common_display_alloc_layer(
         guac_common_display* display);
 
 /**
- * Allocates a new buffer, returning a new surface which wraps that buffer. The
- * buffer may be reused from a previous allocation, if that buffer has since
- * been freed.
+ * Allocates a new buffer, returning a new wrapped buffer and corresponding
+ * surface. The buffer may be reused from a previous allocation, if that buffer
+ * has since been freed.
  *
  * @param display The display to allocate a new buffer from.
- * @return A newly-allocated surface wrapping a new buffer.
+ * @return A newly-allocated buffer.
  */
-guac_common_surface* guac_common_display_alloc_buffer(
+guac_common_display_layer* guac_common_display_alloc_buffer(
         guac_common_display* display);
 
 /**
@@ -151,20 +169,20 @@ guac_common_surface* guac_common_display_alloc_buffer(
  * given display for future use.
  *
  * @param display The display originally allocating the layer.
- * @param surface The surface to free.
+ * @param layer The layer to free.
  */
 void guac_common_display_free_layer(guac_common_display* display,
-        guac_common_surface* surface);
+        guac_common_display_layer* layer);
 
 /**
  * Frees the given surface and associated buffer, returning the buffer to the
  * given display for future use.
  *
  * @param display The display originally allocating the buffer.
- * @param surface The surface to free.
+ * @param buffer The buffer to free.
  */
 void guac_common_display_free_buffer(guac_common_display* display,
-        guac_common_surface* surface);
+        guac_common_display_layer* buffer);
 
 #endif
 
