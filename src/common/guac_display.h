@@ -148,10 +148,12 @@ void guac_common_display_flush(guac_common_display* display);
  * has since been freed.
  *
  * @param display The display to allocate a new layer from.
+ * @param width The width of the layer to allocate, in pixels.
+ * @param height The height of the layer to allocate, in pixels.
  * @return A newly-allocated layer.
  */
 guac_common_display_layer* guac_common_display_alloc_layer(
-        guac_common_display* display);
+        guac_common_display* display, int width, int height);
 
 /**
  * Allocates a new buffer, returning a new wrapped buffer and corresponding
@@ -159,10 +161,12 @@ guac_common_display_layer* guac_common_display_alloc_layer(
  * has since been freed.
  *
  * @param display The display to allocate a new buffer from.
+ * @param width The width of the buffer to allocate, in pixels.
+ * @param height The height of the buffer to allocate, in pixels.
  * @return A newly-allocated buffer.
  */
 guac_common_display_layer* guac_common_display_alloc_buffer(
-        guac_common_display* display);
+        guac_common_display* display, int width, int height);
 
 /**
  * Frees the given surface and associated layer, returning the layer to the

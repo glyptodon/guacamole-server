@@ -28,6 +28,7 @@
 #include <guacamole/socket.h>
 
 #include <stdlib.h>
+#include <string.h>
 
 /**
  * Synchronizes all surfaces within the given array to the given socket. If a
@@ -155,29 +156,115 @@ void guac_common_display_dup(guac_common_display* display,
 
 }
 
+/**
+ * Returns a pointer to the layer having the given index within the given
+ * layers array, reallocating and resizing that array if necessary. The resized
+ * array and its new size will be returned through the provided pointers.
+ *
+ * @param layers_ptr Pointer to the layers array.
+ *
+ * @param size_ptr
+ *     Pointer to an integer containing the number of entries in the layers
+ *     array.
+ *
+ * @param index The array index of the layer to return.
+ * @return The layer at the given index within the layer array.
+ */
+static guac_common_display_layer* guac_common_display_get_layer(
+        guac_common_display_layer** layers_ptr, int* size_ptr, int index) {
+
+    guac_common_display_layer* layers = *layers_ptr;
+    int size = *size_ptr;
+
+    /* Resize layers array if it's not big enough */
+    if (index >= size) {
+
+        int new_size;
+
+        /* Resize layers array */
+        *size_ptr = new_size = index*2;
+        *layers_ptr = layers =
+            realloc(layers, new_size * sizeof(guac_common_display_layer));
+
+        /* Clear newly-allocated space */
+        memset(layers + size, 0, new_size - size);
+
+    }
+
+    /* Return reference to requested layer */
+    return layers + index;
+
+}
+
 void guac_common_display_flush(guac_common_display* display) {
     guac_common_surface_flush(display->default_surface);
 }
 
 guac_common_display_layer* guac_common_display_alloc_layer(
-        guac_common_display* display) {
-    /* STUB */
-    return NULL;
+        guac_common_display* display, int width, int height) {
+
+    guac_layer* layer;
+    guac_common_display_layer* display_layer;
+
+    /* Allocate Guacamole layer */
+    layer = guac_client_alloc_layer(display->client);
+
+    /* Get slot for allocated layer */
+    display_layer = guac_common_display_get_layer(
+            &display->layers, &display->layers_size,
+            layer->index - 1);
+
+    /* Init display layer */
+    display_layer->layer = layer;
+    display_layer->surface = guac_common_surface_alloc(display->client->socket,
+            layer, width, height);
+
+    return display_layer;
 }
 
 guac_common_display_layer* guac_common_display_alloc_buffer(
-        guac_common_display* display) {
-    /* STUB */
-    return NULL;
+        guac_common_display* display, int width, int height) {
+
+    guac_layer* buffer;
+    guac_common_display_layer* display_buffer;
+
+    /* Allocate Guacamole buffer */
+    buffer = guac_client_alloc_buffer(display->client);
+
+    /* Get slot for allocated buffer */
+    display_buffer = guac_common_display_get_layer(
+            &display->buffers, &display->buffers_size,
+            -1 - buffer->index);
+
+    /* Init display buffer */
+    display_buffer->layer = buffer;
+    display_buffer->surface = guac_common_surface_alloc(display->client->socket,
+            buffer, width, height);
+
+    return display_buffer;
 }
 
 void guac_common_display_free_layer(guac_common_display* display,
         guac_common_display_layer* layer) {
-    /* STUB */
+
+    /* Free associated layer and surface */
+    guac_client_free_layer(display->client, layer->layer);
+    guac_common_surface_free(layer->surface);
+
+    layer->layer = NULL;
+    layer->surface = NULL;
+
 }
 
 void guac_common_display_free_buffer(guac_common_display* display,
         guac_common_display_layer* buffer) {
-    /* STUB */
+
+    /* Free associated layer and surface */
+    guac_client_free_buffer(display->client, buffer->layer);
+    guac_common_surface_free(buffer->surface);
+
+    buffer->layer = NULL;
+    buffer->surface = NULL;
+
 }
 
