@@ -221,11 +221,11 @@ void guac_rdp_gdi_scrblt(rdpContext* context, SCRBLT_ORDER* scrblt) {
     int x_src = scrblt->nXSrc;
     int y_src = scrblt->nYSrc;
 
-    guac_rdp_client* data = (guac_rdp_client*) client->data;
+    guac_rdp_client* rdp_client = (guac_rdp_client*) client->data;
 
     /* Copy screen rect to current surface */
-    guac_common_surface_copy(data->default_surface, x_src, y_src, w, h,
-                             current_surface, x, y);
+    guac_common_surface_copy(rdp_client->display->default_surface,
+            x_src, y_src, w, h, current_surface, x, y);
 
 }
 
@@ -264,11 +264,11 @@ void guac_rdp_gdi_memblt(rdpContext* context, MEMBLT_ORDER* memblt) {
         case 0xCC: 
 
             /* If not cached, cache if necessary */
-            if (bitmap->surface == NULL && bitmap->used >= 1)
+            if (bitmap->layer == NULL && bitmap->used >= 1)
                 guac_rdp_cache_bitmap(context, memblt->bitmap);
 
             /* If not cached, send as PNG */
-            if (bitmap->surface == NULL) {
+            if (bitmap->layer == NULL) {
                 if (memblt->bitmap->data != NULL) {
 
                     /* Create surface from image data */
@@ -287,8 +287,8 @@ void guac_rdp_gdi_memblt(rdpContext* context, MEMBLT_ORDER* memblt) {
 
             /* Otherwise, copy */
             else
-                guac_common_surface_copy(bitmap->surface, x_src, y_src, w, h,
-                                         current_surface, x, y);
+                guac_common_surface_copy(bitmap->layer->surface,
+                        x_src, y_src, w, h, current_surface, x, y);
 
             /* Increment usage counter */
             ((guac_rdp_bitmap*) bitmap)->used++;
@@ -304,12 +304,13 @@ void guac_rdp_gdi_memblt(rdpContext* context, MEMBLT_ORDER* memblt) {
         default:
 
             /* If not available as a surface, make available. */
-            if (bitmap->surface == NULL)
+            if (bitmap->layer == NULL)
                 guac_rdp_cache_bitmap(context, memblt->bitmap);
 
-            guac_common_surface_transfer(bitmap->surface, x_src, y_src, w, h,
-                                         guac_rdp_rop3_transfer_function(client, memblt->bRop),
-                                         current_surface, x, y);
+            guac_common_surface_transfer(bitmap->layer->surface,
+                    x_src, y_src, w, h,
+                    guac_rdp_rop3_transfer_function(client, memblt->bRop),
+                    current_surface, x, y);
 
             /* Increment usage counter */
             ((guac_rdp_bitmap*) bitmap)->used++;
@@ -394,16 +395,18 @@ void guac_rdp_gdi_palette_update(rdpContext* context, PALETTE_UPDATE* palette) {
 void guac_rdp_gdi_set_bounds(rdpContext* context, rdpBounds* bounds) {
 
     guac_client* client = ((rdp_freerdp_context*) context)->client;
-    guac_rdp_client* data = (guac_rdp_client*) client->data;
+    guac_rdp_client* rdp_client = (guac_rdp_client*) client->data;
 
     /* If no bounds given, clear bounding rect */
     if (bounds == NULL)
-        guac_common_surface_reset_clip(data->default_surface);
+        guac_common_surface_reset_clip(rdp_client->display->default_surface);
 
     /* Otherwise, set bounding rectangle */
     else
-        guac_common_surface_clip(data->default_surface, bounds->left, bounds->top,
-                                 bounds->right - bounds->left + 1, bounds->bottom - bounds->top + 1);
+        guac_common_surface_clip(rdp_client->display->default_surface,
+                bounds->left, bounds->top,
+                bounds->right - bounds->left + 1,
+                bounds->bottom - bounds->top + 1);
 
 }
 
@@ -414,13 +417,13 @@ void guac_rdp_gdi_end_paint(rdpContext* context) {
 void guac_rdp_gdi_desktop_resize(rdpContext* context) {
 
     guac_client* client = ((rdp_freerdp_context*) context)->client;
-    guac_rdp_client* data = (guac_rdp_client*) client->data;
+    guac_rdp_client* rdp_client = (guac_rdp_client*) client->data;
 
-    guac_common_surface_resize(data->default_surface,
+    guac_common_surface_resize(rdp_client->display->default_surface,
             guac_rdp_get_width(context->instance),
             guac_rdp_get_height(context->instance));
 
-    guac_common_surface_reset_clip(data->default_surface);
+    guac_common_surface_reset_clip(rdp_client->display->default_surface);
 
     guac_client_log(client, GUAC_LOG_DEBUG, "Server resized display to %ix%i",
             guac_rdp_get_width(context->instance),

@@ -23,7 +23,6 @@
 #include "config.h"
 
 #include "client.h"
-#include "guac_cursor.h"
 #include "rdp.h"
 #include "rdp_keymap.h"
 #include "user.h"
@@ -64,7 +63,6 @@ int guac_client_init(guac_client* client, int argc, char** argv) {
     /* Init clipboard and shared mouse */
     rdp_client->clipboard = guac_common_clipboard_alloc(GUAC_RDP_CLIPBOARD_MAX_LENGTH);
     rdp_client->requested_clipboard_format = CB_FORMAT_TEXT;
-    rdp_client->cursor = guac_common_cursor_alloc(client);
     rdp_client->available_svc = guac_common_list_alloc();
 
     /* Main socket needs to be threadsafe */
@@ -121,8 +119,7 @@ int guac_rdp_client_free_handler(guac_client* client) {
 
     /* Free client data */
     guac_common_clipboard_free(rdp_client->clipboard);
-    guac_common_cursor_free(rdp_client->cursor);
-    guac_common_surface_free(rdp_client->default_surface);
+    guac_common_display_free(rdp_client->display);
     free(rdp_client);
 
     return 0;

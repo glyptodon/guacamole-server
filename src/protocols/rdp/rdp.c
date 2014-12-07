@@ -24,6 +24,7 @@
 
 #include "client.h"
 #include "guac_cursor.h"
+#include "guac_display.h"
 #include "rdp.h"
 #include "rdp_bitmap.h"
 #include "rdp_cliprdr.h"
@@ -552,12 +553,12 @@ void* guac_rdp_client_thread(void* data) {
     /* Init random number generator */
     srandom(time(NULL));
 
-    /* Create default surface */
-    rdp_client->current_surface =
-    rdp_client->default_surface = guac_common_surface_alloc(client->socket,
-            GUAC_DEFAULT_LAYER,
+    /* Create display */
+    rdp_client->display = guac_common_display_alloc(client,
             rdp_client->settings.width,
             rdp_client->settings.height);
+
+    rdp_client->current_surface = rdp_client->display->default_surface;
 
 #ifdef HAVE_FREERDP_CHANNELS_GLOBAL_INIT
     freerdp_channels_global_init();
@@ -590,7 +591,7 @@ void* guac_rdp_client_thread(void* data) {
     guac_protocol_send_name(client->socket, settings->hostname);
 
     /* Set default pointer */
-    guac_common_cursor_set_pointer(rdp_client->cursor);
+    guac_common_cursor_set_pointer(rdp_client->display->cursor);
 
     /* Push desired settings to FreeRDP */
     guac_rdp_push_settings(settings, rdp_inst);
@@ -694,7 +695,7 @@ void* guac_rdp_client_thread(void* data) {
         }
 
         /* End of frame */
-        guac_common_surface_flush(rdp_client->default_surface);
+        guac_common_display_flush(rdp_client->display);
         guac_client_end_frame(client);
         guac_socket_flush(client->socket);
 

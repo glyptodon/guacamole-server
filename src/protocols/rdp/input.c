@@ -156,7 +156,7 @@ int guac_rdp_user_mouse_handler(guac_user* user, int x, int y, int mask) {
     freerdp* rdp_inst = rdp_client->rdp_inst;
 
     /* Store current mouse location */
-    guac_common_cursor_move(rdp_client->cursor, user, x, y);
+    guac_common_cursor_move(rdp_client->display->cursor, user, x, y);
 
     /* Skip if not yet connected */
     if (rdp_inst == NULL)

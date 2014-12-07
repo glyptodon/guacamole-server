@@ -26,9 +26,9 @@
 #include "config.h"
 
 #include "guac_clipboard.h"
-#include "guac_cursor.h"
-#include "guac_list.h"
+#include "guac_display.h"
 #include "guac_surface.h"
+#include "guac_list.h"
 #include "rdp_fs.h"
 #include "rdp_keymap.h"
 #include "rdp_settings.h"
@@ -78,7 +78,7 @@ typedef struct guac_rdp_client {
     /**
      * The display.
      */
-    guac_common_surface* default_surface;
+    guac_common_display* display;
 
     /**
      * The surface that GDI operations should draw to. RDP messages exist which
@@ -114,11 +114,6 @@ typedef struct guac_rdp_client {
      * CB_FORMAT_TEXT.
      */
     int requested_clipboard_format;
-
-    /**
-     * Mouse cursor.
-     */
-    guac_common_cursor* cursor;
 
     /**
      * Audio output, if any.
