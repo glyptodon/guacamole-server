@@ -25,9 +25,9 @@
 #define _GUAC_RDP_RDP_POINTER_H
 
 #include "config.h"
+#include "guac_display.h"
 
 #include <freerdp/freerdp.h>
-#include <guacamole/layer.h>
 
 typedef struct guac_rdp_pointer {
 
@@ -37,9 +37,9 @@ typedef struct guac_rdp_pointer {
     rdpPointer pointer;
 
     /**
-     * Guacamole layer containing cached image data.
+     * The display layer containing cached image data.
      */
-    guac_layer* layer;
+    guac_common_display_layer* layer;
 
 } guac_rdp_pointer;
 
