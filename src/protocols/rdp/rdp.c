@@ -689,10 +689,9 @@ void* guac_rdp_client_thread(void* data) {
         }
 
         /* If an error occurred, fail */
-        if (wait_result < 0) {
-            guac_client_log(client, GUAC_LOG_DEBUG, "Wait for data failed.");
-            return NULL;
-        }
+        if (wait_result < 0)
+            guac_client_abort(client, GUAC_PROTOCOL_STATUS_UPSTREAM_ERROR,
+                    "Connection closed.");
 
         /* End of frame */
         guac_common_display_flush(rdp_client->display);
@@ -701,6 +700,7 @@ void* guac_rdp_client_thread(void* data) {
 
     }
 
+    guac_client_log(client, GUAC_LOG_INFO, "Internal RDP client disconnected");
     return NULL;
 
 }
