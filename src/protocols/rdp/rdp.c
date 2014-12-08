@@ -461,6 +461,13 @@ void __guac_rdp_client_load_keymap(guac_client* client,
 
 /**
  * Waits for messages from the RDP server for the given number of microseconds.
+ *
+ * @param client The client associated with the current RDP session.
+ * @param timeout_usecs The maximum amount of time to wait, in microseconds.
+ *
+ * @return
+ *     A positive value if messages are ready, zero if the specified timeout
+ *     period elapsed, or a negative value if an error occurs.
  */
 static int rdp_guac_client_wait_for_messages(guac_client* client,
         int timeout_usecs) {

@@ -27,11 +27,26 @@
 
 /**
  * Handler for joining users.
+ *
+ * @param user The user joining the connection.
+ *
+ * @param argc
+ *     The number of arguments provided by the user during the connection
+ *     handshake.
+ *
+ * @param argv
+ *     Array of values of each argument provided by the user during the
+ *     connection handshake.
+ *
+ * @return Zero if the join operation succeeded, non-zero otherwise.
  */
 int guac_rdp_user_join_handler(guac_user* user, int argc, char** argv);
 
 /**
  * Handler for leaving users.
+ *
+ * @param user The user leaving the connection.
+ * @return Zero if the leave operation succeeded, non-zero otherwise.
  */
 int guac_rdp_user_leave_handler(guac_user* user);
 

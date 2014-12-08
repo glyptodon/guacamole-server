@@ -29,6 +29,9 @@
 
 #include <freerdp/freerdp.h>
 
+/**
+ * Guacamole-specific rdpPointer data.
+ */
 typedef struct guac_rdp_pointer {
 
     /**
@@ -43,10 +46,46 @@ typedef struct guac_rdp_pointer {
 
 } guac_rdp_pointer;
 
+/**
+ * Caches a new pointer, which can later be set via guac_rdp_pointer_set() as
+ * the current mouse pointer.
+ *
+ * @param context The rdpContext associated with the current RDP session.
+ * @param pointer The pointer to cache.
+ */
 void guac_rdp_pointer_new(rdpContext* context, rdpPointer* pointer);
+
+/**
+ * Sets the given cached pointer as the current pointer. The given pointer must
+ * have already been initialized through a call to guac_rdp_pointer_new().
+ *
+ * @param context The rdpContext associated with the current RDP session.
+ * @param pointer The pointer to set as the current mouse pointer.
+ */
 void guac_rdp_pointer_set(rdpContext* context, rdpPointer* pointer);
+
+/**
+ * Frees all Guacamole-related data associated with the given pointer, allowing
+ * FreeRDP to free the rest safely.
+ *
+ * @param context The rdpContext associated with the current RDP session.
+ * @param pointer The pointer to free.
+ */
 void guac_rdp_pointer_free(rdpContext* context, rdpPointer* pointer);
+
+/**
+ * Hides the current mouse pointer.
+ *
+ * @param context The rdpContext associated with the current RDP session.
+ */
 void guac_rdp_pointer_set_null(rdpContext* context);
+
+/**
+ * Sets the system-dependent (as in dependent on the client system) default
+ * pointer as the current pointer, rather than a cached pointer.
+ *
+ * @param context The rdpContext associated with the current RDP session.
+ */
 void guac_rdp_pointer_set_default(rdpContext* context);
 
 #endif

@@ -213,6 +213,14 @@ typedef struct guac_rdp_settings {
  * Parses all given args, storing them in the given settings. If the args are
  * successfully parsed, zero is returned. Non-zero is returned if an error
  * occurs.
+ *
+ * @param settings The guac_rdp_settings object to populate with parsed data.
+ * @param user The user whose connection arguments are to be parsed.
+ * @param argc The number of connection arguments.
+ *
+ * @param argv
+ *     An array of connection arguments. Each of these arguments will
+ *     correspond, in order, to the arguments declared in GUAC_RDP_CLIENT_ARGS.
  */
 int guac_rdp_parse_args(guac_rdp_settings* settings, guac_user* user,
         int argc, const char** argv);
@@ -224,21 +232,33 @@ extern const char* GUAC_RDP_CLIENT_ARGS[];
 
 /**
  * Save all given settings to the given freerdp instance.
+ *
+ * @param guac_settings The guac_rdp_settings object to save.
+ * @param rdp The RDP instance to save settings to.
  */
 void guac_rdp_push_settings(guac_rdp_settings* guac_settings, freerdp* rdp);
 
 /**
  * Returns the width of the RDP session display.
+ *
+ * @param rdp The RDP instance to retrieve the width from.
+ * @return The current width of the RDP display, in pixels.
  */
 int guac_rdp_get_width(freerdp* rdp);
 
 /**
  * Returns the height of the RDP session display.
+ *
+ * @param rdp The RDP instance to retrieve the height from.
+ * @return The current height of the RDP display, in pixels.
  */
 int guac_rdp_get_height(freerdp* rdp);
 
 /**
  * Returns the depth of the RDP session display.
+ *
+ * @param rdp The RDP instance to retrieve the depth from.
+ * @return The current depth of the RDP display, in bits per pixel.
  */
 int guac_rdp_get_depth(freerdp* rdp);
 

@@ -115,6 +115,11 @@ void guac_rdp_process_cb_monitor_ready(guac_client* client, wMessage* event) {
 
 /**
  * Sends a clipboard data request for the given format.
+ *
+ * @param client The guac_client associated with the current RDP session.
+ * @param format
+ *     The clipboard format to request. This format must be one of the
+ *     documented values used by the CLIPRDR channel for clipboard format IDs.
  */
 static void __guac_rdp_cb_request_format(guac_client* client, int format) {
 

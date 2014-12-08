@@ -181,6 +181,14 @@ typedef struct rdp_freerdp_context {
 /**
  * RDP client thread. This thread runs throughout the duration of the client,
  * existing as a single instance, shared by all users.
+ *
+ * @param data
+ *     The guac_client to associate with an RDP session, once the RDP
+ *     connection succeeds.
+ *
+ * @return
+ *     NULL in all cases. The return value of this thread is expected to be
+ *     ignored.
  */
 void* guac_rdp_client_thread(void* data);
 
