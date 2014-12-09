@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2013 Glyptodon LLC
+ * Copyright (C) 2014 Glyptodon LLC
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -20,36 +20,30 @@
  * THE SOFTWARE.
  */
 
+#ifndef GUAC_RDP_RESOLUTION_H
+#define GUAC_RDP_RESOLUTION_H
 
-#ifndef __GUAC_RDP_RDP_RAIL_H
-#define __GUAC_RDP_RDP_RAIL_H
-
-#include "config.h"
-
-#include <guacamole/client.h>
-
-#ifdef ENABLE_WINPR
-#include <winpr/stream.h>
-#else
-#include "compat/winpr-stream.h"
-#endif
+#include <guacamole/user.h>
 
 /**
- * Dispatches a given RAIL event to the appropriate handler.
+ * Returns whether the given resolution is reasonable for the given user,
+ * based on arbitrary criteria for reasonability.
  *
- * @param client The guac_client associated with the current RDP session.
- * @param event The RAIL event to process.
+ * @param user The guac_user to test the given resolution against.
+ * @param resolution The resolution to test, in DPI.
+ * @return Non-zero if the resolution is reasonable, zero otherwise.
  */
-void guac_rdp_process_rail_event(guac_client* client, wMessage* event);
+int guac_rdp_resolution_reasonable(guac_user* user, int resolution);
 
 /**
- * Handles the event sent when updating system parameters. The event given
- * MUST be a SYSPARAM event.
+ * Returns a reasonable resolution for the remote display, given the size and
+ * resolution of a guac_user.
  *
- * @param client The guac_client associated with the current RDP session.
- * @param event The system parameter event to process.
+ * @param user The guac_user whose size and resolution shall be used to
+ *             determine an appropriate remote display resolution.
+ * @return A reasonable resolution for the remote display, in DPI.
  */
-void guac_rdp_process_rail_get_sysparam(guac_client* client, wMessage* event);
+int guac_rdp_suggest_resolution(guac_user* user);
 
 #endif
 

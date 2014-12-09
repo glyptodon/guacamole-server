@@ -24,6 +24,8 @@
 #ifndef GUAC_COMMON_CURSOR_H
 #define GUAC_COMMON_CURSOR_H
 
+#include "guac_surface.h"
+
 #include <cairo/cairo.h>
 #include <guacamole/client.h>
 #include <guacamole/socket.h>
@@ -161,6 +163,19 @@ void guac_common_cursor_move(guac_common_cursor* cursor, guac_user* user,
  */
 void guac_common_cursor_set_argb(guac_common_cursor* cursor, int hx, int hy,
     unsigned const char* data, int width, int height, int stride);
+
+/**
+ * Sets the cursor image to the contents of the given surface. The entire
+ * contents of the surface are used, and the dimensions of the resulting
+ * cursor will be the dimensions of the given surface.
+ *
+ * @param cursor The cursor to set the image of.
+ * @param hx The X coordinate of the hotspot of the new cursor image.
+ * @param hy The Y coordinate of the hotspot of the new cursor image.
+ * @param surface The surface containing the cursor image.
+ */
+void guac_common_cursor_set_surface(guac_common_cursor* cursor, int hx, int hy,
+    guac_common_surface* surface);
 
 /**
  * Set the cursor of the remote display to the embedded "pointer" graphic. The

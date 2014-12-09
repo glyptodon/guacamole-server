@@ -58,9 +58,20 @@ void guac_rdp_fs_free(guac_rdp_fs* fs) {
 }
 
 /**
- * Translates an absolute Windows virtual_path to an absolute virtual_path
- * which is within the "drive virtual_path" specified in the connection
- * settings.
+ * Translates an absolute Windows path to an absolute path which is within the
+ * "drive path" specified in the connection settings. No checking is performed
+ * on the path provided, which is assumed to have already been normalized and
+ * validated as absolute.
+ *
+ * @param fs The filesystem containing the file whose path is being translated.
+ *
+ * @param virtual_path
+ *     The absolute path to the file on the simulated filesystem, relative to
+ *     the simulated filesystem root.
+ *
+ * @param real_path
+ *     The buffer in which to store the absolute path to the real file on the
+ *     local filesystem.
  */
 static void __guac_rdp_fs_translate_path(guac_rdp_fs* fs,
         const char* virtual_path, char* real_path) {
@@ -678,7 +689,7 @@ int guac_rdp_fs_get_info(guac_rdp_fs* fs, guac_rdp_fs_info* info) {
     /* Read FS information */
     struct statvfs fs_stat;
     if (statvfs(fs->drive_path, &fs_stat))
-        return guac_rdp_fs_get_status(errno);
+        return guac_rdp_fs_get_errorcode(errno);
 
     /* Assign to structure */
     info->blocks_available = fs_stat.f_bfree;

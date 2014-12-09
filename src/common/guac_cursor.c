@@ -23,6 +23,7 @@
 #include "guac_dot_cursor.h"
 #include "guac_cursor.h"
 #include "guac_pointer_cursor.h"
+#include "guac_surface.h"
 
 #include <cairo/cairo.h>
 #include <guacamole/client.h>
@@ -206,6 +207,15 @@ void guac_common_cursor_set_argb(guac_common_cursor* cursor, int hx, int hy,
 
         guac_socket_flush(cursor->user->socket);
     }
+
+}
+
+void guac_common_cursor_set_surface(guac_common_cursor* cursor, int hx, int hy,
+    guac_common_surface* surface) {
+
+    /* Set cursor to surface contents */
+    guac_common_cursor_set_argb(cursor, hx, hy, surface->buffer,
+            surface->width, surface->height, surface->stride);
 
 }
 

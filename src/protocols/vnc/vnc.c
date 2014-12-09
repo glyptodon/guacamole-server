@@ -211,7 +211,6 @@ void* guac_vnc_client_thread(void* data) {
 
     /* Set remaining client data */
     vnc_client->rfb_client = rfb_client;
-    vnc_client->cursor = guac_common_cursor_alloc(client);
 
     /* If not read-only, set an appropriate cursor */
     if (vnc_client->settings.read_only == 0) {
