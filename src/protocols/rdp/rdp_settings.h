@@ -221,6 +221,8 @@ typedef struct guac_rdp_settings {
  * @param argv
  *     An array of connection arguments. Each of these arguments will
  *     correspond, in order, to the arguments declared in GUAC_RDP_CLIENT_ARGS.
+ *
+ * @return Zero if the arguments were successfully parsed, non-zero otherwise.
  */
 int guac_rdp_parse_args(guac_rdp_settings* settings, guac_user* user,
         int argc, const char** argv);

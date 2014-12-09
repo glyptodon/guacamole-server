@@ -34,6 +34,7 @@
  * @param client The guac_client associated with the current RDP session.
  * @param keysym The keysym being pressed or released.
  * @param pressed Zero if the keysym is being released, non-zero otherwise.
+ * @return Zero if the keys were successfully sent, non-zero otherwise.
  */
 int guac_rdp_send_keysym(guac_client* client, int keysym, int pressed);
 
@@ -71,6 +72,9 @@ void guac_rdp_update_keysyms(guac_client* client, const int* keysym_string,
  *     The lowest-order bit represents button 0 (the left mouse button), and
  *     so on through the higher-order bits. Most mice have no more than 5
  *     mouse buttons.
+ *
+ * @return
+ *     Zero if the mouse event was successfully handled, non-zero otherwise.
  */
 int guac_rdp_user_mouse_handler(guac_user* user, int x, int y, int mask);
 
@@ -80,6 +84,7 @@ int guac_rdp_user_mouse_handler(guac_user* user, int x, int y, int mask);
  * @param user The guac_user originating the key event.
  * @param keysym The keysym being pressed or released.
  * @param pressed Zero if the keysym is being released, non-zero otherwise.
+ * @return Zero if the key event was successfully handled, non-zero otherwise.
  */
 int guac_rdp_user_key_handler(guac_user* user, int keysym, int pressed);
 
@@ -89,6 +94,7 @@ int guac_rdp_user_key_handler(guac_user* user, int keysym, int pressed);
  * @param user The guac_user originating the size event.
  * @param width The new display width, in pixels.
  * @param height The new display height, in pixels.
+ * @return Zero if the size event was successfully handled, non-zero otherwise.
  */
 int guac_rdp_user_size_handler(guac_user* user, int width, int height);
 
