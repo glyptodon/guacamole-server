@@ -122,6 +122,10 @@ static void __guac_common_clip_rect(guac_common_surface* surface,
     int orig_x = rect->x;
     int orig_y = rect->y;
 
+    /* Skip clipping if no clipping rectangle applied */
+    if (!surface->clipped)
+        return;
+
     guac_common_rect_constrain(rect, &surface->clip_rect);
 
     /* Update source X/Y if given */
@@ -718,18 +722,18 @@ void guac_common_surface_resize(guac_common_surface* surface, int w, int h) {
     surface->height = h;
     surface->stride = cairo_format_stride_for_width(CAIRO_FORMAT_RGB24, w);
     surface->buffer = calloc(h, surface->stride);
-    guac_common_surface_reset_clip(surface);
+    __guac_common_bound_rect(surface, &surface->clip_rect, NULL, NULL);
 
     /* Copy relevant old data */
-    guac_common_rect_constrain(&old_rect, &surface->clip_rect);
+    __guac_common_bound_rect(surface, &old_rect, NULL, NULL);
     __guac_common_surface_put(old_buffer, old_stride, &sx, &sy, surface, &old_rect, 1);
 
     /* Free old data */
     free(old_buffer);
 
-    /* Clip dirty rect */
+    /* Resize dirty rect to fit new surface dimensions */
     if (surface->dirty) {
-        guac_common_rect_constrain(&surface->dirty_rect, &surface->clip_rect);
+        __guac_common_bound_rect(surface, &surface->dirty_rect, NULL, NULL);
         if (surface->dirty_rect.width <= 0 || surface->dirty_rect.height <= 0)
             surface->dirty = 0;
     }
@@ -923,13 +927,19 @@ void guac_common_surface_clip(guac_common_surface* surface, int x, int y, int w,
 
     guac_common_rect clip;
 
+    /* Init clipping rectangle if clipping not already applied */
+    if (!surface->clipped) {
+        guac_common_rect_init(&surface->clip_rect, 0, 0, surface->width, surface->height);
+        surface->clipped = 1;
+    }
+
     guac_common_rect_init(&clip, x, y, w, h);
     guac_common_rect_constrain(&surface->clip_rect, &clip);
 
 }
 
 void guac_common_surface_reset_clip(guac_common_surface* surface) {
-    guac_common_rect_init(&surface->clip_rect, 0, 0, surface->width, surface->height);
+    surface->clipped = 0;
 }
 
 /**
