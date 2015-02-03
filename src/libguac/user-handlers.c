@@ -71,6 +71,10 @@ int64_t __guac_parse_int(const char* str) {
 /* Guacamole instruction handlers */
 
 int __guac_handle_sync(guac_user* user, int argc, char** argv) {
+
+    int frame_duration;
+
+    guac_timestamp current = guac_timestamp_current();
     guac_timestamp timestamp = __guac_parse_int(argv[0]);
 
     /* Error if timestamp is in future */
@@ -79,6 +83,27 @@ int __guac_handle_sync(guac_user* user, int argc, char** argv) {
 
     /* Update stored timestamp */
     user->last_received_timestamp = timestamp;
+
+    /* Calculate length of frame, including network and processing lag */
+    frame_duration = current - timestamp;
+
+    /* Update lag statistics if at least one frame has been rendered */
+    if (user->last_frame_duration != 0) {
+
+        /* Approximate processing lag by summing the frame duration deltas */
+        int processing_lag = user->processing_lag + frame_duration
+                           - user->last_frame_duration;
+
+        /* Adjust back to zero if cumulative error leads to a negative value */
+        if (processing_lag < 0)
+            processing_lag = 0;
+
+        user->processing_lag = processing_lag;
+
+    }
+
+    /* Record duration of frame */
+    user->last_frame_duration = frame_duration;
 
     if (user->sync_handler)
         return user->sync_handler(user, timestamp);

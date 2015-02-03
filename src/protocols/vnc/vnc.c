@@ -132,6 +132,24 @@ rfbClient* guac_vnc_get_client(guac_client* client) {
 
 }
 
+/**
+ * Sleeps for the given number of milliseconds.
+ *
+ * @param msec
+ *     The number of milliseconds to sleep;
+ */
+static void guac_vnc_msleep(int msec) {
+
+    /* Split milliseconds into equivalent seconds + nanoseconds */
+    struct timespec sleep_period = {
+        .tv_sec  =  msec / 1000,
+        .tv_nsec = (msec % 1000) * 1000000
+    };
+
+    nanosleep(&sleep_period, NULL);
+
+}
+
 void* guac_vnc_client_thread(void* data) {
 
     guac_client* client = (guac_client*) data;
@@ -151,17 +169,12 @@ void* guac_vnc_client_thread(void* data) {
     /* If unsuccessful, retry as many times as specified */
     while (!rfb_client && retries_remaining > 0) {
 
-        struct timespec guac_vnc_connect_interval = {
-            .tv_sec  =  GUAC_VNC_CONNECT_INTERVAL/1000,
-            .tv_nsec = (GUAC_VNC_CONNECT_INTERVAL%1000)*1000000
-        };
-
         guac_client_log(client, GUAC_LOG_INFO,
                 "Connect failed. Waiting %ims before retrying...",
                 GUAC_VNC_CONNECT_INTERVAL);
 
         /* Wait for given interval then retry */
-        nanosleep(&guac_vnc_connect_interval, NULL);
+        guac_vnc_msleep(GUAC_VNC_CONNECT_INTERVAL);
         rfb_client = guac_vnc_get_client(client);
         retries_remaining--;
 
@@ -231,33 +244,55 @@ void* guac_vnc_client_thread(void* data) {
 
     guac_socket_flush(client->socket);
 
+    guac_timestamp last_frame_end = guac_timestamp_current();
+
     /* Handle messages from VNC server while client is running */
     while (client->state == GUAC_CLIENT_RUNNING) {
 
-        /* Initially wait for messages */
+        /* Wait for start of frame */
         int wait_result = WaitForMessage(rfb_client, 1000000);
-        guac_timestamp frame_start = guac_timestamp_current();
-        while (wait_result > 0) {
+        if (wait_result > 0) {
 
-            guac_timestamp frame_end;
-            int frame_remaining;
+            guac_timestamp frame_start = guac_timestamp_current();
 
-            /* Handle any message received */
-            if (!HandleRFBServerMessage(rfb_client)) {
-                guac_client_abort(client, GUAC_PROTOCOL_STATUS_UPSTREAM_ERROR,
-                                  "Error handling message from VNC server.");
-                break;
-            }
+            /* Calculate time since last frame */
+            int time_elapsed = frame_start - last_frame_end;
+            int processing_lag = guac_client_get_processing_lag(client);
 
-            /* Calculate time remaining in frame */
-            frame_end = guac_timestamp_current();
-            frame_remaining = frame_start + GUAC_VNC_FRAME_DURATION - frame_end;
+            /* Force roughly-equal length of server and client frames */
+            if (time_elapsed < processing_lag)
+                guac_vnc_msleep(processing_lag - time_elapsed);
 
-            /* Wait again if frame remaining */
-            if (frame_remaining > 0)
-                wait_result = WaitForMessage(rfb_client, GUAC_VNC_FRAME_TIMEOUT*1000);
-            else
-                break;
+            /* Read server messages until frame is built */
+            do {
+
+                guac_timestamp frame_end;
+                int frame_remaining;
+
+                /* Handle any message received */
+                if (!HandleRFBServerMessage(rfb_client)) {
+                    guac_client_abort(client,
+                            GUAC_PROTOCOL_STATUS_UPSTREAM_ERROR,
+                            "Error handling message from VNC server.");
+                    break;
+                }
+
+                /* Calculate time remaining in frame */
+                frame_end = guac_timestamp_current();
+                frame_remaining = frame_start + GUAC_VNC_FRAME_DURATION
+                                - frame_end;
+
+                /* Wait again if frame remaining */
+                if (frame_remaining > 0)
+                    wait_result = WaitForMessage(rfb_client,
+                            GUAC_VNC_FRAME_TIMEOUT*1000);
+                else
+                    break;
+
+            } while (wait_result > 0);
+
+            /* Record end of frame */
+            last_frame_end = guac_timestamp_current();
 
         }
 

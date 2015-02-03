@@ -422,3 +422,36 @@ int guac_client_load_plugin(guac_client* client, const char* protocol) {
 
 }
 
+/**
+ * Updates the provided approximate processing lag, taking into account the
+ * processing lag of the given user.
+ *
+ * @param user
+ *     The guac_user to use to update the approximate processing lag.
+ *
+ * @param data
+ *     Pointer to an int containing the current approximate processing lag.
+ *     The int will be updated according to the processing lag of the given
+ *     user.
+ */
+static void __calculate_lag(guac_user* user, void* data) {
+
+    int* processing_lag = (int*) data;
+
+    /* Simply find maximum */
+    if (user->processing_lag > *processing_lag)
+        *processing_lag = user->processing_lag;
+
+}
+
+int guac_client_get_processing_lag(guac_client* client) {
+
+    int processing_lag = 0;
+
+    /* Approximate the processing lag of all users */
+    guac_client_foreach_user(client, __calculate_lag, &processing_lag);
+
+    return processing_lag;
+
+}
+
