@@ -415,6 +415,20 @@ int guac_client_end_frame(guac_client* client);
 int guac_client_load_plugin(guac_client* client, const char* protocol);
 
 /**
+ * Calculates and returns the approximate processing lag experienced by the
+ * pool of users. The processing lag is the difference in time between server
+ * and client due purely to data processing and excluding network delays.
+ *
+ * @param client
+ *     The guac_client to calculate the processing lag of.
+ *
+ * @return
+ *     The approximate processing lag of the pool of users associated with the
+ *     given guac_client, in milliseconds.
+ */
+int guac_client_get_processing_lag(guac_client* client);
+
+/**
  * The default Guacamole client layer, layer 0.
  */
 extern const guac_layer* GUAC_DEFAULT_LAYER;

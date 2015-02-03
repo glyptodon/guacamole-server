@@ -48,6 +48,8 @@ guac_user* guac_user_alloc() {
     }
 
     user->last_received_timestamp = guac_timestamp_current();
+    user->last_frame_duration = 0;
+    user->processing_lag = 0;
     user->active = 1;
 
     /* Allocate stream pool */

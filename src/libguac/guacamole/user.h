@@ -143,6 +143,19 @@ struct guac_user {
     guac_timestamp last_received_timestamp;
 
     /**
+     * The duration of the last frame rendered by the user, in milliseconds.
+     * This duration will include network and processing lag, and thus should
+     * be slightly higher than the true frame duration.
+     */
+    int last_frame_duration;
+
+    /**
+     * The overall lag experienced by the user relative to the stream of
+     * frames, roughly excluding network lag.
+     */
+    int processing_lag;
+
+    /**
      * Information structure containing properties exposed by the remote
      * user during the initial handshake process.
      */
