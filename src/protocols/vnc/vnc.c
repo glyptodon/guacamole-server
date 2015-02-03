@@ -140,6 +140,7 @@ rfbClient* guac_vnc_get_client(guac_client* client) {
  */
 static void guac_vnc_msleep(int msec) {
 
+    /* Split milliseconds into equivalent seconds + nanoseconds */
     struct timespec sleep_period = {
         .tv_sec  =  msec / 1000,
         .tv_nsec = (msec % 1000) * 1000000
