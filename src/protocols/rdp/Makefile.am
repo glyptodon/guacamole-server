@@ -131,6 +131,7 @@ BUILT_SOURCES = _generated_keymaps.c
 rdp_keymaps =                   \
     keymaps/base.keymap         \
     keymaps/failsafe.keymap     \
+    keymaps/de_ch_qwertz.keymap \
     keymaps/de_de_qwertz.keymap \
     keymaps/en_us_qwerty.keymap \
     keymaps/fr_fr_azerty.keymap \
