@@ -300,5 +300,15 @@ void guac_rdp_push_settings(guac_rdp_settings* guac_settings, freerdp* rdp) {
     rdp_settings->OrderSupport[NEG_ELLIPSE_CB_INDEX] = FALSE;
 #endif
 
+#ifdef LEGACY_RDPSETTINGS
+    if (guac_settings->usingPdu) {
+        rdp_settings->SendPreconnectionPdu = TRUE;
+        rdp_settings->NegotiateSecurityLayer = FALSE;
+        rdp_settings->PreconnectionBlob = guac_settings->PreconnectionBlob;
+        rdp_settings->port = RDP_PDB_PORT;
+    }
+#endif
+
+
 }
 

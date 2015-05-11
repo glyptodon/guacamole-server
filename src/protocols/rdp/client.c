@@ -116,6 +116,7 @@ const char* GUAC_CLIENT_ARGS[] = {
     "remote-app-args",
     "static-channels",
     "client-name",
+    "vmconnect",
     NULL
 };
 
@@ -146,6 +147,7 @@ enum RDP_ARGS_IDX {
     IDX_REMOTE_APP_ARGS,
     IDX_STATIC_CHANNELS,
     IDX_CLIENT_NAME,
+    IDX_VMCONNECT,
     RDP_ARGS_COUNT
 };
 
@@ -697,6 +699,16 @@ int guac_client_init(guac_client* client, int argc, char** argv) {
     settings->svc_names = NULL;
     if (argv[IDX_STATIC_CHANNELS][0] != '\0')
         settings->svc_names = guac_split(argv[IDX_STATIC_CHANNELS], ',');
+
+
+    /* Preconnection Blob  */
+    settings->PreconnectionBlob = NULL;
+    settings->usingPdu = 0;
+    if (argv[IDX_VMCONNECT][0] != '\0') {
+        settings->usingPdu = 1;
+        settings->PreconnectionBlob = strdup(argv[IDX_VMCONNECT]);
+        guac_client_log(client, GUAC_LOG_INFO, "PDB UUID: %s", argv[IDX_VMCONNECT]);
+    }
 
     /* Session color depth */
     settings->color_depth = RDP_DEFAULT_DEPTH;
