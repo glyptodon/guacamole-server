@@ -42,6 +42,11 @@
 #define RDP_DEFAULT_PORT 3389
 
 /**
+ * The default PDB port.
+ */
+#define RDP_PDB_PORT 2179
+
+/**
  * Default screen width, in pixels.
  */
 #define RDP_DEFAULT_WIDTH  1024
@@ -218,6 +223,17 @@ typedef struct guac_rdp_settings {
      * no channels whatsoever.
      */
     char** svc_names;
+
+
+    /**
+     * Using connection to the PCB.
+     */
+    int usingPdu;
+    char* PreconnectionBlob;
+    int NegotiateSecurityLayer;
+    int SendPreconnectionPdu;
+
+
 
 } guac_rdp_settings;
 
