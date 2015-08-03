@@ -92,10 +92,10 @@ int vnc_guac_client_handle_messages(guac_client* client) {
         frame_end = guac_timestamp_current();
         frame_remaining = frame_start + GUAC_VNC_FRAME_DURATION - frame_end;
 
-        /* Wait again if frame remaining */
+        /* Process more messages if frame time remains */
         if (frame_remaining > 0)
             wait_result = guac_vnc_wait_for_messages(rfb_client,
-                    GUAC_VNC_FRAME_TIMEOUT*1000);
+                                                     frame_remaining*1000);
         else
             break;
 
