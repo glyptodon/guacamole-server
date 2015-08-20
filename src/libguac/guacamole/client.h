@@ -82,6 +82,10 @@ struct guac_client_info {
      */
     int optimal_resolution;
 
+    /**
+     * Flag indicating whether the client supports WebP encoding.
+     */
+    int supports_webp;
 };
 
 struct guac_client {
@@ -663,8 +667,9 @@ void guac_client_stream_png(guac_client* client, guac_socket* socket,
 
 /**
  * Streams the image data of the given surface over an image stream ("img"
- * instruction) as JPEG-encoded data at the given quality. The image stream
- * will be automatically allocated and freed.
+ * instruction) using lossy encoding at the given quality. The image data will
+ * be encoded as JPEG or WebP based on client and server support. The image
+ * stream will be automatically allocated and freed.
  *
  * @param client
  *     The Guacamole client from which the image stream should be allocated.
@@ -689,8 +694,11 @@ void guac_client_stream_png(guac_client* client, guac_socket* socket,
  *
  * @param surface
  *     A Cairo surface containing the image data to be streamed.
+ *
+ * @param quality
+ *     The image quality to use.
  */
-void guac_client_stream_jpeg(guac_client* client, guac_socket* socket,
+void guac_client_stream_lossy_image(guac_client* client, guac_socket* socket,
         guac_composite_mode mode, const guac_layer* layer, int x, int y,
         cairo_surface_t* surface, int quality);
 
