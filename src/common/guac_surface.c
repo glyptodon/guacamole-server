@@ -87,6 +87,14 @@
 #define GUAC_SURFACE_LOSSY_IMAGE_QUALITY 90
 
 /**
+ * The minimum image block size to use for lossy image compression.
+ * This defines the optimal block size factor for JPEG/WebP compression to avoid
+ * artifacts around the edges of the compressed image when the compression
+ * algorithm approximaties the remaining image data.
+ */
+#define GUAC_SURFACE_LOSSY_IMAGE_BLOCK_SIZE 8
+
+/**
  * The framerate which, if exceeded, indicates that lossy encoding is preferred.
  */
 #define GUAC_COMMON_SURFACE_LOSSY_FRAMERATE 3
@@ -1253,6 +1261,13 @@ static void __guac_common_surface_flush_to_lossy_image(guac_common_surface* surf
 
         guac_socket* socket = surface->socket;
         const guac_layer* layer = surface->layer;
+
+        /* Tweak the dirty rectangle size to fit the block size used by the
+         * image compressor */
+        guac_common_rect max;
+        guac_common_rect_init(&max, 0, 0, surface->width, surface->height);
+        guac_common_rect_expand_to_grid(GUAC_SURFACE_LOSSY_IMAGE_BLOCK_SIZE,
+                &surface->dirty_rect, &max);
 
         /* Get Cairo surface for specified rect */
         unsigned char* buffer = surface->buffer + surface->dirty_rect.y * surface->stride + surface->dirty_rect.x * 4;
