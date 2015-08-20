@@ -80,16 +80,24 @@
 #endif
 
 /**
- * The JPEG image quality ('quantization') setting to use. Range 0-100 where
- * 100 is the highest quality/largest file size, and 0 is the lowest
- * quality/smallest file size.
+ * The lossy image quality ('quantization') setting to use for JPEG and WebP
+ * encoding. Range 0-100 where 100 is the highest quality/largest file size,
+ * and 0 is the lowest quality/smallest file size.
  */
-#define GUAC_SURFACE_JPEG_IMAGE_QUALITY 90
+#define GUAC_SURFACE_LOSSY_IMAGE_QUALITY 90
 
 /**
- * The framerate which, if exceeded, indicates that JPEG is preferred.
+ * The minimum image block size to use for lossy image compression.
+ * This defines the optimal block size factor for JPEG/WebP compression to avoid
+ * artifacts around the edges of the compressed image when the compression
+ * algorithm approximaties the remaining image data.
  */
-#define GUAC_COMMON_SURFACE_JPEG_FRAMERATE 3
+#define GUAC_SURFACE_LOSSY_IMAGE_BLOCK_SIZE 8
+
+/**
+ * The framerate which, if exceeded, indicates that lossy encoding is preferred.
+ */
+#define GUAC_COMMON_SURFACE_LOSSY_FRAMERATE 3
 
 /**
  * Updates the coordinates of the given rectangle to be within the bounds of
@@ -314,8 +322,8 @@ static unsigned int __guac_common_surface_calculate_framerate(
 
  /**
  * Guesses whether a rectangle within a particular surface would be better
- * compressed as PNG or as JPEG. Positive values indicate PNG is likely to
- * be superior, while negative values indicate JPEG.
+ * compressed as PNG or using lossy encoding. Positive values indicate PNG is
+ * likely to be superior, while negative values indicate lossy encoding.
  *
  * @param surface
  *     The surface containing the image data to check.
@@ -325,7 +333,8 @@ static unsigned int __guac_common_surface_calculate_framerate(
  *
  * @return
  *     Positive values if PNG compression is likely to perform better than
- *     JPEG, or negative values if JPEG is likely to perform better than PNG.
+ *     lossy compression, or negative values if lossy compression is likely to
+ *     perform better than PNG.
  */
 static int __guac_common_surface_png_optimality(guac_common_surface* surface,
         const guac_common_rect* rect) {
@@ -378,8 +387,8 @@ static int __guac_common_surface_png_optimality(guac_common_surface* surface,
 }
 
 /**
- * Returns whether the given rectangle would be optimally encoded as JPEG
- * rather than PNG.
+ * Returns whether the given rectangle would be optimally encoded using lossy
+ * compression rather than PNG.
  *
  * @param surface
  *     The surface to be queried.
@@ -388,17 +397,17 @@ static int __guac_common_surface_png_optimality(guac_common_surface* surface,
  *     The rectangle to check.
  *
  * @return
- *     Non-zero if the rectangle would be optimally encoded as JPEG, zero
+ *     Non-zero if the rectangle would be optimally encoded as lossy, zero
  *     otherwise.
  */
-static int __guac_common_surface_should_use_jpeg(guac_common_surface* surface,
-        const guac_common_rect* rect) {
+static int __guac_common_surface_should_use_lossy_encoding(
+        guac_common_surface* surface, const guac_common_rect* rect) {
 
     /* Calculate the average framerate for the given rect */
     int framerate = __guac_common_surface_calculate_framerate(surface, rect);
 
-    /* JPEG is preferred if framerate is high enough */
-    return framerate >= GUAC_COMMON_SURFACE_JPEG_FRAMERATE
+    /* Lossy encoding is preferred if framerate is high enough */
+    return framerate >= GUAC_COMMON_SURFACE_LOSSY_FRAMERATE
         && __guac_common_surface_png_optimality(surface, rect) < 0;
 
 }
@@ -1239,19 +1248,26 @@ static void __guac_common_surface_flush_to_png(guac_common_surface* surface) {
 
 /**
  * Flushes the bitmap update currently described by the dirty rectangle within
- * the given surface directly via an "img" instruction as JPEG data. The
- * resulting instructions will be sent over the socket associated with the
- * given surface.
+ * the given surface directly via an "img" instruction as lossy JPEG or WebP
+ * data. The resulting instructions will be sent over the socket associated with
+ * the given surface.
  *
  * @param surface
  *     The surface to flush.
  */
-static void __guac_common_surface_flush_to_jpeg(guac_common_surface* surface) {
+static void __guac_common_surface_flush_to_lossy_image(guac_common_surface* surface) {
 
     if (surface->dirty) {
 
         guac_socket* socket = surface->socket;
         const guac_layer* layer = surface->layer;
+
+        /* Tweak the dirty rectangle size to fit the block size used by the
+         * image compressor */
+        guac_common_rect max;
+        guac_common_rect_init(&max, 0, 0, surface->width, surface->height);
+        guac_common_rect_expand_to_grid(GUAC_SURFACE_LOSSY_IMAGE_BLOCK_SIZE,
+                &surface->dirty_rect, &max);
 
         /* Get Cairo surface for specified rect */
         unsigned char* buffer = surface->buffer + surface->dirty_rect.y * surface->stride + surface->dirty_rect.x * 4;
@@ -1260,10 +1276,10 @@ static void __guac_common_surface_flush_to_jpeg(guac_common_surface* surface) {
                                                                     surface->dirty_rect.height,
                                                                     surface->stride);
 
-        /* Send JPEG for rect */
-        guac_client_stream_jpeg(surface->client, socket, GUAC_COMP_OVER, layer,
+        /* Send lossy image for rect */
+        guac_client_stream_lossy_image(surface->client, socket, GUAC_COMP_OVER, layer,
                 surface->dirty_rect.x, surface->dirty_rect.y, rect,
-                GUAC_SURFACE_JPEG_IMAGE_QUALITY);
+                GUAC_SURFACE_LOSSY_IMAGE_QUALITY);
         cairo_surface_destroy(rect);
         surface->realized = 1;
 
@@ -1355,10 +1371,10 @@ void guac_common_surface_flush(guac_common_surface* surface) {
 
                 flushed++;
 
-                /* Flush as JPEG if JPEG is preferred */
-                if (__guac_common_surface_should_use_jpeg(surface,
+                /* Flush as lossy image if preferred */
+                if (__guac_common_surface_should_use_lossy_encoding(surface,
                             &surface->dirty_rect))
-                    __guac_common_surface_flush_to_jpeg(surface);
+                    __guac_common_surface_flush_to_lossy_image(surface);
 
                 /* Otherwise, use PNG */
                 else

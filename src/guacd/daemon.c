@@ -91,6 +91,7 @@ static void guacd_handle_connection(guacd_client_map* map, guac_socket* socket) 
     guac_instruction* size;
     guac_instruction* audio;
     guac_instruction* video;
+    guac_instruction* image;
     guac_instruction* connect;
     int init_result;
 
@@ -205,6 +206,20 @@ static void guacd_handle_connection(guacd_client_map* map, guac_socket* socket) 
         return;
     }
 
+    /* Get supported image formats */
+    image = guac_instruction_expect(
+            socket, GUACD_USEC_TIMEOUT, "image");
+    if (image == NULL) {
+
+        /* Log error */
+        guacd_log_handshake_failure();
+        guacd_log_guac_error(GUAC_LOG_DEBUG, "Error reading \"image\"");
+
+        /* Free resources */
+        guac_socket_free(socket);
+        return;
+    }
+
     /* Get args from connect instruction */
     connect = guac_instruction_expect(
             socket, GUACD_USEC_TIMEOUT, "connect");
@@ -256,6 +271,17 @@ static void guacd_handle_connection(guacd_client_map* map, guac_socket* socket) 
     memcpy(client->info.video_mimetypes, video->argv,
             sizeof(char*) * video->argc);
     client->info.video_mimetypes[video->argc] = NULL;
+
+    /* Handle image mimetypes */
+    for (int i = 0; i < image->argc; i++) {
+        /* Check if webp image encoding is supported by client */
+        if (strcmp(image->argv[i], "image/webp") == 0) {
+            client->info.supports_webp = 1;
+#ifdef ENABLE_WEBP
+            guacd_log(GUAC_LOG_INFO, "Client supports WebP encoding. Lossy images will be sent as WebP.");
+#endif
+        }
+    }
 
     /* Store client */
     if (guacd_client_map_add(map, client))

@@ -36,6 +36,10 @@
 #include "stream.h"
 #include "timestamp.h"
 
+#ifdef ENABLE_WEBP
+#include "encode-webp.h"
+#endif
+
 #ifdef HAVE_OSSP_UUID_H
 #include <ossp/uuid.h>
 #else
@@ -398,18 +402,30 @@ void guac_client_stream_png(guac_client* client, guac_socket* socket,
 
 }
 
-void guac_client_stream_jpeg(guac_client* client, guac_socket* socket,
+void guac_client_stream_lossy_image(guac_client* client, guac_socket* socket,
         guac_composite_mode mode, const guac_layer* layer, int x, int y,
         cairo_surface_t* surface, int quality) {
 
     /* Allocate new stream for image */
     guac_stream* stream = guac_client_alloc_stream(client);
 
-    /* Declare stream as containing image data */
-    guac_protocol_send_img(socket, stream, mode, layer, "image/jpeg", x, y);
+#ifdef ENABLE_WEBP
+    if (client->info.supports_webp) {
+        /* Declare stream as containing image data */
+        guac_protocol_send_img(socket, stream, mode, layer, "image/webp", x, y);
 
-    /* Write JPEG data */
-    guac_jpeg_write(socket, stream, surface, quality);
+        /* Write WebP data */
+        guac_webp_write(socket, stream, surface, quality);
+    }
+    else
+#endif
+    {
+        /* Declare stream as containing image data */
+        guac_protocol_send_img(socket, stream, mode, layer, "image/jpeg", x, y);
+
+        /* Write JPEG data */
+        guac_jpeg_write(socket, stream, surface, quality);
+    }
 
     /* Terminate stream */
     guac_protocol_send_end(socket, stream);
