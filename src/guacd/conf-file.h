@@ -28,6 +28,16 @@
 #include <guacamole/client.h>
 
 /**
+ * TLS-PSK object.
+ */
+typedef struct tls_psk {
+    char* identity;
+    char* key;
+    unsigned int key_len;
+    struct tls_psk* next;
+} tls_psk;
+
+/**
  * The contents of a guacd configuration file.
  */
 typedef struct guacd_config {
@@ -62,6 +72,11 @@ typedef struct guacd_config {
      * SSL private key file.
      */
     char* key_file;
+
+    /**
+     * PSK list
+     */
+    tls_psk* psk_list;
 #endif
 
     /**
@@ -84,5 +99,10 @@ int guacd_conf_parse_file(guacd_config* conf, int fd);
  */
 guacd_config* guacd_conf_load();
 
+/**
+ * Parse a string of the form "identity:pre-shared-key" and add a corresponding
+ * object to the list of PSK peers.
+ */
+int add_psk_to_list(tls_psk** list, const char* psk);
 #endif
 

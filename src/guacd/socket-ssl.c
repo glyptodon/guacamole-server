@@ -127,6 +127,7 @@ guac_socket* guac_socket_open_secure(SSL_CTX* context, int fd) {
     data->context = context;
     data->ssl = SSL_new(context);
     SSL_set_fd(data->ssl, fd);
+    SSL_set_app_data(data->ssl, SSL_CTX_get_app_data(context));
 
     /* Accept SSL connection, handle errors */
     if (SSL_accept(data->ssl) <= 0) {
