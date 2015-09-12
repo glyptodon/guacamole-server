@@ -34,12 +34,20 @@
  * Synchronizes all surfaces within the given array to the given socket. If a
  * given surface is set to NULL, it will not be synchronized.
  *
- * @param layers The array of layers to free.
- * @param count The number of layers in the array.
- * @param socket The socket to synchronize each layer to.
+ * @param layers
+ *     The array of layers to synchronize.
+ *
+ * @param count
+ *     The number of layers in the array.
+ *
+ * @param user
+ *     The user receiving the layers.
+ *
+ * @param socket
+ *     The socket over which each layer should be sent.
  */
 static void guac_common_display_dup_layers(guac_common_display_layer* layers,
-        int count, guac_socket* socket) {
+        int count, guac_user* user, guac_socket* socket) {
 
     int i;
 
@@ -50,7 +58,7 @@ static void guac_common_display_dup_layers(guac_common_display_layer* layers,
 
         /* Synchronize surface, if present */
         if (current->surface != NULL)
-            guac_common_surface_dup(current->surface, socket);
+            guac_common_surface_dup(current->surface, user, socket);
 
     }
 
@@ -105,8 +113,8 @@ guac_common_display* guac_common_display_alloc(guac_client* client,
     /* Allocate shared cursor */
     display->cursor = guac_common_cursor_alloc(client);
 
-    display->default_surface = guac_common_surface_alloc(client->socket,
-            GUAC_DEFAULT_LAYER, width, height);
+    display->default_surface = guac_common_surface_alloc(client,
+            client->socket, GUAC_DEFAULT_LAYER, width, height);
 
     /* Allocate initial layers array */
     display->layers_size = GUAC_COMMON_DISPLAY_POOL_SIZE;
@@ -141,18 +149,22 @@ void guac_common_display_free(guac_common_display* display) {
 
 }
 
-void guac_common_display_dup(guac_common_display* display,
+void guac_common_display_dup(guac_common_display* display, guac_user* user,
         guac_socket* socket) {
 
     /* Sunchronize shared cursor */
-    guac_common_cursor_dup(display->cursor, socket);
+    guac_common_cursor_dup(display->cursor, user, socket);
 
     /* Synchronize default surface */
-    guac_common_surface_dup(display->default_surface, socket);
+    guac_common_surface_dup(display->default_surface, user, socket);
 
-    /* Synchronize all layers/buffers */
-    guac_common_display_dup_layers(display->layers, display->layers_size, socket);
-    guac_common_display_dup_layers(display->buffers, display->buffers_size, socket);
+    /* Synchronize all layers */
+    guac_common_display_dup_layers(display->layers, display->layers_size,
+            user, socket);
+
+    /* Synchronize all buffers */
+    guac_common_display_dup_layers(display->buffers, display->buffers_size,
+            user, socket);
 
 }
 
@@ -216,8 +228,8 @@ guac_common_display_layer* guac_common_display_alloc_layer(
 
     /* Init display layer */
     display_layer->layer = layer;
-    display_layer->surface = guac_common_surface_alloc(display->client->socket,
-            layer, width, height);
+    display_layer->surface = guac_common_surface_alloc(display->client,
+            display->client->socket, layer, width, height);
 
     return display_layer;
 }
@@ -238,8 +250,8 @@ guac_common_display_layer* guac_common_display_alloc_buffer(
 
     /* Init display buffer */
     display_buffer->layer = buffer;
-    display_buffer->surface = guac_common_surface_alloc(display->client->socket,
-            buffer, width, height);
+    display_buffer->surface = guac_common_surface_alloc(display->client,
+            display->client->socket, buffer, width, height);
 
     return display_buffer;
 }

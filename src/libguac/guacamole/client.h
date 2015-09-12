@@ -33,6 +33,7 @@
 #include "client-types.h"
 #include "client-constants.h"
 #include "layer-types.h"
+#include "object-types.h"
 #include "pool-types.h"
 #include "socket-types.h"
 #include "timestamp-types.h"

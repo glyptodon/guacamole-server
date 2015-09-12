@@ -37,8 +37,9 @@
 
 #include "config.h"
 
-#include <guacamole/client.h>
+#include <guacamole/object.h>
 #include <guacamole/pool.h>
+#include <guacamole/user.h>
 
 #include <dirent.h>
 #include <stdint.h>
@@ -268,9 +269,14 @@ typedef struct guac_rdp_fs_file {
 typedef struct guac_rdp_fs {
 
     /**
-     * The controlling client.
+     * The controlling Guacamole user.
      */
-    guac_client* client;
+    guac_user* user;
+
+    /**
+     * The underlying filesystem object.
+     */
+    guac_object* object;
 
     /**
      * The root of the filesystem.
@@ -320,15 +326,23 @@ typedef struct guac_rdp_fs_info {
  * Allocates a new filesystem given a root path. This filesystem will behave
  * as if it were a network drive.
  *
- * @param client The guac_client associated with the current RDP session.
+ * @param user 
+ *     The guac_user associated with the current RDP session and having access
+ *     to this filesystem.
  *
  * @param drive_path
  *     The local directory to use as the root directory of the emulated
  *     network drive.
  *
- * @return The newly-allocated filesystem.
+ * @param create_drive_path
+ *     Non-zero if the drive path specified should be automatically created if
+ *     it does not yet exist, zero otherwise.
+ *
+ * @return
+ *     The newly-allocated filesystem.
  */
-guac_rdp_fs* guac_rdp_fs_alloc(guac_client* client, const char* drive_path);
+guac_rdp_fs* guac_rdp_fs_alloc(guac_user* user, const char* drive_path,
+        int create_drive_path);
 
 /**
  * Frees the given filesystem.
@@ -601,6 +615,28 @@ int guac_rdp_fs_matches(const char* filename, const char* pattern);
  *     GUAC_RDP_FS constants, such as GUAC_RDP_FS_ENOENT.
  */
 int guac_rdp_fs_get_info(guac_rdp_fs* fs, guac_rdp_fs_info* info);
+
+/**
+ * Concatenates the given filename with the given path, separating the two
+ * with a single forward slash. The full result must be no more than
+ * GUAC_RDP_FS_MAX_PATH bytes long, counting null terminator.
+ *
+ * @param fullpath
+ *     The buffer to store the result within. This buffer must be at least
+ *     GUAC_RDP_FS_MAX_PATH bytes long.
+ *
+ * @param path
+ *     The path to append the filename to.
+ *
+ * @param filename
+ *     The filename to append to the path.
+ *
+ * @return
+ *     Non-zero if the filename is valid and was successfully appended to the
+ *     path, zero otherwise.
+ */
+int guac_rdp_fs_append_filename(char* fullpath, const char* path,
+        const char* filename);
 
 #endif
 

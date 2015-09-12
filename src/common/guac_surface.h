@@ -27,6 +27,7 @@
 #include "guac_rect.h"
 
 #include <cairo/cairo.h>
+#include <guacamole/client.h>
 #include <guacamole/layer.h>
 #include <guacamole/protocol.h>
 #include <guacamole/socket.h>
@@ -64,6 +65,11 @@ typedef struct guac_common_surface {
      * The layer this surface will draw to.
      */
     const guac_layer* layer;
+
+    /**
+     * The client associated with this surface.
+     */
+    guac_client* client;
 
     /**
      * The socket to send instructions on when flushing.
@@ -131,13 +137,26 @@ typedef struct guac_common_surface {
 /**
  * Allocates a new guac_common_surface, assigning it to the given layer.
  *
- * @param socket The socket to send instructions on when flushing.
- * @param layer The layer to associate with the new surface.
- * @param w The width of the surface.
- * @param h The height of the surface.
- * @return A newly-allocated guac_common_surface.
+ * @param client
+ *     The client associated with the given layer.
+ *
+ * @param socket
+ *     The socket to send instructions on when flushing.
+ *
+ * @param layer
+ *     The layer to associate with the new surface.
+ *
+ * @param w
+ *     The width of the surface.
+ *
+ * @param h
+ *     The height of the surface.
+ *
+ * @return
+ *     A newly-allocated guac_common_surface.
  */
-guac_common_surface* guac_common_surface_alloc(guac_socket* socket, const guac_layer* layer, int w, int h);
+guac_common_surface* guac_common_surface_alloc(guac_client* client,
+        guac_socket* socket, const guac_layer* layer, int w, int h);
 
 /**
  * Frees the given guac_common_surface. Beware that this will NOT free any
@@ -271,10 +290,17 @@ void guac_common_surface_flush_deferred(guac_common_surface* surface);
  * Duplicates the contents of the current surface to the given socket. Pending
  * changes are not flushed.
  *
- * @param surface The surface to duplicate.
- * @param socket The socket to send the surface contents to.
+ * @param surface
+ *     The surface to duplicate.
+ *
+ * @param user
+ *     The user receiving the surface.
+ *
+ * @param socket
+ *     The socket over which the surface contents should be sent.
  */
-void guac_common_surface_dup(guac_common_surface* surface, guac_socket* socket);
+void guac_common_surface_dup(guac_common_surface* surface, guac_user* user,
+        guac_socket* socket);
 
 #endif
 

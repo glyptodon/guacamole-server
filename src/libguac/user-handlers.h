@@ -123,6 +123,20 @@ int __guac_handle_blob(guac_user* user, int argc, char** argv);
 int __guac_handle_end(guac_user* user, int argc, char** argv);
 
 /**
+ * Internal initial handler for the get instruction. When a get instruction
+ * is received, this handler will be called. The client's get handler will
+ * be invoked if defined.
+ */
+int __guac_handle_get(guac_user* user, int argc, char** argv);
+
+/**
+ * Internal initial handler for the put instruction. When a put instruction
+ * is received, this handler will be called. The client's put handler will
+ * be invoked if defined.
+ */
+int __guac_handle_put(guac_user* user, int argc, char** argv);
+
+/**
  * Internal initial handler for the size instruction. When a size instruction
  * is received, this handler will be called. The client's size handler will
  * be invoked if defined.

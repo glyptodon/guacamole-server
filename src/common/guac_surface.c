@@ -25,9 +25,11 @@
 #include "guac_surface.h"
 
 #include <cairo/cairo.h>
+#include <guacamole/client.h>
 #include <guacamole/layer.h>
 #include <guacamole/protocol.h>
 #include <guacamole/socket.h>
+#include <guacamole/user.h>
 
 #include <stdlib.h>
 #include <stdint.h>
@@ -122,9 +124,11 @@ static void __guac_common_clip_rect(guac_common_surface* surface,
     int orig_x = rect->x;
     int orig_y = rect->y;
 
-    /* Skip clipping if no clipping rectangle applied */
-    if (!surface->clipped)
+    /* Just bound within surface if no clipping rectangle applied */
+    if (!surface->clipped) {
+        __guac_common_bound_rect(surface, rect, sx, sy);
         return;
+    }
 
     guac_common_rect_constrain(rect, &surface->clip_rect);
 
@@ -435,8 +439,8 @@ static void __guac_common_surface_put(unsigned char* src_buffer, int src_stride,
 
     int x, y;
 
-    int min_x = rect->width - 1;
-    int min_y = rect->height - 1;
+    int min_x = rect->width;
+    int min_y = rect->height;
     int max_x = 0;
     int max_y = 0;
 
@@ -658,12 +662,14 @@ static void __guac_common_surface_transfer(guac_common_surface* src, int* sx, in
 
 }
 
-guac_common_surface* guac_common_surface_alloc(guac_socket* socket, const guac_layer* layer, int w, int h) {
+guac_common_surface* guac_common_surface_alloc(guac_client* client,
+        guac_socket* socket, const guac_layer* layer, int w, int h) {
 
     /* Init surface */
     guac_common_surface* surface = malloc(sizeof(guac_common_surface));
-    surface->layer = layer;
+    surface->client = client;
     surface->socket = socket;
+    surface->layer = layer;
     surface->width = w;
     surface->height = h;
     surface->dirty = 0;
@@ -943,6 +949,32 @@ void guac_common_surface_reset_clip(guac_common_surface* surface) {
 }
 
 /**
+ * Callback for guac_client_foreach_user() which sends the dirty rect of the
+ * given surface as PNG data to each connected client.
+ */
+static void __flush_png_to_user(guac_user* user, void* data) {
+
+    guac_common_surface* surface = (guac_common_surface*) data;
+    const guac_layer* layer = surface->layer;
+
+    /* Get Cairo surface for specified rect */
+    unsigned char* buffer = surface->buffer
+                          + surface->dirty_rect.y * surface->stride
+                          + surface->dirty_rect.x * 4;
+
+    cairo_surface_t* rect = cairo_image_surface_create_for_data(buffer,
+            CAIRO_FORMAT_RGB24, surface->dirty_rect.width,
+            surface->dirty_rect.height, surface->stride);
+
+    /* Send PNG for rect */
+    guac_user_stream_png(user, user->socket, GUAC_COMP_OVER,
+            layer, surface->dirty_rect.x, surface->dirty_rect.y, rect);
+
+    cairo_surface_destroy(rect);
+
+}
+
+/**
  * Flushes the PNG update currently described by the dirty rectangle within the
  * given surface directly to a "png" instruction, which is sent on the socket
  * associated with the surface.
@@ -953,19 +985,8 @@ static void __guac_common_surface_flush_to_png(guac_common_surface* surface) {
 
     if (surface->dirty) {
 
-        guac_socket* socket = surface->socket;
-        const guac_layer* layer = surface->layer;
-
-        /* Get Cairo surface for specified rect */
-        unsigned char* buffer = surface->buffer + surface->dirty_rect.y * surface->stride + surface->dirty_rect.x * 4;
-        cairo_surface_t* rect = cairo_image_surface_create_for_data(buffer, CAIRO_FORMAT_RGB24,
-                                                                    surface->dirty_rect.width,
-                                                                    surface->dirty_rect.height,
-                                                                    surface->stride);
-
-        /* Send PNG for rect */
-        guac_protocol_send_png(socket, GUAC_COMP_OVER, layer, surface->dirty_rect.x, surface->dirty_rect.y, rect);
-        cairo_surface_destroy(rect);
+        /* Flush to each user */
+        guac_client_foreach_user(surface->client, __flush_png_to_user, surface);
         surface->realized = 1;
 
         /* Surface is no longer dirty */
@@ -1068,7 +1089,8 @@ void guac_common_surface_flush(guac_common_surface* surface) {
 
 }
 
-void guac_common_surface_dup(guac_common_surface* surface, guac_socket* socket) {
+void guac_common_surface_dup(guac_common_surface* surface, guac_user* user,
+        guac_socket* socket) {
 
     /* Do nothing if not realized */
     if (!surface->realized)
@@ -1083,7 +1105,8 @@ void guac_common_surface_dup(guac_common_surface* surface, guac_socket* socket) 
             surface->width, surface->height, surface->stride);
 
     /* Send PNG for rect */
-    guac_protocol_send_png(socket, GUAC_COMP_OVER, surface->layer, 0, 0, rect);
+    guac_user_stream_png(user, socket, GUAC_COMP_OVER, surface->layer,
+            0, 0, rect);
     cairo_surface_destroy(rect);
 
 }

@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2013 Glyptodon LLC
+# Copyright (C) 2015 Glyptodon LLC
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -21,7 +21,7 @@
 #
 
 AC_PREREQ([2.61])
-AC_INIT([guacamole-server], [0.9.4])
+AC_INIT([guacamole-server], [0.9.8])
 AM_INIT_AUTOMAKE([-Wall -Werror foreign subdir-objects])
 AM_SILENT_RULES([yes])
 
@@ -52,6 +52,10 @@ AC_CHECK_LIB([m], [cos],
 # libpng
 AC_CHECK_LIB([png], [png_write_png], [PNG_LIBS=-lpng],
              AC_MSG_ERROR("libpng is required for writing png messages"))
+
+# libjpeg
+AC_CHECK_LIB([jpeg], [jpeg_start_compress], [JPEG_LIBS=-ljpeg],
+             AC_MSG_ERROR("libjpeg is required for writing jpeg messages"))
 
 # Cairo
 AC_CHECK_LIB([cairo], [cairo_create], [CAIRO_LIBS=-lcairo],
@@ -87,6 +91,7 @@ AC_CHECK_LIB([wsock32], [main])
 AC_SUBST(LIBADD_DLOPEN)
 AC_SUBST(MATH_LIBS)
 AC_SUBST(PNG_LIBS)
+AC_SUBST(JPEG_LIBS)
 AC_SUBST(CAIRO_LIBS)
 AC_SUBST(PTHREAD_LIBS)
 AC_SUBST(UUID_LIBS)
@@ -116,6 +121,10 @@ AC_SUBST([LIBGUAC_INCLUDE], '-I$(top_srcdir)/src/libguac')
 # Common non-libguac utility library
 AC_SUBST([COMMON_LTLIB],   '$(top_builddir)/src/common/libguac_common.la')
 AC_SUBST([COMMON_INCLUDE], '-I$(top_srcdir)/src/common')
+
+# Common base SSH client
+AC_SUBST([COMMON_SSH_LTLIB],   '$(top_builddir)/src/common-ssh/libguac_common_ssh.la')
+AC_SUBST([COMMON_SSH_INCLUDE], '-I$(top_srcdir)/src/common-ssh')
 
 # Terminal emulator
 AC_SUBST([TERMINAL_LTLIB],   '$(top_builddir)/src/terminal/libguac_terminal.la')
@@ -409,14 +418,15 @@ then
                  [RDP_LIBS="$RDP_LIBS -lfreerdp-cache"])
 fi
 
-# libfreerdp-channels (1.0) / libfreerdp-client (1.1)
+# libfreerdp-channels (1.0) / libfreerdp-client + libfreerdp-core (1.1)
 if test "x${have_freerdp}" = "xyes"
 then
     AC_CHECK_LIB([freerdp-client], [freerdp_channels_new],
                  [RDP_LIBS="$RDP_LIBS -lfreerdp-client"],
                  [AC_CHECK_LIB([freerdp-channels], [freerdp_channels_new],
                                [RDP_LIBS="$RDP_LIBS -lfreerdp-channels"
-                               legacy_freerdp_extensions=yes])])
+                               legacy_freerdp_extensions=yes])],
+                 [-lfreerdp-core])
 fi
 
 # libfreerdp-utils
@@ -845,6 +855,12 @@ then
                          [have_libssh2=no])
 fi
 
+AM_CONDITIONAL([ENABLE_COMMON_SSH], [test "x${have_libssh2}"  = "xyes" \
+                                       -a "x${have_ssl}"      = "xyes"])
+AM_COND_IF([ENABLE_COMMON_SSH],
+           [AC_DEFINE([ENABLE_COMMON_SSH],,
+                      [Whether support for the common SSH core is enabled])])
+
 AM_CONDITIONAL([ENABLE_SSH], [test "x${have_libssh2}"  = "xyes" \
                                 -a "x${have_terminal}" = "xyes" \
                                 -a "x${have_ssl}"      = "xyes"])
@@ -934,6 +950,7 @@ AC_SUBST(TELNET_LIBS)
 AC_CONFIG_FILES([Makefile
                  tests/Makefile
                  src/common/Makefile
+                 src/common-ssh/Makefile
                  src/terminal/Makefile
                  src/libguac/Makefile
                  src/guacd/Makefile

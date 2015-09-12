@@ -38,6 +38,12 @@
 #include <guacamole/audio.h>
 #include <guacamole/client.h>
 
+#ifdef ENABLE_COMMON_SSH
+#include "guac_sftp.h"
+#include "guac_ssh.h"
+#include "guac_ssh_user.h"
+#endif
+
 #ifdef HAVE_FREERDP_DISPLAY_UPDATE_SUPPORT
 #include "rdp_disp.h"
 #endif
@@ -124,6 +130,23 @@ typedef struct guac_rdp_client {
      * The filesystem being shared, if any.
      */
     guac_rdp_fs* filesystem;
+
+#ifdef ENABLE_COMMON_SSH
+    /**
+     * The user and credentials used to authenticate for SFTP.
+     */
+    guac_common_ssh_user* sftp_user;
+
+    /**
+     * The SSH session used for SFTP.
+     */
+    guac_common_ssh_session* sftp_session;
+
+    /**
+     * The exposed filesystem object, implemented with SFTP.
+     */
+    guac_object* sftp_filesystem;
+#endif
 
 #ifdef HAVE_FREERDP_DISPLAY_UPDATE_SUPPORT
     /**

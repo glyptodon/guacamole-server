@@ -276,8 +276,8 @@ guac_terminal_display* guac_terminal_display_alloc(guac_client* client,
     /* Create default surface */
     display->display_layer = guac_client_alloc_layer(client);
     display->select_layer = guac_client_alloc_layer(client);
-    display->display_surface = guac_common_surface_alloc(client->socket,
-            display->display_layer, 0, 0);
+    display->display_surface = guac_common_surface_alloc(client,
+            client->socket, display->display_layer, 0, 0);
 
     /* Select layer is a child of the display layer */
     guac_protocol_send_move(client->socket, display->select_layer,
@@ -287,10 +287,10 @@ guac_terminal_display* guac_terminal_display_alloc(guac_client* client,
     display->font_desc = pango_font_description_new();
     pango_font_description_set_family(display->font_desc, font_name);
     pango_font_description_set_weight(display->font_desc, PANGO_WEIGHT_NORMAL);
-    pango_font_description_set_size(display->font_desc, font_size*PANGO_SCALE);
+    pango_font_description_set_size(display->font_desc,
+            font_size * PANGO_SCALE * dpi / 96);
 
     font_map = pango_cairo_font_map_get_default();
-    pango_cairo_font_map_set_resolution((PangoCairoFontMap*) font_map, dpi);
     context = pango_font_map_create_context(font_map);
 
     font = pango_font_map_load_font(font_map, context, display->font_desc);
@@ -306,8 +306,8 @@ guac_terminal_display* guac_terminal_display_alloc(guac_client* client,
         return NULL;
     }
 
-    display->glyph_foreground = foreground;
-    display->glyph_background = background;
+    display->default_foreground = display->glyph_foreground = foreground;
+    display->default_background = display->glyph_background = background;
 
     /* Calculate character dimensions */
     display->char_width =
@@ -475,12 +475,12 @@ void guac_terminal_display_resize(guac_terminal_display* display, int width, int
     guac_terminal_operation* current;
     int x, y;
 
-    /* Fill with background color (index 0) */
+    /* Fill with background color */
     guac_terminal_char fill = {
         .value = 0,
         .attributes = {
-            .foreground = 0,
-            .background = 0
+            .foreground = display->default_background,
+            .background = display->default_background
         },
         .width = 1
     };

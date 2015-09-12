@@ -80,7 +80,8 @@ void guac_common_cursor_free(guac_common_cursor* cursor) {
 
 }
 
-void guac_common_cursor_dup(guac_common_cursor* cursor, guac_socket* socket) {
+void guac_common_cursor_dup(guac_common_cursor* cursor, guac_user* user,
+        guac_socket* socket) {
 
     /* Synchronize location */
     guac_protocol_send_move(socket, cursor->layer, GUAC_DEFAULT_LAYER,
@@ -93,7 +94,7 @@ void guac_common_cursor_dup(guac_common_cursor* cursor, guac_socket* socket) {
         guac_protocol_send_size(socket, cursor->layer,
                 cursor->width, cursor->height);
 
-        guac_protocol_send_png(socket, GUAC_COMP_SRC,
+        guac_user_stream_png(user, socket, GUAC_COMP_SRC,
                 cursor->layer, 0, 0, cursor->surface);
     }
 
@@ -165,6 +166,19 @@ static void guac_common_cursor_resize(guac_common_cursor* cursor,
 
 }
 
+/**
+ * Callback for guac_client_foreach_user() which sends the current cursor image
+ * as PNG data to each connected client.
+ */
+static void __send_user_cursor_image(guac_user* user, void* data) {
+
+    guac_common_cursor* cursor = (guac_common_cursor*) data;
+
+    guac_user_stream_png(user, user->socket, GUAC_COMP_SRC,
+            cursor->layer, 0, 0, cursor->surface);
+
+}
+
 void guac_common_cursor_set_argb(guac_common_cursor* cursor, int hx, int hy,
     unsigned const char* data, int width, int height, int stride) {
 
@@ -195,8 +209,7 @@ void guac_common_cursor_set_argb(guac_common_cursor* cursor, int hx, int hy,
     guac_protocol_send_size(cursor->client->socket, cursor->layer,
             width, height);
 
-    guac_protocol_send_png(cursor->client->socket, GUAC_COMP_SRC,
-            cursor->layer, 0, 0, cursor->surface);
+    guac_client_foreach_user(cursor->client, __send_user_cursor_image, cursor);
 
     guac_socket_flush(cursor->client->socket);
 

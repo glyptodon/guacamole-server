@@ -40,6 +40,7 @@ const char* GUAC_VNC_CLIENT_ARGS[] = {
     "color-depth",
     "cursor",
     "autoretry",
+    "clipboard-encoding",
 
 #ifdef ENABLE_VNC_REPEATER
     "dest-host",
@@ -56,6 +57,17 @@ const char* GUAC_VNC_CLIENT_ARGS[] = {
     "listen-timeout",
 #endif
 
+#ifdef ENABLE_COMMON_SSH
+    "enable-sftp",
+    "sftp-hostname",
+    "sftp-port",
+    "sftp-username",
+    "sftp-password",
+    "sftp-private-key",
+    "sftp-passphrase",
+    "sftp-directory",
+#endif
+
     NULL
 };
 
@@ -70,6 +82,7 @@ enum VNC_ARGS_IDX {
     IDX_COLOR_DEPTH,
     IDX_CURSOR,
     IDX_AUTORETRY,
+    IDX_CLIPBOARD_ENCODING,
 
 #ifdef ENABLE_VNC_REPEATER
     IDX_DEST_HOST,
@@ -84,6 +97,17 @@ enum VNC_ARGS_IDX {
 #ifdef ENABLE_VNC_LISTEN
     IDX_REVERSE_CONNECT,
     IDX_LISTEN_TIMEOUT,
+#endif
+
+#ifdef ENABLE_COMMON_SSH
+    IDX_ENABLE_SFTP,
+    IDX_SFTP_HOSTNAME,
+    IDX_SFTP_PORT,
+    IDX_SFTP_USERNAME,
+    IDX_SFTP_PASSWORD,
+    IDX_SFTP_PRIVATE_KEY,
+    IDX_SFTP_PASSPHRASE,
+    IDX_SFTP_DIRECTORY,
 #endif
 
     VNC_ARGS_COUNT
@@ -150,6 +174,12 @@ int guac_vnc_parse_args(guac_vnc_settings* settings, int argc, const char** argv
     else
         settings->pa_servername = NULL;
 #endif
+
+    /* Set clipboard encoding if specified */
+    if (argv[IDX_CLIPBOARD_ENCODING][0] != '\0')
+        settings->clipboard_encoding = strdup(argv[IDX_CLIPBOARD_ENCODING]);
+    else
+        settings->clipboard_encoding = NULL;
 
     return 0;
 

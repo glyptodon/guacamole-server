@@ -23,7 +23,10 @@
 #include "config.h"
 
 #include "client.h"
+#include "encode-jpeg.h"
+#include "encode-png.h"
 #include "id.h"
+#include "object.h"
 #include "pool.h"
 #include "protocol.h"
 #include "socket.h"
@@ -64,6 +67,14 @@ guac_user* guac_user_alloc() {
         user->__output_streams[i].index = GUAC_USER_CLOSED_STREAM_INDEX;
     }
 
+    /* Allocate object pool */
+    user->__object_pool = guac_pool_alloc(0);
+
+    /* Initialize objects */
+    user->__objects = malloc(sizeof(guac_object) * GUAC_USER_MAX_OBJECTS);
+    for (i=0; i<GUAC_USER_MAX_OBJECTS; i++)
+        user->__objects[i].index = GUAC_USER_UNDEFINED_OBJECT_INDEX;
+
     return user;
 
 }
@@ -76,6 +87,12 @@ void guac_user_free(guac_user* user) {
 
     /* Free stream pool */
     guac_pool_free(user->__stream_pool);
+
+    /* Free objects */
+    free(user->__objects);
+
+    /* Free object pool */
+    guac_pool_free(user->__object_pool);
 
     /* Clean up user */
     free(user->user_id);
@@ -114,6 +131,39 @@ void guac_user_free_stream(guac_user* user, guac_stream* stream) {
 
     /* Mark stream as closed */
     stream->index = GUAC_USER_CLOSED_STREAM_INDEX;
+
+}
+
+guac_object* guac_user_alloc_object(guac_user* user) {
+
+    guac_object* allocd_object;
+    int object_index;
+
+    /* Refuse to allocate beyond maximum */
+    if (user->__object_pool->active == GUAC_USER_MAX_OBJECTS)
+        return NULL;
+
+    /* Allocate object */
+    object_index = guac_pool_next_int(user->__object_pool);
+
+    /* Initialize object */
+    allocd_object = &(user->__objects[object_index]);
+    allocd_object->index = object_index;
+    allocd_object->data = NULL;
+    allocd_object->get_handler = NULL;
+    allocd_object->put_handler = NULL;
+
+    return allocd_object;
+
+}
+
+void guac_user_free_object(guac_user* user, guac_object* object) {
+
+    /* Release index to pool */
+    guac_pool_free_int(user->__object_pool, object->index);
+
+    /* Mark object as undefined */
+    object->index = GUAC_USER_UNDEFINED_OBJECT_INDEX;
 
 }
 
@@ -187,6 +237,48 @@ void guac_user_log(guac_user* user, guac_client_log_level level,
     vguac_client_log(user->client, level, format, args);
 
     va_end(args);
+
+}
+
+void guac_user_stream_png(guac_user* user, guac_socket* socket,
+        guac_composite_mode mode, const guac_layer* layer, int x, int y,
+        cairo_surface_t* surface) {
+
+    /* Allocate new stream for image */
+    guac_stream* stream = guac_user_alloc_stream(user);
+
+    /* Declare stream as containing image data */
+    guac_protocol_send_img(socket, stream, mode, layer, "image/png", x, y);
+
+    /* Write PNG data */
+    guac_png_write(socket, stream, surface);
+
+    /* Terminate stream */
+    guac_protocol_send_end(socket, stream);
+
+    /* Free allocated stream */
+    guac_user_free_stream(user, stream);
+
+}
+
+void guac_user_stream_jpeg(guac_user* user, guac_socket* socket,
+        guac_composite_mode mode, const guac_layer* layer, int x, int y,
+        cairo_surface_t* surface, int quality) {
+
+    /* Allocate new stream for image */
+    guac_stream* stream = guac_user_alloc_stream(user);
+
+    /* Declare stream as containing image data */
+    guac_protocol_send_img(socket, stream, mode, layer, "image/jpeg", x, y);
+
+    /* Write JPEG data */
+    guac_jpeg_write(socket, stream, surface, quality);
+
+    /* Terminate stream */
+    guac_protocol_send_end(socket, stream);
+
+    /* Free allocated stream */
+    guac_user_free_stream(user, stream);
 
 }
 

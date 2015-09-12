@@ -32,6 +32,7 @@
  */
 
 #include "client-types.h"
+#include "layer-types.h"
 #include "pool-types.h"
 #include "socket-types.h"
 #include "stream-types.h"
@@ -39,6 +40,8 @@
 #include "user-constants.h"
 #include "user-fntypes.h"
 #include "user-types.h"
+
+#include <cairo/cairo.h>
 
 #include <pthread.h>
 #include <stdarg.h>
@@ -175,6 +178,16 @@ struct guac_user {
      * All available input streams (data coming from connected user).
      */
     guac_stream* __input_streams;
+
+    /**
+     * Pool of object indices.
+     */
+    guac_pool* __object_pool;
+
+    /**
+     * All available objects (arbitrary sets of named streams).
+     */
+    guac_object* __objects;
 
     /**
      * Arbitrary user-specific data.
@@ -396,6 +409,46 @@ struct guac_user {
      */
     guac_user_leave_handler* leave_handler;
 
+    /**
+     * Handler for get events sent by the Guacamole web-client.
+     *
+     * The handler takes a guac_object, containing the object index which will
+     * persist through the duration of the transfer, and the name of the stream
+     * being requested. It is up to the get handler to create the required body
+     * stream.
+     *
+     * Example:
+     * @code
+     *     int get_handler(guac_user* user, guac_object* object,
+     *             char* name);
+     *
+     *     int guac_user_init(guac_user* user, int argc, char** argv) {
+     *         user->get_handler = get_handler;
+     *     }
+     * @endcode
+     */
+    guac_user_get_handler* get_handler;
+
+    /**
+     * Handler for put events sent by the Guacamole web-client.
+     *
+     * The handler takes a guac_object and guac_stream, which each contain their
+     * respective indices which will persist through the duration of the
+     * transfer, the mimetype of the data being transferred, and the name of
+     * the stream within the object being written to.
+     *
+     * Example:
+     * @code
+     *     int put_handler(guac_user* user, guac_object* object,
+     *             guac_stream* stream, char* mimetype, char* name);
+     *
+     *     int guac_user_init(guac_user* user, int argc, char** argv) {
+     *         user->put_handler = put_handler;
+     *     }
+     * @endcode
+     */
+    guac_user_put_handler* put_handler;
+
 };
 
 /**
@@ -508,6 +561,96 @@ void guac_user_log(guac_user* user, guac_client_log_level level,
  */
 void vguac_user_log(guac_user* user, guac_client_log_level level,
         const char* format, va_list ap);
+
+/**
+ * Allocates a new object. An arbitrary index is automatically assigned
+ * if no previously-allocated object is available for use.
+ *
+ * @param user
+ *     The user to allocate the object for.
+ *
+ * @return
+ *     The next available object, or a newly allocated object.
+ */
+guac_object* guac_user_alloc_object(guac_user* user);
+
+/**
+ * Returns the given object to the pool of available objects, such that it
+ * can be reused by any subsequent call to guac_user_alloc_object().
+ *
+ * @param user
+ *     The user to return the object to.
+ *
+ * @param object
+ *     The object to return to the pool of available object.
+ */
+void guac_user_free_object(guac_user* user, guac_object* object);
+
+/**
+ * Streams the image data of the given surface over an image stream ("img"
+ * instruction) as PNG-encoded data. The image stream will be automatically
+ * allocated and freed.
+ *
+ * @param user
+ *     The Guacamole user for whom the image stream should be allocated.
+ *
+ * @param socket
+ *     The socket over which instructions associated with the image stream
+ *     should be sent.
+ *
+ * @param mode
+ *     The composite mode to use when rendering the image over the given layer.
+ *
+ * @param layer
+ *     The destination layer.
+ *
+ * @param x
+ *     The X coordinate of the upper-left corner of the destination rectangle
+ *     within the given layer.
+ *
+ * @param y
+ *     The Y coordinate of the upper-left corner of the destination rectangle
+ *     within the given layer.
+ *
+ * @param surface
+ *     A Cairo surface containing the image data to be streamed.
+ */
+void guac_user_stream_png(guac_user* user, guac_socket* socket,
+        guac_composite_mode mode, const guac_layer* layer, int x, int y,
+        cairo_surface_t* surface);
+
+/**
+ * Streams the image data of the given surface over an image stream ("img"
+ * instruction) as JPEG-encoded data at the given quality. The image stream
+ * will be automatically allocated and freed.
+ *
+ * @param user
+ *     The Guacamole user for whom the image stream should be allocated.
+ *
+ * @param socket
+ *     The socket over which instructions associated with the image stream
+ *     should be sent.
+ *
+ * @param mode
+ *     The composite mode to use when rendering the image over the given layer.
+ *
+ * @param layer
+ *     The destination layer.
+ *
+ * @param x
+ *     The X coordinate of the upper-left corner of the destination rectangle
+ *     within the given layer.
+ *
+ * @param y
+ *     The Y coordinate of the upper-left corner of the destination rectangle
+ *     within the given layer.
+ *
+ * @param surface
+ *     A Cairo surface containing the image data to be streamed.
+ */
+void guac_user_stream_jpeg(guac_user* user, guac_socket* socket,
+        guac_composite_mode mode, const guac_layer* layer, int x, int y,
+        cairo_surface_t* surface, int quality);
 
 #endif
 

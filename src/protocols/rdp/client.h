@@ -72,4 +72,3 @@
 int guac_rdp_client_free_handler(guac_client* client);
 
 #endif
-

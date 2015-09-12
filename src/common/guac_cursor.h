@@ -129,10 +129,17 @@ void guac_common_cursor_free(guac_common_cursor* cursor);
  * the current cursor image. The resulting cursor on the remote display will
  * be visible.
  *
- * @param cursor The cursor to send.
- * @param socket The socket along which the cursor should be sent.
+ * @param cursor
+ *     The cursor to send.
+ *
+ * @param user
+ *     The user receiving the updated cursor.
+ *
+ * @param socket
+ *     The socket over which the updated cursor should be sent.
  */
-void guac_common_cursor_dup(guac_common_cursor* cursor, guac_socket* socket);
+void guac_common_cursor_dup(guac_common_cursor* cursor, guac_user* user,
+        guac_socket* socket);
 
 /**
  * Moves the mouse cursor, marking the given user as the most recent user of

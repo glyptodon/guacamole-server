@@ -26,6 +26,12 @@
 #include "user.h"
 #include "vnc.h"
 
+#ifdef ENABLE_COMMON_SSH
+#include "guac_sftp.h"
+#include "guac_ssh.h"
+#include "sftp.h"
+#endif
+
 #include <guacamole/client.h>
 
 #include <stdlib.h>
@@ -82,6 +88,22 @@ int guac_vnc_client_free_handler(guac_client* client) {
     /* If audio enabled, stop streaming */
     if (vnc_client->audio_enabled)
         guac_pa_stop_stream(client);
+#endif
+
+#ifdef ENABLE_COMMON_SSH
+    /* Free SFTP filesystem, if loaded */
+    if (guac_client_data->sftp_filesystem)
+        guac_common_ssh_destroy_sftp_filesystem(guac_client_data->sftp_filesystem);
+
+    /* Free SFTP session */
+    if (guac_client_data->sftp_session)
+        guac_common_ssh_destroy_session(guac_client_data->sftp_session);
+
+    /* Free SFTP user */
+    if (guac_client_data->sftp_user)
+        guac_common_ssh_destroy_user(guac_client_data->sftp_user);
+
+    guac_common_ssh_uninit();
 #endif
 
     /* Free encodings string, if used */

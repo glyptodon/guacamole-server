@@ -56,6 +56,7 @@ const char* GUAC_CLIENT_ARGS[] = {
 #ifdef ENABLE_SSH_AGENT
     "enable-agent",
 #endif
+    "color-scheme",
     NULL
 };
 
@@ -113,6 +114,14 @@ enum __SSH_ARGS_IDX {
     IDX_ENABLE_AGENT,
 #endif
 
+    /**
+     * The name of the color scheme to use. Currently valid color schemes are:
+     * "black-white", "white-black", "gray-black", and "green-black", each
+     * following the "foreground-background" pattern. By default, this will be
+     * "gray-black".
+     */
+    IDX_COLOR_SCHEME,
+
     SSH_ARGS_COUNT
 };
 
@@ -120,11 +129,10 @@ int guac_client_init(guac_client* client, int argc, char** argv) {
 
     guac_socket* socket = client->socket;
 
-    ssh_guac_client_data* client_data = malloc(sizeof(ssh_guac_client_data));
+    ssh_guac_client_data* client_data = calloc(1, sizeof(ssh_guac_client_data));
 
     /* Init client data */
     client->data = client_data;
-    client_data->term_channel = NULL;
 
     if (argc != SSH_ARGS_COUNT) {
         guac_client_abort(client, GUAC_PROTOCOL_STATUS_SERVER_ERROR, "Wrong number of arguments");
@@ -142,7 +150,6 @@ int guac_client_init(guac_client* client, int argc, char** argv) {
     strcpy(client_data->password,  argv[IDX_PASSWORD]);
 
     /* Init public key auth information */
-    client_data->key = NULL;
     strcpy(client_data->key_base64,     argv[IDX_PRIVATE_KEY]);
     strcpy(client_data->key_passphrase, argv[IDX_PASSPHRASE]);
 
@@ -160,9 +167,6 @@ int guac_client_init(guac_client* client, int argc, char** argv) {
 
     /* Parse SFTP enable */
     client_data->enable_sftp = strcmp(argv[IDX_ENABLE_SFTP], "true") == 0;
-    client_data->sftp_session = NULL;
-    client_data->sftp_ssh_session = NULL;
-    strcpy(client_data->sftp_upload_path, ".");
 
 #ifdef ENABLE_SSH_AGENT
     client_data->enable_agent = strcmp(argv[IDX_ENABLE_AGENT], "true") == 0;
@@ -178,7 +182,8 @@ int guac_client_init(guac_client* client, int argc, char** argv) {
     client_data->term = guac_terminal_create(client,
             client_data->font_name, client_data->font_size,
             client->info.optimal_resolution,
-            client->info.optimal_width, client->info.optimal_height);
+            client->info.optimal_width, client->info.optimal_height,
+            argv[IDX_COLOR_SCHEME]);
 
     /* Fail if terminal init failed */
     if (client_data->term == NULL) {

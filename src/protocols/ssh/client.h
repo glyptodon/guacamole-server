@@ -26,12 +26,15 @@
 
 #include "config.h"
 
+#include "guac_ssh.h"
+#include "guac_ssh_user.h"
 #include "sftp.h"
-#include "ssh_key.h"
 #include "terminal.h"
 
 #include <libssh2.h>
 #include <libssh2_sftp.h>
+
+#include <guacamole/object.h>
 
 #ifdef ENABLE_SSH_AGENT
 #include "ssh_agent.h"
@@ -76,11 +79,6 @@ typedef struct ssh_guac_client_data {
     char key_passphrase[1024];
 
     /**
-     * The private key to use for authentication, if any.
-     */
-    ssh_key* key;
-
-    /**
      * The name of the font to use for display rendering.
      */
     char font_name[1024];
@@ -113,24 +111,24 @@ typedef struct ssh_guac_client_data {
     pthread_t client_thread;
 
     /**
+     * The user and credentials to use for all SSH sessions.
+     */
+    guac_common_ssh_user* user;
+
+    /**
      * SSH session, used by the SSH client thread.
      */
-    LIBSSH2_SESSION* session;
+    guac_common_ssh_session* session;
 
     /**
-     * The distinct SSH session used for SFTP.
+     * SFTP session, used by the SFTP client/filesystem.
      */
-    LIBSSH2_SESSION* sftp_ssh_session;
+    guac_common_ssh_session* sftp_session;
 
     /**
-     * SFTP session, used for file transfers.
+     * The filesystem object exposed for the SFTP session.
      */
-    LIBSSH2_SFTP* sftp_session;
-
-    /**
-     * The path files will be sent to.
-     */
-    char sftp_upload_path[GUAC_SFTP_MAX_PATH];
+    guac_object* sftp_filesystem;
 
     /**
      * SSH terminal channel, used by the SSH client thread.

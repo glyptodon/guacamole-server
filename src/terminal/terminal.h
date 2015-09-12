@@ -30,6 +30,7 @@
 #include "cursor.h"
 #include "display.h"
 #include "guac_clipboard.h"
+#include "scrollbar.h"
 #include "types.h"
 
 #include <pthread.h>
@@ -37,6 +38,17 @@
 
 #include <guacamole/client.h>
 #include <guacamole/stream.h>
+
+/**
+ * The maximum duration of a single frame, in milliseconds.
+ */
+#define GUAC_TERMINAL_FRAME_DURATION 40
+
+/**
+ * The maximum amount of time to wait for more data before declaring a frame
+ * complete, in milliseconds.
+ */
+#define GUAC_TERMINAL_FRAME_TIMEOUT 10
 
 /**
  * The maximum number of custom tab stops.
@@ -52,6 +64,26 @@
  * The maximum number of bytes to allow within the clipboard.
  */
 #define GUAC_TERMINAL_CLIPBOARD_MAX_LENGTH 262144
+
+/**
+ * The name of the color scheme having black foreground and white background.
+ */
+#define GUAC_TERMINAL_SCHEME_BLACK_WHITE "black-white"
+
+/**
+ * The name of the color scheme having gray foreground and black background.
+ */
+#define GUAC_TERMINAL_SCHEME_GRAY_BLACK "gray-black"
+
+/**
+ * The name of the color scheme having green foreground and black background.
+ */
+#define GUAC_TERMINAL_SCHEME_GREEN_BLACK "green-black"
+
+/**
+ * The name of the color scheme having white foreground and black background.
+ */
+#define GUAC_TERMINAL_SCHEME_WHITE_BLACK "white-black"
 
 typedef struct guac_terminal guac_terminal;
 
@@ -116,6 +148,11 @@ struct guac_terminal {
      * this pipe.
      */
     int stdin_pipe_fd[2];
+
+    /**
+     * Graphical representation of the current scroll state.
+     */
+    guac_terminal_scrollbar* scrollbar;
 
     /**
      * The relative offset of the display. A positive value indicates that
@@ -302,6 +339,11 @@ struct guac_terminal {
     int mouse_mask;
 
     /**
+     * The cached pointer cursor.
+     */
+    guac_terminal_cursor* pointer_cursor;
+
+    /**
      * The cached I-bar cursor.
      */
     guac_terminal_cursor* ibar_cursor;
@@ -326,10 +368,40 @@ struct guac_terminal {
 /**
  * Creates a new guac_terminal, having the given width and height, and
  * rendering to the given client.
+ *
+ * @param client
+ *     The client to which the terminal will be rendered.
+ *
+ * @param font_name
+ *     The name of the font to use when rendering glyphs.
+ *
+ * @param font_size
+ *     The size of each glyph, in points.
+ *
+ * @param dpi
+ *     The DPI of the display. The given font size will be adjusted to produce
+ *     glyphs at the given DPI.
+ *
+ * @param width
+ *     The width of the terminal, in pixels.
+ *
+ * @param height
+ *     The height of the terminal, in pixels.
+ *
+ * @param color_scheme
+ *     The name of the color scheme to use. This string must be one of the
+ *     names defined by the GUAC_TERMINAL_SCHEME_* constants. If blank or NULL,
+ *     the default scheme of GUAC_TERMINAL_SCHEME_GRAY_BLACK will be used. If
+ *     invalid, a warning will be logged, and the terminal will fall back on
+ *     GUAC_TERMINAL_SCHEME_GRAY_BLACK.
+ *
+ * @return
+ *     A new guac_terminal having the given font, dimensions, and attributes
+ *     which renders all text to the given client.
  */
 guac_terminal* guac_terminal_create(guac_client* client,
         const char* font_name, int font_size, int dpi,
-        int width, int height);
+        int width, int height, const char* color_scheme);
 
 /**
  * Frees all resources associated with the given terminal.
@@ -357,6 +429,19 @@ int guac_terminal_read_stdin(guac_terminal* terminal, char* c, int size);
 int guac_terminal_write_stdout(guac_terminal* terminal, const char* c, int size);
 
 /**
+ * Notifies the terminal that an event has occurred and the terminal should
+ * flush itself when reasonable.
+ *
+ * @param terminal
+ *     The terminal to notify.
+ *
+ * @return
+ *     Zero if notification succeeded, non-zero if an error occurred while
+ *     notifying the terminal.
+ */
+int guac_terminal_notify(guac_terminal* terminal);
+
+/**
  * Reads a single line from this terminal's STDIN. Input is retrieved in
  * the same manner as guac_terminal_read_stdin() and the same restrictions
  * apply.
@@ -381,6 +466,19 @@ int guac_terminal_send_key(guac_terminal* term, int keysym, int pressed);
  * data, etc. as necessary.
  */
 int guac_terminal_send_mouse(guac_terminal* term, int x, int y, int mask);
+
+/**
+ * Handles a scroll event received from the scrollbar associated with a
+ * terminal.
+ *
+ * @param scrollbar
+ *     The scrollbar that has been scrolled.
+ *
+ * @param value
+ *     The new value that should be stored within the scrollbar, and
+ *     represented within the terminal display.
+ */
+void guac_terminal_scroll_handler(guac_terminal_scrollbar* scrollbar, int value);
 
 /**
  * Clears the current clipboard contents and sets the mimetype for future

@@ -29,6 +29,7 @@
  * @file user-fntypes.h
  */
 
+#include "object-types.h"
 #include "protocol-types.h"
 #include "stream-types.h"
 #include "timestamp-types.h"
@@ -120,6 +121,18 @@ typedef int guac_user_leave_handler(guac_user* user);
  * guac_client whenever a guac_user responds to a sync instruction.
  */
 typedef int guac_user_sync_handler(guac_user* user, guac_timestamp timestamp);
+
+/**
+ * Handler for Guacamole object get events.
+ */
+typedef int guac_user_get_handler(guac_user* user, guac_object* object,
+        char* name);
+
+/**
+ * Handler for Guacamole object put events.
+ */
+typedef int guac_user_put_handler(guac_user* user, guac_object* object,
+        guac_stream* stream, char* mimetype, char* name);
 
 #endif
 

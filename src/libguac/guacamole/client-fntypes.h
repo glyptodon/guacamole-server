@@ -31,6 +31,7 @@
  */
 
 #include "client-types.h"
+#include "object-types.h"
 #include "protocol-types.h"
 #include "stream-types.h"
 #include "user-types.h"

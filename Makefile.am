@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2013 Glyptodon LLC
+# Copyright (C) 2015 Glyptodon LLC
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -26,6 +26,7 @@ ACLOCAL_AMFLAGS = -I m4
 DIST_SUBDIRS =           \
     src/libguac          \
     src/common           \
+    src/common-ssh       \
     src/terminal         \
     src/guacd            \
     src/protocols/rdp    \
@@ -40,25 +41,32 @@ SUBDIRS =       \
     src/guacd   \
     tests
 
+if ENABLE_COMMON_SSH
+SUBDIRS += src/common-ssh
+endif
+
 if ENABLE_TERMINAL
-    SUBDIRS += src/terminal
+SUBDIRS += src/terminal
 endif
 
 if ENABLE_RDP
-    SUBDIRS += src/protocols/rdp
+SUBDIRS += src/protocols/rdp
 endif
 
 if ENABLE_SSH
-    SUBDIRS += src/protocols/ssh
+SUBDIRS += src/protocols/ssh
 endif
 
 if ENABLE_TELNET
-    SUBDIRS += src/protocols/telnet
+SUBDIRS += src/protocols/telnet
 endif
 
 if ENABLE_VNC
-    SUBDIRS += src/protocols/vnc
+SUBDIRS += src/protocols/vnc
 endif
 
-EXTRA_DIST = LICENSE doc/Doxyfile bin/guacctl
+EXTRA_DIST =     \
+    LICENSE      \
+    bin/guacctl  \
+    doc/Doxyfile
 

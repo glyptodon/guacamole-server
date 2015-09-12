@@ -68,7 +68,8 @@ void guac_common_set_dot_cursor(guac_user* user) {
             guac_common_dot_cursor_height,
             guac_common_dot_cursor_stride);
 
-    guac_protocol_send_png(socket, GUAC_COMP_SRC, cursor, 0, 0, graphic);
+    guac_user_stream_png(user, socket, GUAC_COMP_SRC, cursor,
+            0, 0, graphic);
     cairo_surface_destroy(graphic);
 
     /* Set cursor */

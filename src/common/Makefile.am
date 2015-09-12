@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2013 Glyptodon LLC
+# Copyright (C) 2015 Glyptodon LLC
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -22,7 +22,6 @@
 
 AUTOMAKE_OPTIONS = foreign 
 ACLOCAL_AMFLAGS = -I m4
-AM_CFLAGS = -Werror -Wall -pedantic @LIBGUAC_INCLUDE@
 
 noinst_LTLIBRARIES = libguac_common.la
 
@@ -33,6 +32,7 @@ noinst_HEADERS =          \
     guac_display.h        \
     guac_dot_cursor.h     \
     guac_iconv.h          \
+    guac_json.h           \
     guac_list.h           \
     guac_pointer_cursor.h \
     guac_rect.h           \
@@ -46,11 +46,17 @@ libguac_common_la_SOURCES = \
     guac_display.c          \
     guac_dot_cursor.c       \
     guac_iconv.c            \
+    guac_json.c             \
     guac_list.c             \
     guac_pointer_cursor.c   \
     guac_rect.c             \
     guac_string.c           \
     guac_surface.c
 
-libguac_common_la_LIBADD = @LIBGUAC_LTLIB@
+libguac_common_la_CFLAGS =  \
+    -Werror -Wall -pedantic \
+    @LIBGUAC_INCLUDE@
+
+libguac_common_la_LIBADD = \
+    @LIBGUAC_LTLIB@
 

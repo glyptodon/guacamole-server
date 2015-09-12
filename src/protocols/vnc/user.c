@@ -62,8 +62,9 @@ int guac_vnc_user_join_handler(guac_user* user, int argc, char** argv) {
 
     /* If not owner, synchronize with current display */
     else {
-        guac_common_surface_dup(vnc_client->default_surface, user->socket);
-        guac_common_cursor_dup(vnc_client->cursor, user->socket);
+        guac_common_surface_dup(vnc_client->default_surface,
+                user, user->socket);
+        guac_common_cursor_dup(vnc_client->cursor, user, user->socket);
         guac_socket_flush(user->socket);
     }
 

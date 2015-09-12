@@ -115,6 +115,12 @@ typedef struct guac_vnc_settings {
      */
     int retries;
 
+    /**
+     * The encoding to use for clipboard data sent to the VNC server, or NULL
+     * to use the encoding required by the VNC standard.
+     */
+    char* clipboard_encoding;
+
 } guac_vnc_settings;
 
 /**

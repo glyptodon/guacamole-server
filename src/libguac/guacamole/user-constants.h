@@ -44,5 +44,27 @@
  */
 #define GUAC_USER_CLOSED_STREAM_INDEX -1
 
+/**
+ * The maximum number of objects supported by any one guac_client.
+ */
+#define GUAC_USER_MAX_OBJECTS 64
+
+/**
+ * The index of an object which has not been defined.
+ */
+#define GUAC_USER_UNDEFINED_OBJECT_INDEX -1
+
+/**
+ * The stream name reserved for the root of a Guacamole protocol object.
+ */
+#define GUAC_USER_OBJECT_ROOT_NAME "/"
+
+/**
+ * The mimetype of a stream containing a map of available stream names to their
+ * corresponding mimetypes. The root of a Guacamole protocol object is
+ * guaranteed to have this type.
+ */
+#define GUAC_USER_STREAM_INDEX_MIMETYPE "application/vnd.glyptodon.guacamole.stream-index+json"
+
 #endif
 

@@ -27,6 +27,7 @@
 
 #include "guac_clipboard.h"
 #include "guac_cursor.h"
+#include "guac_iconv.h"
 #include "guac_surface.h"
 #include "settings.h"
 
@@ -37,6 +38,12 @@
 
 #ifdef ENABLE_PULSE
 #include <pulse/pulseaudio.h>
+#endif
+
+#ifdef ENABLE_COMMON_SSH
+#include "guac_sftp.h"
+#include "guac_ssh.h"
+#include "guac_ssh_user.h"
 #endif
 
 #include <pthread.h>
@@ -99,6 +106,33 @@ typedef struct guac_vnc_client {
      * Default surface.
      */
     guac_common_surface* default_surface;
+
+#ifdef ENABLE_COMMON_SSH
+    /**
+     * The user and credentials used to authenticate for SFTP.
+     */
+    guac_common_ssh_user* sftp_user;
+
+    /**
+     * The SSH session used for SFTP.
+     */
+    guac_common_ssh_session* sftp_session;
+
+    /**
+     * The exposed filesystem object, implemented with SFTP.
+     */
+    guac_object* sftp_filesystem;
+#endif
+
+    /**
+     * Clipboard encoding-specific reader.
+     */
+    guac_iconv_read* clipboard_reader;
+
+    /**
+     * Clipboard encoding-specific writer.
+     */
+    guac_iconv_write* clipboard_writer;
 
 } guac_vnc_client;
 

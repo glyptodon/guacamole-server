@@ -37,6 +37,12 @@
 #include "pulse.h"
 #endif
 
+#ifdef ENABLE_COMMON_SSH
+#include "guac_sftp.h"
+#include "guac_ssh.h"
+#include "sftp.h"
+#endif
+
 #include <guacamole/client.h>
 #include <guacamole/protocol.h>
 #include <guacamole/socket.h>
@@ -133,6 +139,32 @@ rfbClient* guac_vnc_get_client(guac_client* client) {
 }
 
 /**
+ * Waits until data is available to be read from the given rfbClient, and thus
+ * a call to HandleRFBServerMessages() should not block. If the timeout elapses
+ * before data is available, zero is returned.
+ *
+ * @param rfb_client
+ *     The rfbClient to wait for.
+ *
+ * @param timeout
+ *     The maximum amount of time to wait, in microseconds.
+ *
+ * @returns
+ *     A positive value if data is available, zero if the timeout elapses
+ *     before data becomes available, or a negative value on error.
+ */
+static int guac_vnc_wait_for_messages(rfbClient* rfb_client, int timeout) {
+
+    /* Do not explicitly wait while data is on the buffer */
+    if (rfb_client->buffered)
+        return 1;
+
+    /* If no data on buffer, wait for data on socket */
+    return WaitForMessage(rfb_client, timeout);
+
+}
+
+/**
  * Sleeps for the given number of milliseconds.
  *
  * @param msec
@@ -154,6 +186,14 @@ void* guac_vnc_client_thread(void* data) {
 
     guac_client* client = (guac_client*) data;
     guac_vnc_client* vnc_client = (guac_vnc_client*) client->data;
+
+    /* Configure clipboard encoding */
+    if (guac_vnc_set_clipboard_encoding(client,
+                vnc_client->settings.clipboard_encoding)) {
+        guac_client_log(client, GUAC_LOG_INFO,
+                "Using non-standard VNC clipboard encoding: '%s'.",
+                vnc_client->settings.clipboard_encoding);
+    }
 
     /* Ensure connection is kept alive during lengthy connects */
     guac_socket_require_keep_alive(client->socket);
@@ -222,6 +262,91 @@ void* guac_vnc_client_thread(void* data) {
     } /* end if audio enabled */
 #endif
 
+#ifdef ENABLE_COMMON_SSH
+    guac_common_ssh_init(client);
+
+    /* Connect via SSH if SFTP is enabled */
+    if (strcmp(argv[IDX_ENABLE_SFTP], "true") == 0) {
+
+        guac_client_log(client, GUAC_LOG_DEBUG,
+                "Connecting via SSH for SFTP filesystem access.");
+
+        guac_client_data->sftp_user =
+            guac_common_ssh_create_user(argv[IDX_SFTP_USERNAME]);
+
+        /* Import private key, if given */
+        if (argv[IDX_SFTP_PRIVATE_KEY][0] != '\0') {
+
+            guac_client_log(client, GUAC_LOG_DEBUG,
+                    "Authenticating with private key.");
+
+            /* Abort if private key cannot be read */
+            if (guac_common_ssh_user_import_key(guac_client_data->sftp_user,
+                        argv[IDX_SFTP_PRIVATE_KEY],
+                        argv[IDX_SFTP_PASSPHRASE])) {
+                guac_common_ssh_destroy_user(guac_client_data->sftp_user);
+                return 1;
+            }
+
+        }
+
+        /* Otherwise, use specified password */
+        else {
+            guac_client_log(client, GUAC_LOG_DEBUG,
+                    "Authenticating with password.");
+            guac_common_ssh_user_set_password(guac_client_data->sftp_user,
+                    argv[IDX_SFTP_PASSWORD]);
+        }
+
+        /* Parse hostname - use VNC hostname by default */
+        const char* sftp_hostname = argv[IDX_SFTP_HOSTNAME];
+        if (sftp_hostname[0] == '\0')
+            sftp_hostname = guac_client_data->hostname;
+
+        /* Parse port, defaulting to standard SSH port */
+        const char* sftp_port = argv[IDX_SFTP_PORT];
+        if (sftp_port[0] == '\0')
+            sftp_port = "22";
+
+        /* Attempt SSH connection */
+        guac_client_data->sftp_session =
+            guac_common_ssh_create_session(client, sftp_hostname, sftp_port,
+                    guac_client_data->sftp_user);
+
+        /* Fail if SSH connection does not succeed */
+        if (guac_client_data->sftp_session == NULL) {
+            /* Already aborted within guac_common_ssh_create_session() */
+            guac_common_ssh_destroy_user(guac_client_data->sftp_user);
+            return 1;
+        }
+
+        /* Load and expose filesystem */
+        guac_client_data->sftp_filesystem =
+            guac_common_ssh_create_sftp_filesystem(
+                    guac_client_data->sftp_session, "/");
+
+        /* Abort if SFTP connection fails */
+        if (guac_client_data->sftp_filesystem == NULL) {
+            guac_common_ssh_destroy_session(guac_client_data->sftp_session);
+            guac_common_ssh_destroy_user(guac_client_data->sftp_user);
+            return 1;
+        }
+
+        /* Configure destination for basic uploads, if specified */
+        if (argv[IDX_SFTP_DIRECTORY][0] != '\0')
+            guac_common_ssh_sftp_set_upload_path(
+                    guac_client_data->sftp_filesystem,
+                    argv[IDX_SFTP_DIRECTORY]);
+
+        /* Set file handler for basic uploads */
+        client->file_handler = guac_vnc_sftp_file_handler;
+
+        guac_client_log(client, GUAC_LOG_DEBUG,
+                "SFTP connection succeeded.");
+
+    }
+#endif
+
     /* Set remaining client data */
     vnc_client->rfb_client = rfb_client;
 
@@ -239,8 +364,9 @@ void* guac_vnc_client_thread(void* data) {
     guac_protocol_send_name(client->socket, rfb_client->desktopName);
 
     /* Create default surface */
-    vnc_client->default_surface = guac_common_surface_alloc(client->socket, GUAC_DEFAULT_LAYER,
-                                                            rfb_client->width, rfb_client->height);
+    vnc_client->default_surface = guac_common_surface_alloc(client,
+            client->socket, GUAC_DEFAULT_LAYER,
+            rfb_client->width, rfb_client->height);
 
     guac_socket_flush(client->socket);
 
@@ -250,7 +376,7 @@ void* guac_vnc_client_thread(void* data) {
     while (client->state == GUAC_CLIENT_RUNNING) {
 
         /* Wait for start of frame */
-        int wait_result = WaitForMessage(rfb_client, 1000000);
+        int wait_result = guac_vnc_wait_for_messages(rfb_client, 1000000);
         if (wait_result > 0) {
 
             guac_timestamp frame_start = guac_timestamp_current();
@@ -284,7 +410,7 @@ void* guac_vnc_client_thread(void* data) {
 
                 /* Wait again if frame remaining */
                 if (frame_remaining > 0)
-                    wait_result = WaitForMessage(rfb_client,
+                    wait_result = guac_vnc_wait_for_messages(rfb_client,
                             GUAC_VNC_FRAME_TIMEOUT*1000);
                 else
                     break;

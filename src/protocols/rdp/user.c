@@ -62,7 +62,7 @@ int guac_rdp_user_join_handler(guac_user* user, int argc, char** argv) {
 
     /* If not owner, synchronize with current display */
     else {
-        guac_common_display_dup(rdp_client->display, user->socket);
+        guac_common_display_dup(rdp_client->display, user, user->socket);
         guac_socket_flush(user->socket);
     }
 
@@ -70,6 +70,8 @@ int guac_rdp_user_join_handler(guac_user* user, int argc, char** argv) {
     user->key_handler = guac_rdp_user_key_handler;
     user->size_handler = guac_rdp_user_size_handler;
     user->clipboard_handler = guac_rdp_clipboard_handler;
+
+    /* FIXME: Set pipe_handler, file_handler, get_handler, and put_handler */
 
     return 0;
 

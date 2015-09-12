@@ -36,6 +36,12 @@
 #include "rdp_stream.h"
 #include "rdp_svc.h"
 
+#ifdef ENABLE_COMMON_SSH
+#include <guac_sftp.h>
+#include <guac_ssh.h>
+#include <guac_ssh_user.h>
+#endif
+
 #ifdef HAVE_FREERDP_DISPLAY_UPDATE_SUPPORT
 #include "rdp_disp.h"
 #endif
@@ -217,8 +223,16 @@ BOOL rdp_freerdp_pre_connect(freerdp* instance) {
 #if 0
     /* Load filesystem if drive enabled */
     if (rdp_client->settings.drive_enabled) {
+
+        /* Allocate filesystem */
         rdp_client->filesystem =
-            guac_rdp_fs_alloc(client, rdp_client->settings.drive_path);
+            guac_rdp_fs_alloc(client, rdp_client->settings.drive_path,
+                    rdp_client->settings.create_drive_path);
+
+        /* Use for basic uploads if no other handler set */
+        if (client->file_handler == NULL)
+            client->file_handler = guac_rdp_upload_file_handler;
+
     }
 
     /* If RDPDR required, load it */
@@ -593,6 +607,107 @@ void* guac_rdp_client_thread(void* data) {
 
     /* Load keymap into client */
     __guac_rdp_client_load_keymap(client, settings->server_layout);
+
+#ifdef ENABLE_COMMON_SSH
+    guac_common_ssh_init(client);
+
+    /* Connect via SSH if SFTP is enabled */
+    if (strcmp(argv[IDX_ENABLE_SFTP], "true") == 0) {
+
+        guac_client_log(client, GUAC_LOG_DEBUG,
+                "Connecting via SSH for SFTP filesystem access.");
+
+        /* Parse username - use RDP username by default */
+        const char* sftp_username = argv[IDX_SFTP_USERNAME];
+        if (sftp_username[0] == '\0' && settings->username != NULL)
+            sftp_username = settings->username;
+
+        guac_client_data->sftp_user =
+            guac_common_ssh_create_user(sftp_username);
+
+        /* Import private key, if given */
+        if (argv[IDX_SFTP_PRIVATE_KEY][0] != '\0') {
+
+            guac_client_log(client, GUAC_LOG_DEBUG,
+                    "Authenticating with private key.");
+
+            /* Abort if private key cannot be read */
+            if (guac_common_ssh_user_import_key(guac_client_data->sftp_user,
+                        argv[IDX_SFTP_PRIVATE_KEY],
+                        argv[IDX_SFTP_PASSPHRASE])) {
+                guac_common_ssh_destroy_user(guac_client_data->sftp_user);
+                return 1;
+            }
+
+        }
+
+        /* Otherwise, use specified password */
+        else {
+
+            guac_client_log(client, GUAC_LOG_DEBUG,
+                    "Authenticating with password.");
+
+            /* Parse password - use RDP password by default */
+            const char* sftp_password = argv[IDX_SFTP_PASSWORD];
+            if (sftp_password[0] == '\0' && settings->password != NULL)
+                sftp_password = settings->password;
+
+            guac_common_ssh_user_set_password(guac_client_data->sftp_user,
+                    sftp_password);
+
+        }
+
+        /* Parse hostname - use RDP hostname by default */
+        const char* sftp_hostname = argv[IDX_SFTP_HOSTNAME];
+        if (sftp_hostname[0] == '\0')
+            sftp_hostname = settings->hostname;
+
+        /* Parse port, defaulting to standard SSH port */
+        const char* sftp_port = argv[IDX_SFTP_PORT];
+        if (sftp_port[0] == '\0')
+            sftp_port = "22";
+
+        /* Attempt SSH connection */
+        guac_client_data->sftp_session =
+            guac_common_ssh_create_session(client, sftp_hostname, sftp_port,
+                    guac_client_data->sftp_user);
+
+        /* Fail if SSH connection does not succeed */
+        if (guac_client_data->sftp_session == NULL) {
+            /* Already aborted within guac_common_ssh_create_session() */
+            guac_common_ssh_destroy_user(guac_client_data->sftp_user);
+            return 1;
+        }
+
+        /* Load and expose filesystem */
+        guac_client_data->sftp_filesystem =
+            guac_common_ssh_create_sftp_filesystem(
+                    guac_client_data->sftp_session, "/");
+
+        /* Abort if SFTP connection fails */
+        if (guac_client_data->sftp_filesystem == NULL) {
+            guac_common_ssh_destroy_session(guac_client_data->sftp_session);
+            guac_common_ssh_destroy_user(guac_client_data->sftp_user);
+            return 1;
+        }
+
+        /* Configure destination for basic uploads, if specified */
+        if (argv[IDX_SFTP_DIRECTORY][0] != '\0') {
+            client->file_handler = guac_rdp_sftp_file_handler;
+            guac_common_ssh_sftp_set_upload_path(
+                    guac_client_data->sftp_filesystem,
+                    argv[IDX_SFTP_DIRECTORY]);
+        }
+
+        /* Otherwise, use SFTP for basic uploads only if drive not enabled */
+        else if (!settings->drive_enabled)
+            client->file_handler = guac_rdp_sftp_file_handler;
+
+        guac_client_log(client, GUAC_LOG_DEBUG,
+                "SFTP connection succeeded.");
+
+    }
+#endif
 
     /* Send connection name */
     guac_protocol_send_name(client->socket, settings->hostname);

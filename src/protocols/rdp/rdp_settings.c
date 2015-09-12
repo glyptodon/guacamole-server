@@ -29,6 +29,7 @@
 #include "resolution.h"
 
 #include <freerdp/constants.h>
+#include <freerdp/settings.h>
 #include <guacamole/client.h>
 #include <guacamole/user.h>
 
@@ -39,6 +40,7 @@
 #endif
 
 #include <stddef.h>
+#include <string.h>
 
 /* Client plugin arguments */
 const char* GUAC_RDP_CLIENT_ARGS[] = {
@@ -56,6 +58,7 @@ const char* GUAC_RDP_CLIENT_ARGS[] = {
     "enable-printing",
     "enable-drive",
     "drive-path",
+    "create-drive-path",
     "console",
     "console-audio",
     "server-layout",
@@ -66,6 +69,25 @@ const char* GUAC_RDP_CLIENT_ARGS[] = {
     "remote-app-dir",
     "remote-app-args",
     "static-channels",
+    "client-name",
+    "enable-wallpaper",
+    "enable-theming",
+    "enable-font-smoothing",
+    "enable-full-window-drag",
+    "enable-desktop-composition",
+    "enable-menu-animations",
+
+#ifdef ENABLE_COMMON_SSH
+    "enable-sftp",
+    "sftp-hostname",
+    "sftp-port",
+    "sftp-username",
+    "sftp-password",
+    "sftp-private-key",
+    "sftp-passphrase",
+    "sftp-directory",
+#endif
+
     NULL
 };
 
@@ -85,6 +107,7 @@ enum RDP_ARGS_IDX {
     IDX_ENABLE_PRINTING,
     IDX_ENABLE_DRIVE,
     IDX_DRIVE_PATH,
+    IDX_CREATE_DRIVE_PATH,
     IDX_CONSOLE,
     IDX_CONSOLE_AUDIO,
     IDX_SERVER_LAYOUT,
@@ -95,6 +118,24 @@ enum RDP_ARGS_IDX {
     IDX_REMOTE_APP_DIR,
     IDX_REMOTE_APP_ARGS,
     IDX_STATIC_CHANNELS,
+    IDX_CLIENT_NAME,
+    IDX_ENABLE_WALLPAPER,
+    IDX_ENABLE_THEMING,
+    IDX_ENABLE_FONT_SMOOTHING,
+    IDX_ENABLE_FULL_WINDOW_DRAG,
+    IDX_ENABLE_DESKTOP_COMPOSITION,
+    IDX_ENABLE_MENU_ANIMATIONS,
+
+#ifdef ENABLE_COMMON_SSH
+    IDX_ENABLE_SFTP,
+    IDX_SFTP_HOSTNAME,
+    IDX_SFTP_PORT,
+    IDX_SFTP_USERNAME,
+    IDX_SFTP_PASSWORD,
+    IDX_SFTP_PRIVATE_KEY,
+    IDX_SFTP_PASSPHRASE,
+    IDX_SFTP_DIRECTORY,
+#endif
 
     RDP_ARGS_COUNT
 };
@@ -273,6 +314,9 @@ int guac_rdp_parse_args(guac_rdp_settings* settings, guac_user* user,
 
     settings->drive_path = strdup(argv[IDX_DRIVE_PATH]);
 
+    settings->create_drive_path =
+        (strcmp(argv[IDX_CREATE_DRIVE_PATH], "true") == 0);
+
     /* Pick keymap based on argument */
     settings->server_layout = NULL;
     if (argv[IDX_SERVER_LAYOUT][0] != '\0')
@@ -310,6 +354,51 @@ int guac_rdp_get_depth(freerdp* rdp) {
 #else
     return rdp->settings->ColorDepth;
 #endif
+}
+
+/**
+ * Given the settings structure of the Guacamole RDP client, calculates the
+ * standard performance flag value to send to the RDP server. The value of
+ * these flags is dictated by the RDP standard.
+ *
+ * @param guac_settings
+ *     The settings structure to read performance settings from.
+ *
+ * @returns
+ *     The standard RDP performance flag value representing the union of all
+ *     performance settings within the given settings structure.
+ */
+static int guac_rdp_get_performance_flags(guac_rdp_settings* guac_settings) {
+
+    /* No performance flags initially */
+    int flags = PERF_FLAG_NONE;
+
+    /* Desktop wallpaper */
+    if (!guac_settings->wallpaper_enabled)
+        flags |= PERF_DISABLE_WALLPAPER;
+
+    /* Theming of desktop/windows */
+    if (!guac_settings->theming_enabled)
+        flags |= PERF_DISABLE_THEMING;
+
+    /* Font smoothing (ClearType) */
+    if (guac_settings->font_smoothing_enabled)
+        flags |= PERF_ENABLE_FONT_SMOOTHING;
+
+    /* Full-window drag */
+    if (!guac_settings->full_window_drag_enabled)
+        flags |= PERF_DISABLE_FULLWINDOWDRAG;
+
+    /* Desktop composition (Aero) */
+    if (guac_settings->desktop_composition_enabled)
+        flags |= PERF_ENABLE_DESKTOP_COMPOSITION;
+
+    /* Menu animations */
+    if (!guac_settings->menu_animations_enabled)
+        flags |= PERF_DISABLE_MENUANIMATIONS;
+
+    return flags;
+
 }
 
 void guac_rdp_push_settings(guac_rdp_settings* guac_settings, freerdp* rdp) {
@@ -351,6 +440,24 @@ void guac_rdp_push_settings(guac_rdp_settings* guac_settings, freerdp* rdp) {
     rdp_settings->AlternateShell = guac_settings->initial_program;
     rdp_settings->KeyboardLayout = guac_settings->server_layout->freerdp_keyboard_layout;
 #endif
+
+    /* Performance flags */
+#ifdef LEGACY_RDPSETTINGS
+    rdp_settings->performance_flags = guac_rdp_get_performance_flags(guac_settings);
+#else
+    rdp_settings->PerformanceFlags = guac_rdp_get_performance_flags(guac_settings);
+#endif
+
+    /* Client name */
+    if (guac_settings->client_name != NULL) {
+#ifdef LEGACY_RDPSETTINGS
+        strncpy(rdp_settings->client_hostname, guac_settings->client_name,
+                RDP_CLIENT_HOSTNAME_SIZE - 1);
+#else
+        strncpy(rdp_settings->ClientHostname, guac_settings->client_name,
+                RDP_CLIENT_HOSTNAME_SIZE - 1);
+#endif
+    }
 
     /* Console */
 #ifdef LEGACY_RDPSETTINGS
