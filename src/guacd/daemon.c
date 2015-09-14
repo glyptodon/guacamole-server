@@ -561,11 +561,17 @@ int main(int argc, char* argv[]) {
         else
             guacd_log(GUAC_LOG_WARNING, "No certificate file given - SSL/TLS may not work.");
 
-       /* Set PSK callback if used */
+       /* Set PSK callback if requested */
        if (config->psk_list != NULL) {
             guacd_log(GUAC_LOG_INFO, "Using TLS-PSK.");
             SSL_CTX_set_app_data(ssl_context, config->psk_list);
             SSL_CTX_set_psk_server_callback(ssl_context, check_psk);
+
+            /* If PSK was specify we only allow PSK ciphers to enforce mutual auth */
+            if (!SSL_CTX_set_cipher_list(ssl_context, "PSK")) {
+                guacd_log(GUAC_LOG_ERROR, "No PSK ciphers available.");
+                exit(EXIT_FAILURE);
+            }
         }
 
     }
