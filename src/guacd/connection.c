@@ -113,6 +113,7 @@ void* guacd_connection_io_thread(void* data) {
     while ((length = read(params->fd, buffer, sizeof(buffer))) > 0) {
         if (guac_socket_write(params->socket, buffer, length))
             break;
+        guac_socket_flush(params->socket);
     }
 
     /* Wait for write thread to die */

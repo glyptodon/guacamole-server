@@ -108,6 +108,57 @@ static ssize_t __guac_socket_broadcast_write_handler(guac_socket* socket,
 
 }
 
+static void __flush_callback(guac_user* user, void* data) {
+
+    /* Attempt flush, disconnect on failure */
+    if (guac_socket_flush(user->socket))
+        guac_user_stop(user);
+
+}
+
+static ssize_t __guac_socket_broadcast_flush_handler(guac_socket* socket) {
+
+    guac_client* client = (guac_client*) socket->data;
+
+    /* Flush all users */
+    guac_client_foreach_user(client, __flush_callback, NULL);
+
+    return 0;
+
+}
+
+static void __lock_callback(guac_user* user, void* data) {
+
+    /* Lock socket */
+    guac_socket_instruction_begin(user->socket);
+
+}
+
+static void __guac_socket_broadcast_lock_handler(guac_socket* socket) {
+
+    guac_client* client = (guac_client*) socket->data;
+
+    /* Flush all users */
+    guac_client_foreach_user(client, __lock_callback, NULL);
+
+}
+
+static void __unlock_callback(guac_user* user, void* data) {
+
+    /* Lock socket */
+    guac_socket_instruction_end(user->socket);
+
+}
+
+static void __guac_socket_broadcast_unlock_handler(guac_socket* socket) {
+
+    guac_client* client = (guac_client*) socket->data;
+
+    /* Flush all users */
+    guac_client_foreach_user(client, __unlock_callback, NULL);
+
+}
+
 /**
  * The broadcast socket cannot be read from (nor selected).
  */
@@ -201,6 +252,9 @@ guac_client* guac_client_alloc() {
     socket->read_handler   = __guac_socket_broadcast_read_handler;
     socket->write_handler  = __guac_socket_broadcast_write_handler;
     socket->select_handler = __guac_socket_broadcast_select_handler;
+    socket->flush_handler  = __guac_socket_broadcast_flush_handler;
+    socket->lock_handler   = __guac_socket_broadcast_lock_handler;
+    socket->unlock_handler = __guac_socket_broadcast_unlock_handler;
 
     return client;
 

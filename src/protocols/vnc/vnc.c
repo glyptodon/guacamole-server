@@ -246,9 +246,6 @@ void* guac_vnc_client_thread(void* data) {
                     "Audio will be encoded as %s",
                     guac_client_data->audio->encoder->mimetype);
 
-            /* Require threadsafe sockets if audio enabled */
-            guac_socket_require_threadsafe(client->socket);
-
             /* Start audio stream */
             guac_pa_start_stream(client);
             

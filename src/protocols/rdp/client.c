@@ -71,9 +71,6 @@ int guac_client_init(guac_client* client, int argc, char** argv) {
     rdp_client->requested_clipboard_format = CB_FORMAT_TEXT;
     rdp_client->available_svc = guac_common_list_alloc();
 
-    /* Main socket needs to be threadsafe */
-    guac_socket_require_threadsafe(client->socket);
-
     /* Recursive attribute for locks */
     pthread_mutexattr_init(&(rdp_client->attributes));
     pthread_mutexattr_settype(&(rdp_client->attributes),
