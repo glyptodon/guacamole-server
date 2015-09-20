@@ -392,6 +392,7 @@ int daemonize() {
 
 }
 
+#ifdef ENABLE_SSL
 unsigned int check_psk(SSL *ssl, const char *id, unsigned char *key, unsigned int max_key_len) {
     tls_psk* list = (tls_psk*) SSL_get_app_data(ssl);
     if (list == NULL) {
@@ -418,6 +419,7 @@ unsigned int check_psk(SSL *ssl, const char *id, unsigned char *key, unsigned in
 
     return 0;
 }
+#endif
 
 int main(int argc, char* argv[]) {
 

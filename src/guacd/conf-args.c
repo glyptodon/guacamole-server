@@ -95,7 +95,7 @@ int guacd_conf_parse_args(guacd_config* config, int argc, char** argv) {
             }
         }
 #else
-        else if (opt == 'C' || opt == 'K' || opt 'P') {
+        else if (opt == 'C' || opt == 'K' || opt == 'P') {
             fprintf(stderr,
                     "This guacd does not have SSL/TLS support compiled in.\n\n"
 
