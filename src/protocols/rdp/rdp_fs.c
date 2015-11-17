@@ -63,8 +63,10 @@ guac_rdp_fs* guac_rdp_fs_alloc(guac_user* user, const char* drive_path,
 
     fs->user = user;
     fs->object = guac_user_alloc_object(user);
+#if 0
     fs->object->get_handler = guac_rdp_download_get_handler;
     fs->object->put_handler = guac_rdp_upload_put_handler;
+#endif
 
     fs->drive_path = strdup(drive_path);
     fs->file_id_pool = guac_pool_alloc(0);
