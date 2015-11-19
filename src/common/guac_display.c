@@ -83,6 +83,10 @@ static void guac_common_display_free_layers(guac_common_display_layer* layers,
 
         guac_common_display_layer* current = layers++;
 
+        /* Free surface, if present */
+        if (current->surface != NULL)
+            guac_common_surface_free(current->surface);
+
         /* Free layer, if present */
         if (current->layer != NULL) {
             if (current->layer->index >= 0)
@@ -90,10 +94,6 @@ static void guac_common_display_free_layers(guac_common_display_layer* layers,
             else
                 guac_client_free_layer(client, current->layer);
         }
-
-        /* Free surface, if present */
-        if (current->surface != NULL)
-            guac_common_surface_free(current->surface);
 
     }
 
@@ -260,11 +260,11 @@ void guac_common_display_free_layer(guac_common_display* display,
         guac_common_display_layer* layer) {
 
     /* Free associated layer and surface */
-    guac_client_free_layer(display->client, layer->layer);
     guac_common_surface_free(layer->surface);
+    guac_client_free_layer(display->client, layer->layer);
 
-    layer->layer = NULL;
     layer->surface = NULL;
+    layer->layer = NULL;
 
 }
 
@@ -272,11 +272,11 @@ void guac_common_display_free_buffer(guac_common_display* display,
         guac_common_display_layer* buffer) {
 
     /* Free associated layer and surface */
-    guac_client_free_buffer(display->client, buffer->layer);
     guac_common_surface_free(buffer->surface);
+    guac_client_free_buffer(display->client, buffer->layer);
 
-    buffer->layer = NULL;
     buffer->surface = NULL;
+    buffer->layer = NULL;
 
 }
 
