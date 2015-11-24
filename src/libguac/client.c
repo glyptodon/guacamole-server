@@ -211,7 +211,7 @@ void guac_client_free_layer(guac_client* client, guac_layer* layer) {
 
 guac_client* guac_client_alloc() {
 
-    pthread_mutexattr_t lock_attributes;
+    pthread_rwlockattr_t lock_attributes;
 
     /* Allocate new client */
     guac_client* client = malloc(sizeof(guac_client));
@@ -239,10 +239,10 @@ guac_client* guac_client_alloc() {
     client->__layer_pool = guac_pool_alloc(GUAC_BUFFER_POOL_INITIAL_SIZE);
 
     /* Init locks */
-    pthread_mutexattr_init(&lock_attributes);
-    pthread_mutexattr_setpshared(&lock_attributes, PTHREAD_PROCESS_SHARED);
+    pthread_rwlockattr_init(&lock_attributes);
+    pthread_rwlockattr_setpshared(&lock_attributes, PTHREAD_PROCESS_SHARED);
 
-    pthread_mutex_init(&(client->__users_lock), &lock_attributes);
+    pthread_rwlock_init(&(client->__users_lock), &lock_attributes);
 
     /* Set up socket to broadcast to all users */
     guac_socket* socket = guac_socket_alloc();
@@ -283,7 +283,7 @@ void guac_client_free(guac_client* client) {
             guac_client_log(client, GUAC_LOG_ERROR, "Unable to close plugin: %s", dlerror());
     }
 
-    pthread_mutex_destroy(&(client->__users_lock));
+    pthread_rwlock_destroy(&(client->__users_lock));
     free(client);
 }
 
@@ -348,7 +348,7 @@ int guac_client_add_user(guac_client* client, guac_user* user, int argc, char** 
 
     int retval = 0;
 
-    pthread_mutex_lock(&(client->__users_lock));
+    pthread_rwlock_wrlock(&(client->__users_lock));
 
     /* Call handler, if defined */
     if (client->join_handler)
@@ -368,7 +368,7 @@ int guac_client_add_user(guac_client* client, guac_user* user, int argc, char** 
 
     }
 
-    pthread_mutex_unlock(&(client->__users_lock));
+    pthread_rwlock_unlock(&(client->__users_lock));
 
     return retval;
 
@@ -376,7 +376,7 @@ int guac_client_add_user(guac_client* client, guac_user* user, int argc, char** 
 
 void guac_client_remove_user(guac_client* client, guac_user* user) {
 
-    pthread_mutex_lock(&(client->__users_lock));
+    pthread_rwlock_wrlock(&(client->__users_lock));
 
     /* Call handler, if defined */
     if (user->leave_handler)
@@ -396,7 +396,7 @@ void guac_client_remove_user(guac_client* client, guac_user* user) {
 
     client->connected_users--;
 
-    pthread_mutex_unlock(&(client->__users_lock));
+    pthread_rwlock_unlock(&(client->__users_lock));
 
 }
 
@@ -404,7 +404,7 @@ void guac_client_foreach_user(guac_client* client, guac_user_callback* callback,
 
     guac_user* current;
 
-    pthread_mutex_lock(&(client->__users_lock));
+    pthread_rwlock_rdlock(&(client->__users_lock));
 
     /* Call function on each user */
     current = client->__users;
@@ -413,7 +413,7 @@ void guac_client_foreach_user(guac_client* client, guac_user_callback* callback,
         current = current->__next;
     }
 
-    pthread_mutex_unlock(&(client->__users_lock));
+    pthread_rwlock_unlock(&(client->__users_lock));
 
 }
 

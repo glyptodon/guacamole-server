@@ -146,9 +146,10 @@ struct guac_client {
     char* connection_id;
 
     /**
-     * Lock which is acquired when the users list is being manipulated.
+     * Lock which is acquired when the users list is being manipulated, or when
+     * the users list is being iterated.
      */
-    pthread_mutex_t __users_lock;
+    pthread_rwlock_t __users_lock;
 
     /**
      * The first user within the list of all connected users, or NULL if no
@@ -378,15 +379,22 @@ void guac_client_remove_user(guac_client* client, guac_user* user);
  * client. The function will be given a reference to a guac_user and the
  * specified arbitrary data.
  *
- * This function is NOT reentrant. The user list MUST NOT be manipulated
- * within the same thread as a callback to this function, and the callback
- * MUST NOT invoke guac_client_foreach_user() within its own thread.
+ * This function is reentrant, but the user list MUST NOT be manipulated
+ * within the same thread as a callback to this function. Though the callback
+ * MAY invoke guac_client_foreach_user(), doing so should not be necessary, and
+ * may indicate poor design choices.
  *
- * @param client The client whose users should be iterated.
- * @param callback The function to call for each user.
- * @param data Arbitrary data to pass to each function call.
+ * @param client
+ *     The client whose users should be iterated.
+ *
+ * @param callback
+ *     The function to call for each user.
+ *
+ * @param data
+ *     Arbitrary data to pass to the callback each time it is invoked.
  */
-void guac_client_foreach_user(guac_client* client, guac_user_callback* callback, void* data);
+void guac_client_foreach_user(guac_client* client,
+        guac_user_callback* callback, void* data);
 
 /**
  * Marks the end of the current frame by sending a "sync" instruction to
