@@ -31,14 +31,13 @@
 #include <string.h>
 
 /**
- * Synchronizes all surfaces within the given array to the given socket. If a
- * given surface is set to NULL, it will not be synchronized.
+ * Synchronizes all surfaces within the given linked list to the given socket.
+ * If the provided pointer to the linked list is NULL, this function has no
+ * effect.
  *
  * @param layers
- *     The array of layers to synchronize.
- *
- * @param count
- *     The number of layers in the array.
+ *     The head element of the linked list of layers to synchronize, which may
+ *     be NULL if the list is currently empty.
  *
  * @param user
  *     The user receiving the layers.
@@ -47,53 +46,53 @@
  *     The socket over which each layer should be sent.
  */
 static void guac_common_display_dup_layers(guac_common_display_layer* layers,
-        int count, guac_user* user, guac_socket* socket) {
+        guac_user* user, guac_socket* socket) {
 
-    int i;
+    guac_common_display_layer* current = layers;
 
-    /* Synchronize all surfaces in given array */
-    for (i=0; i < count; i++) {
-
-        guac_common_display_layer* current = layers++;
-
-        /* Synchronize surface, if present */
-        if (current->surface != NULL)
-            guac_common_surface_dup(current->surface, user, socket);
-
+    /* Synchronize all surfaces in given list */
+    while (current != NULL) {
+        guac_common_surface_dup(current->surface, user, socket);
+        current = current->next;
     }
 
 }
 
 /**
- * Frees all layers and associated surfaces within the given array.
+ * Frees all layers and associated surfaces within the given list, as well as
+ * their corresponding list elements. If the provided pointer to the linked
+ * list is NULL, this function has no effect.
  *
- * @param layers The array of layers to synchronize.
- * @param count The number of layers in the array.
+ * @param layers
+ *     The head element of the linked list of layers to free, which may be NULL
+ *     if the list is currently empty.
  *
  * @param client
- *     The client owning the layers wrapped by each of the layers in the array.
+ *     The client owning the layers wrapped by each of the layers in the list.
  */
 static void guac_common_display_free_layers(guac_common_display_layer* layers,
-        int count, guac_client* client) {
+        guac_client* client) {
 
-    int i;
+    guac_common_display_layer* current = layers;
 
-    /* Free each surface in given array */
-    for (i=0; i < count; i++) {
+    /* Free each surface in given list */
+    while (current != NULL) {
 
-        guac_common_display_layer* current = layers++;
+        guac_common_display_layer* next = current->next;
+        guac_layer* layer = current->layer;
 
-        /* Free surface, if present */
-        if (current->surface != NULL)
-            guac_common_surface_free(current->surface);
+        /* Free surface */
+        guac_common_surface_free(current->surface);
 
-        /* Free layer, if present */
-        if (current->layer != NULL) {
-            if (current->layer->index >= 0)
-                guac_client_free_buffer(client, current->layer);
-            else
-                guac_client_free_layer(client, current->layer);
-        }
+        /* Free layer or buffer depending on index */
+        if (layer->index < 0)
+            guac_client_free_buffer(client, layer);
+        else if (layer->index > 0)
+            guac_client_free_layer(client, layer);
+
+        /* Free current element and advance to next */
+        free(current);
+        current = next;
 
     }
 
@@ -116,15 +115,9 @@ guac_common_display* guac_common_display_alloc(guac_client* client,
     display->default_surface = guac_common_surface_alloc(client,
             client->socket, GUAC_DEFAULT_LAYER, width, height);
 
-    /* Allocate initial layers array */
-    display->layers_size = GUAC_COMMON_DISPLAY_POOL_SIZE;
-    display->layers =
-        calloc(display->layers_size, sizeof(guac_common_display_layer));
-
-    /* Allocate initial buffers array */
-    display->buffers_size = GUAC_COMMON_DISPLAY_POOL_SIZE;
-    display->buffers =
-        calloc(display->buffers_size, sizeof(guac_common_display_layer));
+    /* No initial layers or buffers */
+    display->layers = NULL;
+    display->buffers = NULL;
 
     return display;
 
@@ -138,12 +131,9 @@ void guac_common_display_free(guac_common_display* display) {
     /* Free default surface */
     guac_common_surface_free(display->default_surface);
 
-    /* Synchronize all layers/buffers */
-    guac_common_display_free_layers(display->buffers, display->buffers_size, display->client);
-    guac_common_display_free_layers(display->layers, display->layers_size, display->client);
-
-    free(display->buffers);
-    free(display->layers);
+    /* Free all layers and buffers */
+    guac_common_display_free_layers(display->buffers, display->client);
+    guac_common_display_free_layers(display->layers, display->client);
 
     free(display);
 
@@ -158,53 +148,9 @@ void guac_common_display_dup(guac_common_display* display, guac_user* user,
     /* Synchronize default surface */
     guac_common_surface_dup(display->default_surface, user, socket);
 
-    /* Synchronize all layers */
-    guac_common_display_dup_layers(display->layers, display->layers_size,
-            user, socket);
-
-    /* Synchronize all buffers */
-    guac_common_display_dup_layers(display->buffers, display->buffers_size,
-            user, socket);
-
-}
-
-/**
- * Returns a pointer to the layer having the given index within the given
- * layers array, reallocating and resizing that array if necessary. The resized
- * array and its new size will be returned through the provided pointers.
- *
- * @param layers_ptr Pointer to the layers array.
- *
- * @param size_ptr
- *     Pointer to an integer containing the number of entries in the layers
- *     array.
- *
- * @param index The array index of the layer to return.
- * @return The layer at the given index within the layer array.
- */
-static guac_common_display_layer* guac_common_display_get_layer(
-        guac_common_display_layer** layers_ptr, int* size_ptr, int index) {
-
-    guac_common_display_layer* layers = *layers_ptr;
-    int size = *size_ptr;
-
-    /* Resize layers array if it's not big enough */
-    if (index >= size) {
-
-        int new_size;
-
-        /* Resize layers array */
-        *size_ptr = new_size = index*2;
-        *layers_ptr = layers =
-            realloc(layers, new_size * sizeof(guac_common_display_layer));
-
-        /* Clear newly-allocated space */
-        memset(layers + size, 0, new_size - size);
-
-    }
-
-    /* Return reference to requested layer */
-    return layers + index;
+    /* Synchronize all layers and buffers */
+    guac_common_display_dup_layers(display->layers, user, socket);
+    guac_common_display_dup_layers(display->buffers, user, socket);
 
 }
 
@@ -212,71 +158,144 @@ void guac_common_display_flush(guac_common_display* display) {
     guac_common_surface_flush(display->default_surface);
 }
 
+/**
+ * Allocates and inserts a new element into the given linked list of display
+ * layers, associating it with the given layer and surface.
+ *
+ * @param head
+ *     A pointer to the head pointer of the list of layers. The head pointer
+ *     will be updated by this function to point to the newly-allocated
+ *     display layer.
+ *
+ * @param layer
+ *     The Guacamole layer to associated with the new display layer.
+ *
+ * @param surface
+ *     The surface associated with the given Guacamole layer and which should
+ *     be associated with the new display layer.
+ *
+ * @return
+ *     The newly-allocated display layer, which has been associated with the
+ *     provided layer and surface.
+ */
+static guac_common_display_layer* guac_common_display_add_layer(
+        guac_common_display_layer** head, guac_layer* layer,
+        guac_common_surface* surface) {
+
+    guac_common_display_layer* old_head = *head;
+
+    guac_common_display_layer* display_layer =
+        malloc(sizeof(guac_common_display_layer));
+
+    /* Init layer/surface pair */
+    display_layer->layer = layer;
+    display_layer->surface = surface;
+
+    /* Insert list element as the new head */
+    display_layer->prev = NULL;
+    display_layer->next = old_head;
+    *head = display_layer;
+
+    /* Update old head to point to new element, if it existed */
+    if (old_head != NULL)
+        old_head->prev = display_layer;
+
+    return display_layer;
+
+}
+
+/**
+ * Removes the given display layer from the linked list whose head pointer is
+ * provided.
+ *
+ * @param head
+ *     A pointer to the head pointer of the list of layers. The head pointer
+ *     will be updated by this function if necessary, and will be set to NULL
+ *     if the display layer being removed is the only layer in the list.
+ *
+ * @param display_layer
+ *     The display layer to remove from the given list.
+ */
+static void guac_common_display_remove_layer(guac_common_display_layer** head,
+        guac_common_display_layer* display_layer) {
+
+    /* Update previous element, if it exists */
+    if (display_layer->prev != NULL)
+        display_layer->prev->next = display_layer->next;
+
+    /* If there is no previous element, update the list head */
+    else
+        *head = display_layer->next;
+
+    /* Update next element, if it exists */
+    if (display_layer->next != NULL)
+        display_layer->next->prev = display_layer->prev;
+
+}
+
 guac_common_display_layer* guac_common_display_alloc_layer(
         guac_common_display* display, int width, int height) {
 
     guac_layer* layer;
-    guac_common_display_layer* display_layer;
+    guac_common_surface* surface;
 
     /* Allocate Guacamole layer */
     layer = guac_client_alloc_layer(display->client);
 
-    /* Get slot for allocated layer */
-    display_layer = guac_common_display_get_layer(
-            &display->layers, &display->layers_size,
-            layer->index - 1);
-
-    /* Init display layer */
-    display_layer->layer = layer;
-    display_layer->surface = guac_common_surface_alloc(display->client,
+    /* Allocate corresponding surface */
+    surface = guac_common_surface_alloc(display->client,
             display->client->socket, layer, width, height);
 
-    return display_layer;
+    /* Add layer and surface to list */
+    return guac_common_display_add_layer(&display->layers, layer, surface);
+
 }
 
 guac_common_display_layer* guac_common_display_alloc_buffer(
         guac_common_display* display, int width, int height) {
 
     guac_layer* buffer;
-    guac_common_display_layer* display_buffer;
+    guac_common_surface* surface;
 
     /* Allocate Guacamole buffer */
     buffer = guac_client_alloc_buffer(display->client);
 
-    /* Get slot for allocated buffer */
-    display_buffer = guac_common_display_get_layer(
-            &display->buffers, &display->buffers_size,
-            -1 - buffer->index);
-
-    /* Init display buffer */
-    display_buffer->layer = buffer;
-    display_buffer->surface = guac_common_surface_alloc(display->client,
+    /* Allocate corresponding surface */
+    surface = guac_common_surface_alloc(display->client,
             display->client->socket, buffer, width, height);
 
-    return display_buffer;
+    /* Add buffer and surface to list */
+    return guac_common_display_add_layer(&display->buffers, buffer, surface);
+
 }
 
 void guac_common_display_free_layer(guac_common_display* display,
-        guac_common_display_layer* layer) {
+        guac_common_display_layer* display_layer) {
+
+    /* Remove list element from list */
+    guac_common_display_remove_layer(&display->layers, display_layer);
 
     /* Free associated layer and surface */
-    guac_common_surface_free(layer->surface);
-    guac_client_free_layer(display->client, layer->layer);
+    guac_common_surface_free(display_layer->surface);
+    guac_client_free_layer(display->client, display_layer->layer);
 
-    layer->surface = NULL;
-    layer->layer = NULL;
+    /* Free list element */
+    free(display_layer);
 
 }
 
 void guac_common_display_free_buffer(guac_common_display* display,
-        guac_common_display_layer* buffer) {
+        guac_common_display_layer* display_buffer) {
+
+    /* Remove list element from list */
+    guac_common_display_remove_layer(&display->buffers, display_buffer);
 
     /* Free associated layer and surface */
-    guac_common_surface_free(buffer->surface);
-    guac_client_free_buffer(display->client, buffer->layer);
+    guac_common_surface_free(display_buffer->surface);
+    guac_client_free_buffer(display->client, display_buffer->layer);
 
-    buffer->surface = NULL;
-    buffer->layer = NULL;
+    /* Free list element */
+    free(display_buffer);
 
 }
 
