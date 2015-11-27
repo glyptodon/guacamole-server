@@ -404,7 +404,18 @@ guacd_proc* guacd_create_proc(guac_parser* parser, const char* protocol) {
 }
 
 void guacd_proc_stop(guacd_proc* proc) {
+
+    /* Signal client to stop */
     guac_client_stop(proc->client);
+
+    /* Shutdown socket - in-progress recvmsg() will not fail otherwise */
+    if (shutdown(proc->fd_socket, SHUT_RDWR) == -1)
+        guacd_log(GUAC_LOG_ERROR, "Unable to shutdown internal socket for "
+                "connection %s. Corresponding process may remain running but "
+                "inactive.", proc->client->connection_id);
+
+    /* Clean up our end of the socket */
     close(proc->fd_socket);
+
 }
 
