@@ -279,7 +279,6 @@ int guac_parser_expect(guac_parser* parser, guac_socket* socket, int usec_timeou
     if (strcmp(parser->opcode, opcode) != 0) {
         guac_error = GUAC_STATUS_PROTOCOL_ERROR;
         guac_error_message = "Instruction read did not have expected opcode";
-        guac_parser_free(parser);
         return -1;
     }
 
