@@ -201,6 +201,16 @@ void guac_common_cursor_set_pointer(guac_common_cursor* cursor);
 void guac_common_cursor_set_dot(guac_common_cursor* cursor);
 
 /**
+ * Set the cursor of the remote display to the embedded "I-bar" graphic. The
+ * I-bar graphic is a small black "I" shape with white border, used to indicate
+ * the presence of selectable or editable text.
+ *
+ * @param cursor
+ *     The cursor to set the image of.
+ */
+void guac_common_cursor_set_ibar(guac_common_cursor* cursor);
+
+/**
  * Removes the given user, such that future synchronization will not occur.
  * This is necessary when a user leaves the connection. If a user leaves the
  * connection and this is not called, the corresponding guac_user and socket

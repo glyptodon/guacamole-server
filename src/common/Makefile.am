@@ -31,6 +31,7 @@ noinst_HEADERS =          \
     guac_cursor.h         \
     guac_display.h        \
     guac_dot_cursor.h     \
+    guac_ibar_cursor.h    \
     guac_iconv.h          \
     guac_json.h           \
     guac_list.h           \
@@ -45,6 +46,7 @@ libguac_common_la_SOURCES = \
     guac_cursor.c           \
     guac_display.c          \
     guac_dot_cursor.c       \
+    guac_ibar_cursor.c      \
     guac_iconv.c            \
     guac_json.c             \
     guac_list.c             \

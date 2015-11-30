@@ -22,6 +22,7 @@
 
 #include "guac_dot_cursor.h"
 #include "guac_cursor.h"
+#include "guac_ibar_cursor.h"
 #include "guac_pointer_cursor.h"
 #include "guac_surface.h"
 
@@ -249,6 +250,18 @@ void guac_common_cursor_set_dot(guac_common_cursor* cursor) {
             guac_common_dot_cursor_width,
             guac_common_dot_cursor_height,
             guac_common_dot_cursor_stride);
+
+}
+
+void guac_common_cursor_set_ibar(guac_common_cursor* cursor) {
+
+     guac_common_cursor_set_argb(cursor,
+            guac_common_ibar_cursor_width / 2,
+            guac_common_ibar_cursor_height / 2,
+            guac_common_ibar_cursor,
+            guac_common_ibar_cursor_width,
+            guac_common_ibar_cursor_height,
+            guac_common_ibar_cursor_stride);
 
 }
 
