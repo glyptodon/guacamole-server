@@ -201,7 +201,7 @@ void guac_common_cursor_set_pointer(guac_common_cursor* cursor);
 void guac_common_cursor_set_dot(guac_common_cursor* cursor);
 
 /**
- * Set the cursor of the remote display to the embedded "I-bar" graphic. The
+ * Sets the cursor of the remote display to the embedded "I-bar" graphic. The
  * I-bar graphic is a small black "I" shape with white border, used to indicate
  * the presence of selectable or editable text.
  *
@@ -209,6 +209,15 @@ void guac_common_cursor_set_dot(guac_common_cursor* cursor);
  *     The cursor to set the image of.
  */
 void guac_common_cursor_set_ibar(guac_common_cursor* cursor);
+
+/**
+ * Sets the cursor of the remote display to the embedded transparent (blank)
+ * graphic, effectively hiding the mouse cursor.
+ *
+ * @param cursor
+ *     The cursor to set the image of.
+ */
+void guac_common_cursor_set_blank(guac_common_cursor* cursor);
 
 /**
  * Removes the given user, such that future synchronization will not occur.

@@ -20,6 +20,7 @@
  * THE SOFTWARE.
  */
 
+#include "guac_blank_cursor.h"
 #include "guac_dot_cursor.h"
 #include "guac_cursor.h"
 #include "guac_ibar_cursor.h"
@@ -262,6 +263,16 @@ void guac_common_cursor_set_ibar(guac_common_cursor* cursor) {
             guac_common_ibar_cursor_width,
             guac_common_ibar_cursor_height,
             guac_common_ibar_cursor_stride);
+
+}
+
+void guac_common_cursor_set_blank(guac_common_cursor* cursor) {
+
+     guac_common_cursor_set_argb(cursor, 0, 0,
+            guac_common_blank_cursor,
+            guac_common_blank_cursor_width,
+            guac_common_blank_cursor_height,
+            guac_common_blank_cursor_stride);
 
 }
 
