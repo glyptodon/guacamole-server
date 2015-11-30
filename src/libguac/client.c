@@ -509,6 +509,7 @@ int guac_client_get_processing_lag(guac_client* client) {
 
 }
 
+#ifdef ENABLE_WEBP
 /**
  * Callback which is invoked by guac_client_supports_webp() for each user
  * associated with the given client, thus updating an overall support flag
@@ -531,6 +532,7 @@ static void __webp_support_callback(guac_user* user, void* data) {
         *webp_supported = guac_user_supports_webp(user);
 
 }
+#endif
 
 int guac_client_supports_webp(guac_client* client) {
 
