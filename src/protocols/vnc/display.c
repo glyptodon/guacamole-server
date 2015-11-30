@@ -129,7 +129,8 @@ void guac_vnc_update(rfbClient* client, int x, int y, int w, int h) {
     /* For now, only use default layer */
     surface = cairo_image_surface_create_for_data(buffer, CAIRO_FORMAT_RGB24, w, h, stride);
 
-    guac_common_surface_draw(vnc_client->default_surface, x, y, surface);
+    guac_common_surface_draw(vnc_client->display->default_surface,
+            x, y, surface);
 
     /* Free surface */
     cairo_surface_destroy(surface);
@@ -143,8 +144,9 @@ void guac_vnc_copyrect(rfbClient* client, int src_x, int src_y, int w, int h, in
     guac_vnc_client* vnc_client = (guac_vnc_client*) gc->data;
 
     /* For now, only use default layer */
-    guac_common_surface_copy(vnc_client->default_surface, src_x,  src_y, w, h,
-                             vnc_client->default_surface, dest_x, dest_y);
+    guac_common_surface_copy(vnc_client->display->default_surface,
+            src_x, src_y, w, h,
+            vnc_client->display->default_surface, dest_x, dest_y);
 
     vnc_client->copy_rect_used = 1;
 
@@ -194,8 +196,9 @@ rfbBool guac_vnc_malloc_framebuffer(rfbClient* rfb_client) {
     guac_vnc_client* vnc_client = (guac_vnc_client*) gc->data;
 
     /* Resize surface */
-    if (vnc_client->default_surface != NULL)
-        guac_common_surface_resize(vnc_client->default_surface, rfb_client->width, rfb_client->height);
+    if (vnc_client->display != NULL)
+        guac_common_surface_resize(vnc_client->display->default_surface,
+                rfb_client->width, rfb_client->height);
 
     /* Use original, wrapped proc */
     return vnc_client->rfb_MallocFrameBuffer(rfb_client);

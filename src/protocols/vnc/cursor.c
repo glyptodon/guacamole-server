@@ -24,6 +24,7 @@
 
 #include "client.h"
 #include "guac_cursor.h"
+#include "guac_display.h"
 #include "guac_surface.h"
 #include "vnc.h"
 
@@ -117,7 +118,8 @@ void guac_vnc_cursor(rfbClient* client, int x, int y, int w, int h, int bpp) {
     }
 
     /* Update stored cursor information */
-    guac_common_cursor_set_argb(vnc_client->cursor, x, y, buffer, w, h, stride);
+    guac_common_cursor_set_argb(vnc_client->display->cursor, x, y,
+            buffer, w, h, stride);
 
     /* Free surface */
     free(buffer);

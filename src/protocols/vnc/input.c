@@ -23,6 +23,7 @@
 #include "config.h"
 
 #include "guac_cursor.h"
+#include "guac_display.h"
 #include "vnc.h"
 
 #include <guacamole/user.h>
@@ -34,7 +35,7 @@ int guac_vnc_user_mouse_handler(guac_user* user, int x, int y, int mask) {
     guac_vnc_client* vnc_client = (guac_vnc_client*) client->data;
 
     /* Store current mouse location */
-    guac_common_cursor_move(vnc_client->cursor, user, x, y);
+    guac_common_cursor_move(vnc_client->display->cursor, user, x, y);
 
     SendPointerEvent(vnc_client->rfb_client, x, y, mask);
 

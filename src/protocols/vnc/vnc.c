@@ -29,6 +29,7 @@
 #include "display.h"
 #include "guac_clipboard.h"
 #include "guac_cursor.h"
+#include "guac_display.h"
 #include "log.h"
 #include "settings.h"
 #include "vnc.h"
@@ -350,23 +351,22 @@ void* guac_vnc_client_thread(void* data) {
     /* Set remaining client data */
     vnc_client->rfb_client = rfb_client;
 
+    /* Send name */
+    guac_protocol_send_name(client->socket, rfb_client->desktopName);
+
+    /* Create display */
+    vnc_client->display = guac_common_display_alloc(client,
+            rfb_client->width, rfb_client->height);
+
     /* If not read-only, set an appropriate cursor */
     if (vnc_client->settings.read_only == 0) {
 
         if (vnc_client->settings.remote_cursor)
-            guac_common_cursor_set_dot(vnc_client->cursor);
+            guac_common_cursor_set_dot(vnc_client->display->cursor);
         else
-            guac_common_cursor_set_pointer(vnc_client->cursor);
+            guac_common_cursor_set_pointer(vnc_client->display->cursor);
 
     }
-
-    /* Send name */
-    guac_protocol_send_name(client->socket, rfb_client->desktopName);
-
-    /* Create default surface */
-    vnc_client->default_surface = guac_common_surface_alloc(client,
-            client->socket, GUAC_DEFAULT_LAYER,
-            rfb_client->width, rfb_client->height);
 
     guac_socket_flush(client->socket);
 
@@ -426,7 +426,7 @@ void* guac_vnc_client_thread(void* data) {
         if (wait_result < 0)
             guac_client_abort(client, GUAC_PROTOCOL_STATUS_UPSTREAM_ERROR, "Connection closed.");
 
-        guac_common_surface_flush(vnc_client->default_surface);
+        guac_common_surface_flush(vnc_client->display->default_surface);
         guac_client_end_frame(client);
         guac_socket_flush(client->socket);
 

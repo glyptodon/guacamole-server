@@ -24,9 +24,9 @@
 
 #include "clipboard.h"
 #include "input.h"
+#include "guac_display.h"
 #include "guac_dot_cursor.h"
 #include "guac_pointer_cursor.h"
-#include "guac_surface.h"
 #include "user.h"
 #include "vnc.h"
 
@@ -62,9 +62,7 @@ int guac_vnc_user_join_handler(guac_user* user, int argc, char** argv) {
 
     /* If not owner, synchronize with current display */
     else {
-        guac_common_surface_dup(vnc_client->default_surface,
-                user, user->socket);
-        guac_common_cursor_dup(vnc_client->cursor, user, user->socket);
+        guac_common_display_dup(vnc_client->display, user, user->socket);
         guac_socket_flush(user->socket);
     }
 
@@ -83,7 +81,7 @@ int guac_vnc_user_leave_handler(guac_user* user) {
 
     guac_vnc_client* vnc_client = (guac_vnc_client*) user->client->data;
 
-    guac_common_cursor_remove_user(vnc_client->cursor, user);
+    guac_common_cursor_remove_user(vnc_client->display->cursor, user);
 
     return 0;
 }

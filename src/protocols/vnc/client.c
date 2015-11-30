@@ -46,9 +46,8 @@ int guac_client_init(guac_client* client) {
     guac_vnc_client* vnc_client = calloc(1, sizeof(guac_vnc_client));
     client->data = vnc_client;
 
-    /* Init clipboard and shared mouse */
+    /* Init clipboard */
     vnc_client->clipboard = guac_common_clipboard_alloc(GUAC_VNC_CLIPBOARD_MAX_LENGTH);
-    vnc_client->cursor = guac_common_cursor_alloc(client);
 
     /* Set handlers */
     client->join_handler = guac_vnc_user_join_handler;
@@ -110,16 +109,13 @@ int guac_vnc_client_free_handler(guac_client* client) {
     if (vnc_client->settings.encodings != NULL)
         free(vnc_client->settings.encodings);
 
-    /* Free mousr cursor */
-    guac_common_cursor_free(vnc_client->cursor);
-
     /* Free clipboard */
     if (vnc_client->clipboard != NULL)
         guac_common_clipboard_free(vnc_client->clipboard);
 
-    /* Free surface */
-    if (vnc_client->default_surface != NULL)
-        guac_common_surface_free(vnc_client->default_surface);
+    /* Free display */
+    if (vnc_client->display != NULL)
+        guac_common_display_free(vnc_client->display);
 
     /* Free generic data struct */
     free(client->data);

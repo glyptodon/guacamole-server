@@ -26,7 +26,7 @@
 #include "config.h"
 
 #include "guac_clipboard.h"
-#include "guac_cursor.h"
+#include "guac_display.h"
 #include "guac_iconv.h"
 #include "guac_surface.h"
 #include "settings.h"
@@ -81,9 +81,9 @@ typedef struct guac_vnc_client {
     guac_vnc_settings settings;
 
     /**
-     * Mouse cursor.
+     * The current display state.
      */
-    guac_common_cursor* cursor;
+    guac_common_display* display;
 
     /**
      * Internal clipboard.
@@ -101,11 +101,6 @@ typedef struct guac_vnc_client {
      */
     pa_threaded_mainloop* pa_mainloop;
 #endif
-
-    /**
-     * Default surface.
-     */
-    guac_common_surface* default_surface;
 
 #ifdef ENABLE_COMMON_SSH
     /**
