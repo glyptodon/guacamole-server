@@ -193,9 +193,6 @@ AC_ARG_WITH([vorbis],
             [],
             [with_vorbis=check])
 
-# FIXME: Temporarily disabled
-with_vorbis=no
-
 if test "x$with_vorbis" != "xno"
 then
     have_vorbis=yes
