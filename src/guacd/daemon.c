@@ -325,16 +325,16 @@ int main(int argc, char* argv[]) {
     /* Free addresses */
     freeaddrinfo(addresses);
 
+    /* Listen for connections */
+    if (listen(socket_fd, 5) < 0) {
+        guacd_log(GUAC_LOG_ERROR, "Could not listen on socket: %s", strerror(errno));
+        return 3;
+    }
+
     /* Daemon loop */
     for (;;) {
 
         pthread_t child_thread;
-
-        /* Listen for connections */
-        if (listen(socket_fd, 5) < 0) {
-            guacd_log(GUAC_LOG_ERROR, "Could not listen on socket: %s", strerror(errno));
-            return 3;
-        }
 
         /* Accept connection */
         client_addr_len = sizeof(client_addr);

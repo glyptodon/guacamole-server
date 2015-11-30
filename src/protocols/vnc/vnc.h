@@ -31,12 +31,12 @@
 #include "guac_surface.h"
 #include "settings.h"
 
-#include <guacamole/audio.h>
 #include <guacamole/client.h>
 #include <guacamole/layer.h>
 #include <rfb/rfbclient.h>
 
 #ifdef ENABLE_PULSE
+#include <guacamole/audio.h>
 #include <pulse/pulseaudio.h>
 #endif
 
@@ -90,12 +90,12 @@ typedef struct guac_vnc_client {
      */
     guac_common_clipboard* clipboard;
 
+#ifdef ENABLE_PULSE
     /**
      * Audio output, if any.
      */
     guac_audio_stream* audio;
 
-#ifdef ENABLE_PULSE
     /**
      * PulseAudio event loop.
      */

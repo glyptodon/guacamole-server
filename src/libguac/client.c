@@ -509,3 +509,42 @@ int guac_client_get_processing_lag(guac_client* client) {
 
 }
 
+/**
+ * Callback which is invoked by guac_client_supports_webp() for each user
+ * associated with the given client, thus updating an overall support flag
+ * describing the WebP support state for the client as a whole.
+ *
+ * @param user
+ *     The user to check for WebP support.
+ *
+ * @param data
+ *     Pointer to an int containing the current WebP support status for the
+ *     client associated with the given user. This flag will be 0 if any user
+ *     already checked has lacked WebP support, or 1 otherwise.
+ */
+static void __webp_support_callback(guac_user* user, void* data) {
+
+    int* webp_supported = (int*) data;
+
+    /* Check whether current user supports WebP */
+    if (*webp_supported)
+        *webp_supported = guac_user_supports_webp(user);
+
+}
+
+int guac_client_supports_webp(guac_client* client) {
+
+#ifdef ENABLE_WEBP
+    int webp_supported = 1;
+
+    /* WebP is supported for entire client only if each user supports it */
+    guac_client_foreach_user(client, __webp_support_callback, &webp_supported);
+
+    return webp_supported;
+#else
+    /* Support for WebP is completely absent */
+    return 0;
+#endif
+
+}
+

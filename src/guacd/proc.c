@@ -44,38 +44,59 @@
 #include <sys/socket.h>
 
 /**
- * Copies the contents of an instruction's argc and argv into a
- * newly-allocated, NULL-terminated string array.
+ * Copies the given array of mimetypes (strings) into a newly-allocated NULL-
+ * terminated array of strings. Both the array and the strings within the array
+ * are newly-allocated and must be later freed via guacd_free_mimetypes().
+ *
+ * @param mimetypes
+ *     The array of mimetypes to copy.
+ *
+ * @param count
+ *     The number of mimetypes in the given array.
+ *
+ * @return
+ *     A newly-allocated, NULL-terminated array containing newly-allocated
+ *     copies of each of the mimetypes provided in the original mimetypes
+ *     array.
  */
-static char** __dup_mimetypes(int argc, char** argv) {
-
-    char** mimetypes = malloc(sizeof(char*) * (argc+1));
+static char** guacd_copy_mimetypes(char** mimetypes, int count) {
 
     int i;
 
-    /* Copy contents of argv into NULL-terminated string array */
-    for (i=0; i<argc; i++)
-        mimetypes[i] = strdup(argv[i]);
+    /* Allocate sufficient space for NULL-terminated array of mimetypes */
+    char** mimetypes_copy = malloc(sizeof(char*) * (count+1));
 
-    mimetypes[argc] = NULL;
+    /* Copy each provided mimetype */
+    for (i = 0; i < count; i++)
+        mimetypes_copy[i] = strdup(mimetypes[i]);
 
-    return mimetypes;
+    /* Terminate with NULL */
+    mimetypes_copy[count] = NULL;
+
+    return mimetypes_copy;
 
 }
 
 /**
- * Frees an array of mimetypes allocated through __dup_mimetypes().
+ * Frees the given array of mimetypes, including the space allocated to each
+ * mimetype string within the array. The provided array of mimetypes MUST have
+ * been allocated with guacd_copy_mimetypes().
+ *
+ * @param mimetypes
+ *     The NULL-terminated array of mimetypes to free. This array MUST have
+ *     been previously allocated with guacd_copy_mimetypes().
  */
-static void __free_mimetypes(char** mimetypes) {
+static void guacd_free_mimetypes(char** mimetypes) {
 
-    char** current = mimetypes;
+    char** current_mimetype = mimetypes;
 
-    /* Free contents of mimetypes array */
-    while (*current != NULL) {
-        free(*current);
-        current++;
+    /* Free all strings within NULL-terminated mimetype array */
+    while (*current_mimetype != NULL) {
+        free(*current_mimetype);
+        current_mimetype++;
     }
 
+    /* Free the array itself, now that its contents have been freed */
     free(mimetypes);
 
 }
@@ -143,7 +164,7 @@ static int guacd_handle_user(guac_user* user) {
     }
 
     /* Store audio mimetypes */
-    char** audio_mimetypes = __dup_mimetypes(parser->argc, parser->argv);
+    char** audio_mimetypes = guacd_copy_mimetypes(parser->argv, parser->argc);
     user->info.audio_mimetypes = (const char**) audio_mimetypes;
 
     /* Get supported video formats */
@@ -158,8 +179,23 @@ static int guacd_handle_user(guac_user* user) {
     }
 
     /* Store video mimetypes */
-    char** video_mimetypes = __dup_mimetypes(parser->argc, parser->argv);
+    char** video_mimetypes = guacd_copy_mimetypes(parser->argv, parser->argc);
     user->info.video_mimetypes = (const char**) video_mimetypes;
+
+    /* Get supported image formats */
+    if (guac_parser_expect(parser, socket, GUACD_USEC_TIMEOUT, "image")) {
+
+        /* Log error */
+        guacd_log_handshake_failure();
+        guacd_log_guac_error(GUAC_LOG_DEBUG, "Error reading \"image\"");
+
+        guac_parser_free(parser);
+        return 1;
+    }
+
+    /* Store image mimetypes */
+    char** image_mimetypes = guacd_copy_mimetypes(parser->argv, parser->argc);
+    user->info.image_mimetypes = (const char**) image_mimetypes;
 
     /* Get args from connect instruction */
     if (guac_parser_expect(parser, socket, GUACD_USEC_TIMEOUT, "connect")) {
@@ -196,8 +232,9 @@ static int guacd_handle_user(guac_user* user) {
     }
 
     /* Free mimetype lists */
-    __free_mimetypes(audio_mimetypes);
-    __free_mimetypes(video_mimetypes);
+    guacd_free_mimetypes(audio_mimetypes);
+    guacd_free_mimetypes(video_mimetypes);
+    guacd_free_mimetypes(image_mimetypes);
 
     guac_parser_free(parser);
 

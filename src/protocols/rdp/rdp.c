@@ -171,12 +171,6 @@ BOOL rdp_freerdp_pre_connect(freerdp* instance) {
     freerdp_register_addin_provider(freerdp_channels_load_static_addin_entry, 0);
 #endif
 
-    /* Load virtual channel management plugin */
-    if (freerdp_channels_load_plugin(channels, instance->settings,
-                "drdynvc", instance->settings))
-        guac_client_log(client, GUAC_LOG_WARNING,
-                "Failed to load drdynvc plugin.");
-
 #ifdef HAVE_FREERDP_EVENT_PUBSUB
     /* Subscribe to and handle channel connected events */
     PubSub_SubscribeChannelConnected(context->pubSub,
@@ -184,6 +178,12 @@ BOOL rdp_freerdp_pre_connect(freerdp* instance) {
 #endif
 
 #ifdef HAVE_FREERDP_DISPLAY_UPDATE_SUPPORT
+    /* Load virtual channel management plugin */
+    if (freerdp_channels_load_plugin(channels, instance->settings,
+                "drdynvc", instance->settings))
+        guac_client_log(client, GUAC_LOG_WARNING,
+                "Failed to load drdynvc plugin.");
+
     /* Init display update plugin */
     rdp_client->disp = guac_rdp_disp_alloc();
     guac_rdp_disp_load_plugin(instance->context);
@@ -200,19 +200,13 @@ BOOL rdp_freerdp_pre_connect(freerdp* instance) {
     /* If audio enabled, choose an encoder */
     if (rdp_client->settings.audio_enabled) {
 
-        rdp_client->audio = guac_audio_stream_alloc(client, NULL);
+        rdp_client->audio = guac_audio_stream_alloc(client, NULL,
+                GUAC_RDP_AUDIO_RATE,
+                GUAC_RDP_AUDIO_CHANNELS,
+                GUAC_RDP_AUDIO_BPS);
 
-        /* If an encoding is available, load the sound plugin */
-        if (rdp_client->audio != NULL) {
-
-            /* Load sound plugin */
-            if (freerdp_channels_load_plugin(channels, instance->settings,
-                        "guacsnd", rdp_client->audio))
-                guac_client_log(client, GUAC_LOG_WARNING,
-                        "Failed to load guacsnd plugin. Audio will not work.");
-
-        }
-        else
+        /* Warn if no audio encoding is available */
+        if (rdp_client->audio == NULL)
             guac_client_log(client, GUAC_LOG_INFO,
                     "No available audio encoding. Sound disabled.");
 
@@ -235,7 +229,7 @@ BOOL rdp_freerdp_pre_connect(freerdp* instance) {
 
     }
 
-    /* If RDPDR required, load it */
+    /* If RDPSND/RDPDR required, load them */
     if (rdp_client->settings.printing_enabled
         || rdp_client->settings.drive_enabled
         || rdp_client->settings.audio_enabled) {
@@ -244,7 +238,16 @@ BOOL rdp_freerdp_pre_connect(freerdp* instance) {
         if (freerdp_channels_load_plugin(channels, instance->settings,
                     "guacdr", client))
             guac_client_log(client, GUAC_LOG_WARNING,
-                    "Failed to load guacdr plugin. Drive redirection and printing will not work.");
+                    "Failed to load guacdr plugin. Drive redirection and "
+                    "printing will not work. Sound MAY not work.");
+
+        /* Load RDPSND plugin */
+        if (freerdp_channels_load_plugin(channels, instance->settings,
+                    "guacsnd", client))
+            guac_client_log(client, GUAC_LOG_WARNING,
+                    "Failed to load guacsnd alongside guacdr plugin. Sound "
+                    "will not work. Drive redirection and printing MAY not "
+                    "work.");
 
     }
 #endif

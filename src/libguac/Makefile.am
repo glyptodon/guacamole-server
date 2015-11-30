@@ -71,9 +71,9 @@ noinst_HEADERS =      \
     encode-png.h      \
     palette.h         \
     user-handlers.h   \
-    wav_encoder.h
+    raw_encoder.h
 
-# Temporarily removed audio.c for testing of others
+# Temporarily removed audio.c and raw_encoder.c for testing of others
 libguac_la_SOURCES =  \
     client.c          \
     encode-jpeg.c     \
@@ -91,14 +91,14 @@ libguac_la_SOURCES =  \
     timestamp.c       \
     unicode.c         \
     user.c            \
-    user-handlers.c   \
-    #wav_encoder.c
+    user-handlers.c
 
-# Compile OGG support if available
-if ENABLE_OGG
-#libguac_la_SOURCES += ogg_encoder.c
-#noinst_HEADERS += ogg_encoder.h
+# Compile WebP support if available
+if ENABLE_WEBP
+libguac_la_SOURCES += encode-webp.c
+noinst_HEADERS += encode-webp.h
 endif
+
 
 libguac_la_CFLAGS = \
     -Werror -Wall -pedantic -Iguacamole
@@ -110,7 +110,8 @@ libguac_la_LDFLAGS =     \
     @PNG_LIBS@           \
     @PTHREAD_LIBS@       \
     @UUID_LIBS@          \
-    @VORBIS_LIBS@
+    @VORBIS_LIBS@        \
+    @WEBP_LIBS@
 
 libguac_la_LIBADD = \
     @LIBADD_DLOPEN@ 

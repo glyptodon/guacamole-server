@@ -438,6 +438,19 @@ int guac_client_load_plugin(guac_client* client, const char* protocol);
 int guac_client_get_processing_lag(guac_client* client);
 
 /**
+ * Returns whether all users of the given client support WebP. If any user does
+ * not support WebP, or the server cannot encode WebP images, zero is returned.
+ *
+ * @param client
+ *     The Guacamole client whose users should be checked for WebP support.
+ *
+ * @return
+ *     Non-zero if the all users of the given client claim to support WebP and
+ *     the server has been built with WebP support, zero otherwise.
+ */
+int guac_client_supports_webp(guac_client* client);
+
+/**
  * The default Guacamole client layer, layer 0.
  */
 extern const guac_layer* GUAC_DEFAULT_LAYER;

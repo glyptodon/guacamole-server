@@ -64,6 +64,26 @@
 #define GUAC_RDP_CLIPBOARD_MAX_LENGTH 262144
 
 /**
+ * Initial rate of audio to stream, in Hz. If the RDP server uses a different
+ * value, the Guacamole audio stream will simply be reset appropriately.
+ */
+#define GUAC_RDP_AUDIO_RATE 44100
+
+/**
+ * The number of channels to stream for audio. If the RDP server uses a
+ * different value, the Guacamole audio stream will simply be reset
+ * appropriately.
+ */
+#define GUAC_RDP_AUDIO_CHANNELS 2
+
+/**
+ * The number of bits per sample within the audio stream. If the RDP server
+ * uses a different value, the Guacamole audio stream will simply be reset
+ * appropriately.
+ */
+#define GUAC_RDP_AUDIO_BPS 16
+
+/**
  * Handler which frees all data associated with the guac_client.
  *
  * @param client The guac_client whose data should be freed.

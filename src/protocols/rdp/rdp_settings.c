@@ -76,6 +76,8 @@ const char* GUAC_RDP_CLIENT_ARGS[] = {
     "enable-full-window-drag",
     "enable-desktop-composition",
     "enable-menu-animations",
+    "preconnection-id",
+    "preconnection-blob",
 
 #ifdef ENABLE_COMMON_SSH
     "enable-sftp",
@@ -125,6 +127,8 @@ enum RDP_ARGS_IDX {
     IDX_ENABLE_FULL_WINDOW_DRAG,
     IDX_ENABLE_DESKTOP_COMPOSITION,
     IDX_ENABLE_MENU_ANIMATIONS,
+    IDX_PRECONNECTION_ID,
+    IDX_PRECONNECTION_BLOB,
 
 #ifdef ENABLE_COMMON_SSH
     IDX_ENABLE_SFTP,
@@ -262,6 +266,11 @@ int guac_rdp_parse_args(guac_rdp_settings* settings, guac_user* user,
     if (argv[IDX_PASSWORD][0] != '\0')
         settings->password = strdup(argv[IDX_PASSWORD]);
 
+    /* Client name */
+    settings->client_name = NULL;
+    if (argv[IDX_CLIENT_NAME][0] != '\0')
+        settings->client_name = strdup(argv[IDX_CLIENT_NAME]);
+
     /* Initial program */
     settings->initial_program = NULL;
     if (argv[IDX_INITIAL_PROGRAM][0] != '\0')
@@ -287,6 +296,14 @@ int guac_rdp_parse_args(guac_rdp_settings* settings, guac_user* user,
     if (argv[IDX_STATIC_CHANNELS][0] != '\0')
         settings->svc_names = guac_split(argv[IDX_STATIC_CHANNELS], ',');
 
+    /* Performance flags */
+    settings->wallpaper_enabled           = (strcmp(argv[IDX_ENABLE_WALLPAPER],           "true") == 0);
+    settings->theming_enabled             = (strcmp(argv[IDX_ENABLE_THEMING],             "true") == 0);
+    settings->font_smoothing_enabled      = (strcmp(argv[IDX_ENABLE_FONT_SMOOTHING],      "true") == 0);
+    settings->full_window_drag_enabled    = (strcmp(argv[IDX_ENABLE_FULL_WINDOW_DRAG],    "true") == 0);
+    settings->desktop_composition_enabled = (strcmp(argv[IDX_ENABLE_DESKTOP_COMPOSITION], "true") == 0);
+    settings->menu_animations_enabled     = (strcmp(argv[IDX_ENABLE_MENU_ANIMATIONS],     "true") == 0);
+
     /* Session color depth */
     settings->color_depth = RDP_DEFAULT_DEPTH;
     if (argv[IDX_COLOR_DEPTH][0] != '\0')
@@ -299,6 +316,45 @@ int guac_rdp_parse_args(guac_rdp_settings* settings, guac_user* user,
                 "Invalid color-depth: \"%s\". Using default of %i.",
                 argv[IDX_WIDTH], settings->color_depth);
     }
+
+    /* Preconnection ID */
+    settings->preconnection_id = -1;
+    if (argv[IDX_PRECONNECTION_ID][0] != '\0') {
+
+        /* Parse preconnection ID, warn if invalid */
+        int preconnection_id = atoi(argv[IDX_PRECONNECTION_ID]);
+        if (preconnection_id < 0)
+            guac_client_log(client, GUAC_LOG_WARNING,
+                    "Ignoring invalid preconnection ID: %i",
+                    preconnection_id);
+
+        /* Otherwise, assign specified ID */
+        else {
+            settings->preconnection_id = preconnection_id;
+            guac_client_log(client, GUAC_LOG_DEBUG,
+                    "Preconnection ID: %i", settings->preconnection_id);
+        }
+
+    }
+
+    /* Preconnection BLOB */
+    settings->preconnection_blob = NULL;
+    if (argv[IDX_PRECONNECTION_BLOB][0] != '\0') {
+        settings->preconnection_blob = strdup(argv[IDX_PRECONNECTION_BLOB]);
+        guac_client_log(client, GUAC_LOG_DEBUG,
+                "Preconnection BLOB: \"%s\"", settings->preconnection_blob);
+    }
+
+#ifndef HAVE_RDPSETTINGS_SENDPRECONNECTIONPDU
+    /* Warn if support for the preconnection BLOB / ID is absent */
+    if (settings->preconnection_blob != NULL
+            || settings->preconnection_id != -1) {
+        guac_client_log(client, GUAC_LOG_WARNING,
+                "Installed version of FreeRDP lacks support for the "
+                "preconnection PDU. The specified preconnection BLOB and/or "
+                "ID will be ignored.");
+    }
+#endif
 
     /* Audio enable/disable */
     settings->audio_enabled =
@@ -587,6 +643,22 @@ void guac_rdp_push_settings(guac_rdp_settings* guac_settings, freerdp* rdp) {
         rdp_settings->RemoteApplicationCmdLine = guac_settings->remote_app_args;
 #endif
     }
+
+#ifdef HAVE_RDPSETTINGS_SENDPRECONNECTIONPDU
+    /* Preconnection ID */
+    if (guac_settings->preconnection_id != -1) {
+        rdp_settings->NegotiateSecurityLayer = FALSE;
+        rdp_settings->SendPreconnectionPdu = TRUE;
+        rdp_settings->PreconnectionId = guac_settings->preconnection_id;
+    }
+
+    /* Preconnection BLOB */
+    if (guac_settings->preconnection_blob != NULL) {
+        rdp_settings->NegotiateSecurityLayer = FALSE;
+        rdp_settings->SendPreconnectionPdu = TRUE;
+        rdp_settings->PreconnectionBlob = guac_settings->preconnection_blob;
+    }
+#endif
 
     /* Order support */
 #ifdef LEGACY_RDPSETTINGS

@@ -20,37 +20,42 @@
  * THE SOFTWARE.
  */
 
-#ifndef __GUAC_AUDIO_FNTYPES_H
-#define __GUAC_AUDIO_FNTYPES_H
+#ifndef GUAC_ENCODE_WEBP_H
+#define GUAC_ENCODE_WEBP_H
+
+#include "config.h"
+
+#include "socket.h"
+#include "stream.h"
+
+#include <cairo/cairo.h>
 
 /**
- * Function type definitions related to simple streaming audio.
+ * Encodes the given surface as a WebP, and sends the resulting data over the
+ * given stream and socket as blobs.
  *
- * @file audio-fntypes.h
+ * @param socket
+ *     The socket to send WebP blobs over.
+ *
+ * @param stream
+ *     The stream to associate with each blob.
+ *
+ * @param surface
+ *     The Cairo surface to write to the given stream and socket as PNG blobs.
+ *
+ * @param quality
+ *     The WebP image quality to use. For lossy images, larger values indicate
+ *     improving quality at the expense of larger file size. For lossless
+ *     images, this dictates the quality of compression, with larger values
+ *     producing smaller files at the expense of speed.
+ *
+ * @param lossless
+ *     Zero for a lossy image, non-zero for lossless.
+ *
+ * @return
+ *     Zero if the encoding operation is successful, non-zero otherwise.
  */
-
-#include "audio-types.h"
-
-/**
- * Handler which is called when the audio stream is opened.
- */
-typedef void guac_audio_encoder_begin_handler(guac_audio_stream* audio);
-
-/**
- * Handler which is called when the audio stream needs to be flushed.
- */
-typedef void guac_audio_encoder_flush_handler(guac_audio_stream* audio);
-
-/**
- * Handler which is called when the audio stream is closed.
- */
-typedef void guac_audio_encoder_end_handler(guac_audio_stream* audio);
-
-/**
- * Handler which is called when PCM data is written to the audio stream.
- */
-typedef void guac_audio_encoder_write_handler(guac_audio_stream* audio,
-        const unsigned char* pcm_data, int length);
+int guac_webp_write(guac_socket* socket, guac_stream* stream,
+        cairo_surface_t* surface, int quality, int lossless);
 
 #endif
-

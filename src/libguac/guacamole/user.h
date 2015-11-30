@@ -77,6 +77,13 @@ struct guac_user_info {
     const char** video_mimetypes;
 
     /**
+     * NULL-terminated array of client-supported image mimetypes. Though all
+     * supported image mimetypes will be listed here, it can be safely assumed
+     * that all clients will support at least "image/png" and "image/jpeg".
+     */
+    const char** image_mimetypes;
+
+    /**
      * The DPI of the physical remote display if configured for the optimal
      * width/height combination described here. This need not be honored by
      * a client plugin implementation, but if the underlying protocol of the
@@ -651,6 +658,65 @@ void guac_user_stream_png(guac_user* user, guac_socket* socket,
 void guac_user_stream_jpeg(guac_user* user, guac_socket* socket,
         guac_composite_mode mode, const guac_layer* layer, int x, int y,
         cairo_surface_t* surface, int quality);
+
+/**
+ * Streams the image data of the given surface over an image stream ("img"
+ * instruction) as WebP-encoded data at the given quality. The image stream
+ * will be automatically allocated and freed. If the server does not support
+ * WebP, this function has no effect, so be sure to check the result of
+ * guac_user_supports_webp() or guac_client_supports_webp() prior to calling
+ * this function.
+ *
+ * @param user
+ *     The Guacamole user for whom the image stream should be allocated.
+ *
+ * @param socket
+ *     The socket over which instructions associated with the image stream
+ *     should be sent.
+ *
+ * @param mode
+ *     The composite mode to use when rendering the image over the given layer.
+ *
+ * @param layer
+ *     The destination layer.
+ *
+ * @param x
+ *     The X coordinate of the upper-left corner of the destination rectangle
+ *     within the given layer.
+ *
+ * @param y
+ *     The Y coordinate of the upper-left corner of the destination rectangle
+ *     within the given layer.
+ *
+ * @param surface
+ *     A Cairo surface containing the image data to be streamed.
+ *
+ * @param quality
+ *     The WebP image quality, which must be an integer value between 0 and 100
+ *     inclusive. For lossy images, larger values indicate improving quality at
+ *     the expense of larger file size. For lossless images, this dictates the
+ *     quality of compression, with larger values producing smaller files at
+ *     the expense of speed.
+ *
+ * @param lossless
+ *     Zero to encode a lossy image, non-zero to encode losslessly.
+ */
+void guac_user_stream_webp(guac_user* user, guac_socket* socket,
+        guac_composite_mode mode, const guac_layer* layer, int x, int y,
+        cairo_surface_t* surface, int quality, int lossless);
+
+/**
+ * Returns whether the given user supports WebP. If the user does not
+ * support WebP, or the server cannot encode WebP images, zero is returned.
+ *
+ * @param user
+ *     The Guacamole user to check for WebP support.
+ *
+ * @return
+ *     Non-zero if the given user claims to support WebP and the server has
+ *     been built with WebP support, zero otherwise.
+ */
+int guac_user_supports_webp(guac_user* user);
 
 #endif
 
