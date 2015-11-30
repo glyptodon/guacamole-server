@@ -47,7 +47,6 @@ libguac_common_la_SOURCES = \
     guac_clipboard.c        \
     guac_cursor.c           \
     guac_display.c          \
-    guac_blank_cursor.c     \
     guac_dot_cursor.c       \
     guac_ibar_cursor.c      \
     guac_iconv.c            \
