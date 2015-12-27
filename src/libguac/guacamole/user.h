@@ -666,6 +666,11 @@ void guac_user_stream_png(guac_user* user, guac_socket* socket,
  *
  * @param surface
  *     A Cairo surface containing the image data to be streamed.
+ *
+ * @param quality
+ *     The JPEG image quality, which must be an integer value between 0 and 100
+ *     inclusive. Larger values indicate improving quality at the expense of
+ *     larger file size.
  */
 void guac_user_stream_jpeg(guac_user* user, guac_socket* socket,
         guac_composite_mode mode, const guac_layer* layer, int x, int y,

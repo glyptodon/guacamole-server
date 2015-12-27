@@ -24,9 +24,9 @@
 #define _GUAC_PARSER_CONSTANTS_H
 
 /**
- * Constants related to Guacamole instructions.
+ * Constants related to the Guacamole protocol parser.
  *
- * @file instruction-constants.h
+ * @file parser-constants.h
  */
 
 /**
