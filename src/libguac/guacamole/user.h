@@ -479,13 +479,25 @@ void guac_user_free(guac_user* user);
  * initial handler lookup table defined in user-handlers.c. The intial handlers
  * will in turn call the user's handler (if defined).
  *
- * @param user The user whose handlers should be called.
- * @param opcode The opcode of the instruction to pass to the user via the
- *               appropriate handler.
- * @param argc The number of arguments which are part of the instruction.
- * @param argv An array of all arguments which are part of the instruction.
+ * @param user
+ *     The user whose handlers should be called.
+ *
+ * @param opcode
+ *     The opcode of the instruction to pass to the user via the appropriate
+ *     handler.
+ *
+ * @param argc
+ *     The number of arguments which are part of the instruction.
+ *
+ * @param argv
+ *     An array of all arguments which are part of the instruction.
+ *
+ * @return
+ *     Non-negative if the instruction was handled successfully, or negative
+ *     if an error occurred.
  */
-int guac_user_handle_instruction(guac_user* user, const char* opcode, int argc, char** argv);
+int guac_user_handle_instruction(guac_user* user, const char* opcode,
+        int argc, char** argv);
 
 /**
  * Allocates a new stream. An arbitrary index is automatically assigned
