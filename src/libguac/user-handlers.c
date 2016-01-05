@@ -276,8 +276,17 @@ int __guac_handle_ack(guac_user* user, int argc, char** argv) {
 
     guac_stream* stream;
 
-    /* Validate stream index */
+    /* Parse stream index */
     int stream_index = atoi(argv[0]);
+
+    /* Ignore indices of client-level streams */
+    if (stream_index % 2 != 0)
+        return 0;
+
+    /* Determine index within user-level array of streams */
+    stream_index /= 2;
+
+    /* Validate stream index */
     if (stream_index < 0 || stream_index >= GUAC_USER_MAX_STREAMS)
         return 0;
 
