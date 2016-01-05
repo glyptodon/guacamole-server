@@ -116,9 +116,9 @@ guac_stream* guac_client_alloc_stream(guac_client* client) {
     /* Allocate stream */
     stream_index = guac_pool_next_int(client->__stream_pool);
 
-    /* Initialize stream */
+    /* Initialize stream with odd index (even indices are user-level) */
     allocd_stream = &(client->__output_streams[stream_index]);
-    allocd_stream->index = stream_index;
+    allocd_stream->index = (stream_index * 2) + 1;
     allocd_stream->data = NULL;
     allocd_stream->ack_handler = NULL;
     allocd_stream->blob_handler = NULL;
@@ -131,7 +131,7 @@ guac_stream* guac_client_alloc_stream(guac_client* client) {
 void guac_client_free_stream(guac_client* client, guac_stream* stream) {
 
     /* Release index to pool */
-    guac_pool_free_int(client->__stream_pool, stream->index);
+    guac_pool_free_int(client->__stream_pool, (stream->index - 1) / 2);
 
     /* Mark stream as closed */
     stream->index = GUAC_CLIENT_CLOSED_STREAM_INDEX;
