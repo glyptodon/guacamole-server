@@ -23,6 +23,9 @@
 #include "config.h"
 
 #include "client.h"
+#include "encode-jpeg.h"
+#include "encode-png.h"
+#include "encode-webp.h"
 #include "error.h"
 #include "id.h"
 #include "layer.h"
@@ -560,6 +563,73 @@ int guac_client_get_processing_lag(guac_client* client) {
     guac_client_foreach_user(client, __calculate_lag, &processing_lag);
 
     return processing_lag;
+
+}
+
+void guac_client_stream_png(guac_client* client, guac_socket* socket,
+        guac_composite_mode mode, const guac_layer* layer, int x, int y,
+        cairo_surface_t* surface) {
+
+    /* Allocate new stream for image */
+    guac_stream* stream = guac_client_alloc_stream(client);
+
+    /* Declare stream as containing image data */
+    guac_protocol_send_img(socket, stream, mode, layer, "image/png", x, y);
+
+    /* Write PNG data */
+    guac_png_write(socket, stream, surface);
+
+    /* Terminate stream */
+    guac_protocol_send_end(socket, stream);
+
+    /* Free allocated stream */
+    guac_client_free_stream(client, stream);
+
+}
+
+void guac_client_stream_jpeg(guac_client* client, guac_socket* socket,
+        guac_composite_mode mode, const guac_layer* layer, int x, int y,
+        cairo_surface_t* surface, int quality) {
+
+    /* Allocate new stream for image */
+    guac_stream* stream = guac_client_alloc_stream(client);
+
+    /* Declare stream as containing image data */
+    guac_protocol_send_img(socket, stream, mode, layer, "image/jpeg", x, y);
+
+    /* Write JPEG data */
+    guac_jpeg_write(socket, stream, surface, quality);
+
+    /* Terminate stream */
+    guac_protocol_send_end(socket, stream);
+
+    /* Free allocated stream */
+    guac_client_free_stream(client, stream);
+
+}
+
+void guac_client_stream_webp(guac_client* client, guac_socket* socket,
+        guac_composite_mode mode, const guac_layer* layer, int x, int y,
+        cairo_surface_t* surface, int quality, int lossless) {
+
+#ifdef ENABLE_WEBP
+    /* Allocate new stream for image */
+    guac_stream* stream = guac_client_alloc_stream(client);
+
+    /* Declare stream as containing image data */
+    guac_protocol_send_img(socket, stream, mode, layer, "image/webp", x, y);
+
+    /* Write WebP data */
+    guac_webp_write(socket, stream, surface, quality, lossless);
+
+    /* Terminate stream */
+    guac_protocol_send_end(socket, stream);
+
+    /* Free allocated stream */
+    guac_client_free_stream(client, stream);
+#else
+    /* Do nothing if WebP support is not built in */
+#endif
 
 }
 

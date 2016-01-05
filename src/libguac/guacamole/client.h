@@ -36,9 +36,12 @@
 #include "object-types.h"
 #include "pool-types.h"
 #include "socket-types.h"
+#include "stream-types.h"
 #include "timestamp-types.h"
 #include "user-fntypes.h"
 #include "user-types.h"
+
+#include <cairo/cairo.h>
 
 #include <pthread.h>
 #include <stdarg.h>
@@ -471,6 +474,123 @@ int guac_client_load_plugin(guac_client* client, const char* protocol);
  *     given guac_client, in milliseconds.
  */
 int guac_client_get_processing_lag(guac_client* client);
+
+/**
+ * Streams the image data of the given surface over an image stream ("img"
+ * instruction) as PNG-encoded data. The image stream will be automatically
+ * allocated and freed.
+ *
+ * @param client
+ *     The Guacamole client for which the image stream should be allocated.
+ *
+ * @param socket
+ *     The socket over which instructions associated with the image stream
+ *     should be sent.
+ *
+ * @param mode
+ *     The composite mode to use when rendering the image over the given layer.
+ *
+ * @param layer
+ *     The destination layer.
+ *
+ * @param x
+ *     The X coordinate of the upper-left corner of the destination rectangle
+ *     within the given layer.
+ *
+ * @param y
+ *     The Y coordinate of the upper-left corner of the destination rectangle
+ *     within the given layer.
+ *
+ * @param surface
+ *     A Cairo surface containing the image data to be streamed.
+ */
+void guac_client_stream_png(guac_client* client, guac_socket* socket,
+        guac_composite_mode mode, const guac_layer* layer, int x, int y,
+        cairo_surface_t* surface);
+
+/**
+ * Streams the image data of the given surface over an image stream ("img"
+ * instruction) as JPEG-encoded data at the given quality. The image stream
+ * will be automatically allocated and freed.
+ *
+ * @param client
+ *     The Guacamole client for which the image stream should be allocated.
+ *
+ * @param socket
+ *     The socket over which instructions associated with the image stream
+ *     should be sent.
+ *
+ * @param mode
+ *     The composite mode to use when rendering the image over the given layer.
+ *
+ * @param layer
+ *     The destination layer.
+ *
+ * @param x
+ *     The X coordinate of the upper-left corner of the destination rectangle
+ *     within the given layer.
+ *
+ * @param y
+ *     The Y coordinate of the upper-left corner of the destination rectangle
+ *     within the given layer.
+ *
+ * @param surface
+ *     A Cairo surface containing the image data to be streamed.
+ *
+ * @param quality
+ *     The JPEG image quality, which must be an integer value between 0 and 100
+ *     inclusive. Larger values indicate improving quality at the expense of
+ *     larger file size.
+ */
+void guac_client_stream_jpeg(guac_client* client, guac_socket* socket,
+        guac_composite_mode mode, const guac_layer* layer, int x, int y,
+        cairo_surface_t* surface, int quality);
+
+/**
+ * Streams the image data of the given surface over an image stream ("img"
+ * instruction) as WebP-encoded data at the given quality. The image stream
+ * will be automatically allocated and freed. If the server does not support
+ * WebP, this function has no effect, so be sure to check the result of
+ * guac_client_supports_webp() prior to calling
+ * this function.
+ *
+ * @param client
+ *     The Guacamole client for whom the image stream should be allocated.
+ *
+ * @param socket
+ *     The socket over which instructions associated with the image stream
+ *     should be sent.
+ *
+ * @param mode
+ *     The composite mode to use when rendering the image over the given layer.
+ *
+ * @param layer
+ *     The destination layer.
+ *
+ * @param x
+ *     The X coordinate of the upper-left corner of the destination rectangle
+ *     within the given layer.
+ *
+ * @param y
+ *     The Y coordinate of the upper-left corner of the destination rectangle
+ *     within the given layer.
+ *
+ * @param surface
+ *     A Cairo surface containing the image data to be streamed.
+ *
+ * @param quality
+ *     The WebP image quality, which must be an integer value between 0 and 100
+ *     inclusive. For lossy images, larger values indicate improving quality at
+ *     the expense of larger file size. For lossless images, this dictates the
+ *     quality of compression, with larger values producing smaller files at
+ *     the expense of speed.
+ *
+ * @param lossless
+ *     Zero to encode a lossy image, non-zero to encode losslessly.
+ */
+void guac_client_stream_webp(guac_client* client, guac_socket* socket,
+        guac_composite_mode mode, const guac_layer* layer, int x, int y,
+        cairo_surface_t* surface, int quality, int lossless);
 
 /**
  * Returns whether all users of the given client support WebP. If any user does
