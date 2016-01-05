@@ -1272,38 +1272,6 @@ void guac_common_surface_reset_clip(guac_common_surface* surface) {
 }
 
 /**
- * Callback for guac_client_foreach_user() which sends the dirty rect of the
- * given surface as PNG data to each connected client.
- *
- * @param user
- *     The guac_user that should received the flushed PNG data.
- *
- * @param data
- *     The guac_common_surface to flush.
- */
-static void __flush_png_to_user(guac_user* user, void* data) {
-
-    guac_common_surface* surface = (guac_common_surface*) data;
-    const guac_layer* layer = surface->layer;
-
-    /* Get Cairo surface for specified rect */
-    unsigned char* buffer = surface->buffer
-                          + surface->dirty_rect.y * surface->stride
-                          + surface->dirty_rect.x * 4;
-
-    cairo_surface_t* rect = cairo_image_surface_create_for_data(buffer,
-            CAIRO_FORMAT_RGB24, surface->dirty_rect.width,
-            surface->dirty_rect.height, surface->stride);
-
-    /* Send PNG for rect */
-    guac_user_stream_png(user, user->socket, GUAC_COMP_OVER,
-            layer, surface->dirty_rect.x, surface->dirty_rect.y, rect);
-
-    cairo_surface_destroy(rect);
-
-}
-
-/**
  * Flushes the bitmap update currently described by the dirty rectangle within
  * the given surface directly via an "img" instruction as PNG data. The
  * resulting instructions will be sent over the socket associated with the
@@ -1316,47 +1284,29 @@ static void __guac_common_surface_flush_to_png(guac_common_surface* surface) {
 
     if (surface->dirty) {
 
-        /* Flush to each user */
-        guac_client_foreach_user(surface->client, __flush_png_to_user, surface);
+        guac_socket* socket = surface->socket;
+        const guac_layer* layer = surface->layer;
+
+        /* Get Cairo surface for specified rect */
+        unsigned char* buffer = surface->buffer
+                              + surface->dirty_rect.y * surface->stride
+                              + surface->dirty_rect.x * 4;
+
+        cairo_surface_t* rect = cairo_image_surface_create_for_data(buffer,
+                CAIRO_FORMAT_RGB24, surface->dirty_rect.width,
+                surface->dirty_rect.height, surface->stride);
+
+        /* Send PNG for rect */
+        guac_client_stream_png(surface->client, socket, GUAC_COMP_OVER,
+                layer, surface->dirty_rect.x, surface->dirty_rect.y, rect);
+
+        cairo_surface_destroy(rect);
         surface->realized = 1;
 
         /* Surface is no longer dirty */
         surface->dirty = 0;
 
     }
-
-}
-
-/**
- * Callback for guac_client_foreach_user() which sends the dirty rect of the
- * given surface as JPEG data to each connected client.
- *
- * @param user
- *     The guac_user that should received the flushed JPEG data.
- *
- * @param data
- *     The guac_common_surface to flush.
- */
-static void __flush_jpeg_to_user(guac_user* user, void* data) {
-
-    guac_common_surface* surface = (guac_common_surface*) data;
-    const guac_layer* layer = surface->layer;
-
-    /* Get Cairo surface for specified rect */
-    unsigned char* buffer = surface->buffer
-                          + surface->dirty_rect.y * surface->stride
-                          + surface->dirty_rect.x * 4;
-
-    cairo_surface_t* rect = cairo_image_surface_create_for_data(buffer,
-            CAIRO_FORMAT_RGB24, surface->dirty_rect.width,
-            surface->dirty_rect.height, surface->stride);
-
-    /* Send JPEG for rect */
-    guac_user_stream_jpeg(user, user->socket, GUAC_COMP_OVER,
-            layer, surface->dirty_rect.x, surface->dirty_rect.y, rect,
-            GUAC_SURFACE_JPEG_IMAGE_QUALITY);
-
-    cairo_surface_destroy(rect);
 
 }
 
@@ -1373,6 +1323,9 @@ static void __guac_common_surface_flush_to_jpeg(guac_common_surface* surface) {
 
     if (surface->dirty) {
 
+        guac_socket* socket = surface->socket;
+        const guac_layer* layer = surface->layer;
+
         guac_common_rect max;
         guac_common_rect_init(&max, 0, 0, surface->width, surface->height);
 
@@ -1381,47 +1334,27 @@ static void __guac_common_surface_flush_to_jpeg(guac_common_surface* surface) {
         guac_common_rect_expand_to_grid(GUAC_SURFACE_JPEG_BLOCK_SIZE,
                                         &surface->dirty_rect, &max);
 
-        /* Flush to each user */
-        guac_client_foreach_user(surface->client, __flush_jpeg_to_user, surface);
+        /* Get Cairo surface for specified rect */
+        unsigned char* buffer = surface->buffer
+                              + surface->dirty_rect.y * surface->stride
+                              + surface->dirty_rect.x * 4;
+
+        cairo_surface_t* rect = cairo_image_surface_create_for_data(buffer,
+                CAIRO_FORMAT_RGB24, surface->dirty_rect.width,
+                surface->dirty_rect.height, surface->stride);
+
+        /* Send JPEG for rect */
+        guac_client_stream_jpeg(surface->client, socket, GUAC_COMP_OVER, layer,
+                surface->dirty_rect.x, surface->dirty_rect.y, rect,
+                GUAC_SURFACE_JPEG_IMAGE_QUALITY);
+
+        cairo_surface_destroy(rect);
         surface->realized = 1;
 
         /* Surface is no longer dirty */
         surface->dirty = 0;
 
     }
-
-}
-
-/**
- * Callback for guac_client_foreach_user() which sends the dirty rect of the
- * given surface as WebP data to each connected client.
- *
- * @param user
- *     The guac_user that should received the flushed WebP data.
- *
- * @param data
- *     The guac_common_surface to flush.
- */
-static void __flush_webp_to_user(guac_user* user, void* data) {
-
-    guac_common_surface* surface = (guac_common_surface*) data;
-    const guac_layer* layer = surface->layer;
-
-    /* Get Cairo surface for specified rect */
-    unsigned char* buffer = surface->buffer
-                          + surface->dirty_rect.y * surface->stride
-                          + surface->dirty_rect.x * 4;
-
-    cairo_surface_t* rect = cairo_image_surface_create_for_data(buffer,
-            CAIRO_FORMAT_RGB24, surface->dirty_rect.width,
-            surface->dirty_rect.height, surface->stride);
-
-    /* Send WebP for rect */
-    guac_user_stream_webp(user, user->socket, GUAC_COMP_OVER,
-            layer, surface->dirty_rect.x, surface->dirty_rect.y, rect,
-            GUAC_SURFACE_WEBP_IMAGE_QUALITY, 0);
-
-    cairo_surface_destroy(rect);
 
 }
 
@@ -1438,6 +1371,9 @@ static void __guac_common_surface_flush_to_webp(guac_common_surface* surface) {
 
     if (surface->dirty) {
 
+        guac_socket* socket = surface->socket;
+        const guac_layer* layer = surface->layer;
+
         guac_common_rect max;
         guac_common_rect_init(&max, 0, 0, surface->width, surface->height);
 
@@ -1446,8 +1382,21 @@ static void __guac_common_surface_flush_to_webp(guac_common_surface* surface) {
         guac_common_rect_expand_to_grid(GUAC_SURFACE_WEBP_BLOCK_SIZE,
                                         &surface->dirty_rect, &max);
 
-        /* Flush to each user */
-        guac_client_foreach_user(surface->client, __flush_webp_to_user, surface);
+        /* Get Cairo surface for specified rect */
+        unsigned char* buffer = surface->buffer
+                              + surface->dirty_rect.y * surface->stride
+                              + surface->dirty_rect.x * 4;
+
+        cairo_surface_t* rect = cairo_image_surface_create_for_data(buffer,
+                CAIRO_FORMAT_RGB24, surface->dirty_rect.width,
+                surface->dirty_rect.height, surface->stride);
+
+        /* Send WebP for rect */
+        guac_client_stream_webp(surface->client, socket, GUAC_COMP_OVER, layer,
+                surface->dirty_rect.x, surface->dirty_rect.y, rect,
+                GUAC_SURFACE_WEBP_IMAGE_QUALITY, 0);
+
+        cairo_surface_destroy(rect);
         surface->realized = 1;
 
         /* Surface is no longer dirty */
