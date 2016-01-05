@@ -137,6 +137,17 @@ struct guac_client {
     guac_pool* __layer_pool;
 
     /**
+     * Pool of stream indices.
+     */
+    guac_pool* __stream_pool;
+
+    /**
+     * All available client-level output streams (data going to all connected
+     * users).
+     */
+    guac_stream* __output_streams;
+
+    /**
      * The unique identifier allocated for the connection, which may
      * be used within the Guacamole protocol to refer to this connection.
      * This identifier is guaranteed to be unique from all existing
@@ -350,6 +361,30 @@ void guac_client_free_buffer(guac_client* client, guac_layer* layer);
  * @param layer The buffer to return to the pool of available layer.
  */
 void guac_client_free_layer(guac_client* client, guac_layer* layer);
+
+/**
+ * Allocates a new stream. An arbitrary index is automatically assigned
+ * if no previously-allocated stream is available for use.
+ *
+ * @param client
+ *     The client to allocate the stream for.
+ *
+ * @return
+ *     The next available stream, or a newly allocated stream.
+ */
+guac_stream* guac_client_alloc_stream(guac_client* client);
+
+/**
+ * Returns the given stream to the pool of available streams, such that it
+ * can be reused by any subsequent call to guac_client_alloc_stream().
+ *
+ * @param client
+ *     The client to return the stream to.
+ *
+ * @param stream
+ *     The stream to return to the pool of available stream.
+ */
+void guac_client_free_stream(guac_client* client, guac_stream* stream);
 
 /**
  * Adds the given user to the internal list of connected users. Future writes

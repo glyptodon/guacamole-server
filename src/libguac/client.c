@@ -30,6 +30,7 @@
 #include "plugin.h"
 #include "protocol.h"
 #include "socket.h"
+#include "stream.h"
 #include "timestamp.h"
 #include "user.h"
 
@@ -47,17 +48,6 @@ guac_layer __GUAC_DEFAULT_LAYER = {
 const guac_layer* GUAC_DEFAULT_LAYER = &__GUAC_DEFAULT_LAYER;
 
 /**
- * The broadcast socket cannot be read from.
- */
-static ssize_t __guac_socket_broadcast_read_handler(guac_socket* socket,
-        void* buf, size_t count) {
-
-    /* Broadcast socket reads are not allowed */
-    return -1;
-
-}
-
-/**
  * Single chunk of data, to be broadcast to all users.
  */
 typedef struct __write_chunk {
@@ -73,6 +63,92 @@ typedef struct __write_chunk {
     size_t length;
 
 } __write_chunk;
+
+guac_layer* guac_client_alloc_layer(guac_client* client) {
+
+    /* Init new layer */
+    guac_layer* allocd_layer = malloc(sizeof(guac_layer));
+    allocd_layer->index = guac_pool_next_int(client->__layer_pool)+1;
+
+    return allocd_layer;
+
+}
+
+guac_layer* guac_client_alloc_buffer(guac_client* client) {
+
+    /* Init new layer */
+    guac_layer* allocd_layer = malloc(sizeof(guac_layer));
+    allocd_layer->index = -guac_pool_next_int(client->__buffer_pool) - 1;
+
+    return allocd_layer;
+
+}
+
+void guac_client_free_buffer(guac_client* client, guac_layer* layer) {
+
+    /* Release index to pool */
+    guac_pool_free_int(client->__buffer_pool, -layer->index - 1);
+
+    /* Free layer */
+    free(layer);
+
+}
+
+void guac_client_free_layer(guac_client* client, guac_layer* layer) {
+
+    /* Release index to pool */
+    guac_pool_free_int(client->__layer_pool, layer->index);
+
+    /* Free layer */
+    free(layer);
+
+}
+
+guac_stream* guac_client_alloc_stream(guac_client* client) {
+
+    guac_stream* allocd_stream;
+    int stream_index;
+
+    /* Refuse to allocate beyond maximum */
+    if (client->__stream_pool->active == GUAC_CLIENT_MAX_STREAMS)
+        return NULL;
+
+    /* Allocate stream */
+    stream_index = guac_pool_next_int(client->__stream_pool);
+
+    /* Initialize stream */
+    allocd_stream = &(client->__output_streams[stream_index]);
+    allocd_stream->index = stream_index;
+    allocd_stream->data = NULL;
+    allocd_stream->ack_handler = NULL;
+    allocd_stream->blob_handler = NULL;
+    allocd_stream->end_handler = NULL;
+
+    return allocd_stream;
+
+}
+
+void guac_client_free_stream(guac_client* client, guac_stream* stream) {
+
+    /* Release index to pool */
+    guac_pool_free_int(client->__stream_pool, stream->index);
+
+    /* Mark stream as closed */
+    stream->index = GUAC_CLIENT_CLOSED_STREAM_INDEX;
+
+}
+
+
+/**
+ * The broadcast socket cannot be read from.
+ */
+static ssize_t __guac_socket_broadcast_read_handler(guac_socket* socket,
+        void* buf, size_t count) {
+
+    /* Broadcast socket reads are not allowed */
+    return -1;
+
+}
 
 /**
  * Writes a chunk of data to a given user.
@@ -169,48 +245,9 @@ static int __guac_socket_broadcast_select_handler(guac_socket* socket, int usec_
 
 }
 
-guac_layer* guac_client_alloc_layer(guac_client* client) {
-
-    /* Init new layer */
-    guac_layer* allocd_layer = malloc(sizeof(guac_layer));
-    allocd_layer->index = guac_pool_next_int(client->__layer_pool)+1;
-
-    return allocd_layer;
-
-}
-
-guac_layer* guac_client_alloc_buffer(guac_client* client) {
-
-    /* Init new layer */
-    guac_layer* allocd_layer = malloc(sizeof(guac_layer));
-    allocd_layer->index = -guac_pool_next_int(client->__buffer_pool) - 1;
-
-    return allocd_layer;
-
-}
-
-void guac_client_free_buffer(guac_client* client, guac_layer* layer) {
-
-    /* Release index to pool */
-    guac_pool_free_int(client->__buffer_pool, -layer->index - 1);
-
-    /* Free layer */
-    free(layer);
-
-}
-
-void guac_client_free_layer(guac_client* client, guac_layer* layer) {
-
-    /* Release index to pool */
-    guac_pool_free_int(client->__layer_pool, layer->index);
-
-    /* Free layer */
-    free(layer);
-
-}
-
 guac_client* guac_client_alloc() {
 
+    int i;
     pthread_rwlockattr_t lock_attributes;
 
     /* Allocate new client */
@@ -237,6 +274,17 @@ guac_client* guac_client_alloc() {
     /* Allocate buffer and layer pools */
     client->__buffer_pool = guac_pool_alloc(GUAC_BUFFER_POOL_INITIAL_SIZE);
     client->__layer_pool = guac_pool_alloc(GUAC_BUFFER_POOL_INITIAL_SIZE);
+
+    /* Allocate stream pool */
+    client->__stream_pool = guac_pool_alloc(0);
+
+    /* Initialize streams */
+    client->__output_streams = malloc(sizeof(guac_stream) * GUAC_CLIENT_MAX_STREAMS);
+
+    for (i=0; i<GUAC_CLIENT_MAX_STREAMS; i++) {
+        client->__output_streams[i].index = GUAC_CLIENT_CLOSED_STREAM_INDEX;
+    }
+
 
     /* Init locks */
     pthread_rwlockattr_init(&lock_attributes);
@@ -276,6 +324,12 @@ void guac_client_free(guac_client* client) {
     /* Free layer pools */
     guac_pool_free(client->__buffer_pool);
     guac_pool_free(client->__layer_pool);
+
+    /* Free streams */
+    free(client->__output_streams);
+
+    /* Free stream pool */
+    guac_pool_free(client->__stream_pool);
 
     /* Close associated plugin */
     if (client->__plugin_handle != NULL) {
