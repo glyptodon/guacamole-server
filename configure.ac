@@ -283,9 +283,6 @@ AC_ARG_WITH([terminal],
             [],
             [with_terminal=check])
 
-# FIXME: Temporarily disabled
-with_terminal=no
-
 if test "x$with_terminal" != "xno"
 then
     have_terminal=yes
