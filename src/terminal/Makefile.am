@@ -26,30 +26,22 @@ ACLOCAL_AMFLAGS = -I m4
 noinst_LTLIBRARIES = libguac_terminal.la
 
 noinst_HEADERS =                \
-    blank.h                     \
     buffer.h                    \
     char_mappings.h             \
     common.h                    \
-    cursor.h                    \
     display.h                   \
-    ibar.h                      \
     packet.h                    \
-    pointer.h                   \
     scrollbar.h                 \
     terminal.h                  \
     terminal_handlers.h         \
     types.h
 
 libguac_terminal_la_SOURCES =   \
-    blank.c                     \
     buffer.c                    \
     char_mappings.c             \
     common.c                    \
-    cursor.c                    \
     display.c                   \
-    ibar.c                      \
     packet.c                    \
-    pointer.c                   \
     scrollbar.c                 \
     terminal.c                  \
     terminal_handlers.c

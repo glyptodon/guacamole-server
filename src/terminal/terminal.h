@@ -27,9 +27,9 @@
 #include "config.h"
 
 #include "buffer.h"
-#include "cursor.h"
 #include "display.h"
 #include "guac_clipboard.h"
+#include "guac_display.h"
 #include "scrollbar.h"
 #include "types.h"
 
@@ -88,6 +88,28 @@
 typedef struct guac_terminal guac_terminal;
 
 /**
+ * All possible mouse cursors used by the terminal emulator.
+ */
+typedef enum guac_terminal_cursor_type {
+
+    /**
+     * A transparent (blank) cursor.
+     */
+    GUAC_TERMINAL_CURSOR_BLANK,
+
+    /**
+     * A standard I-bar cursor for selecting text, etc.
+     */
+    GUAC_TERMINAL_CURSOR_IBAR,
+
+    /**
+     * A standard triangular mouse pointer for manipulating non-text objects.
+     */
+    GUAC_TERMINAL_CURSOR_POINTER
+
+} guac_terminal_cursor_type;
+
+/**
  * Handler for characters printed to the terminal. When a character is printed,
  * the current char handler for the terminal is called and given that
  * character.
@@ -111,9 +133,15 @@ typedef guac_stream* guac_terminal_file_download_handler(guac_client* client, ch
 struct guac_terminal {
 
     /**
-     * The Guacamole client this terminal emulator will use for rendering.
+     * The Guacamole client associated with this terminal emulator.
      */
     guac_client* client;
+
+    /**
+     * The display associated with the Guacamole client this terminal emulator
+     * will use for rendering.
+     */
+    guac_common_display* display;
 
     /**
      * Called whenever the necessary terminal codes are sent to change
@@ -233,7 +261,7 @@ struct guac_terminal {
      * The difference between the currently-rendered screen and the current
      * state of the terminal.
      */
-    guac_terminal_display* display;
+    guac_terminal_display* term_display;
 
     /**
      * Current terminal display state. All characters present on the screen
@@ -339,24 +367,9 @@ struct guac_terminal {
     int mouse_mask;
 
     /**
-     * The cached pointer cursor.
+     * The current mouse cursor, to avoid re-setting the cursor image.
      */
-    guac_terminal_cursor* pointer_cursor;
-
-    /**
-     * The cached I-bar cursor.
-     */
-    guac_terminal_cursor* ibar_cursor;
-
-    /**
-     * The cached invisible (blank) cursor.
-     */
-    guac_terminal_cursor* blank_cursor;
-
-    /**
-     * The current cursor, used to avoid re-setting the cursor.
-     */
-    guac_terminal_cursor* current_cursor;
+    guac_terminal_cursor_type current_cursor;
 
     /**
      * The current contents of the clipboard.
