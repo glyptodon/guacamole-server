@@ -505,7 +505,8 @@ int guac_terminal_send_key(guac_terminal* term, int keysym, int pressed);
  * Handles the given mouse event, sending data, scrolling, pasting clipboard
  * data, etc. as necessary.
  */
-int guac_terminal_send_mouse(guac_terminal* term, int x, int y, int mask);
+int guac_terminal_send_mouse(guac_terminal* term, guac_user* user,
+        int x, int y, int mask);
 
 /**
  * Handles a scroll event received from the scrollbar associated with a

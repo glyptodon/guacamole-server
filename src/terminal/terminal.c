@@ -1536,7 +1536,8 @@ int guac_terminal_send_key(guac_terminal* term, int keysym, int pressed) {
 
 }
 
-static int __guac_terminal_send_mouse(guac_terminal* term, int x, int y, int mask) {
+static int __guac_terminal_send_mouse(guac_terminal* term, guac_user* user,
+        int x, int y, int mask) {
 
     guac_client* client = term->client;
     guac_socket* socket = client->socket;
@@ -1544,6 +1545,9 @@ static int __guac_terminal_send_mouse(guac_terminal* term, int x, int y, int mas
     /* Determine which buttons were just released and pressed */
     int released_mask =  term->mouse_mask & ~mask;
     int pressed_mask  = ~term->mouse_mask &  mask;
+
+    /* Store current mouse location */
+    guac_common_cursor_move(term->display->cursor, user, x, y);
 
     /* Notify scrollbar, do not handle anything handled by scrollbar */
     if (guac_terminal_scrollbar_handle_mouse(term->scrollbar, x, y, mask)) {
@@ -1626,12 +1630,13 @@ static int __guac_terminal_send_mouse(guac_terminal* term, int x, int y, int mas
 
 }
 
-int guac_terminal_send_mouse(guac_terminal* term, int x, int y, int mask) {
+int guac_terminal_send_mouse(guac_terminal* term, guac_user* user,
+        int x, int y, int mask) {
 
     int result;
 
     guac_terminal_lock(term);
-    result = __guac_terminal_send_mouse(term, x, y, mask);
+    result = __guac_terminal_send_mouse(term, user, x, y, mask);
     guac_terminal_unlock(term);
 
     return result;
