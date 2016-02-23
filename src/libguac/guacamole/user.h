@@ -735,5 +735,113 @@ void guac_user_stream_webp(guac_user* user, guac_socket* socket,
  */
 int guac_user_supports_webp(guac_user* user);
 
+/**
+ * Automatically handles a single argument received from a joining user,
+ * returning a newly-allocated string containing that value. If the argument
+ * provided by the user is blank, a newly-allocated string containing the
+ * default value is returned.
+ *
+ * @param user
+ *     The user joining the connection and providing the given arguments.
+ *
+ * @param arg_names
+ *     A NULL-terminated array of argument names, corresponding to the provided
+ *     array of argument values. This array must be exactly the same size as
+ *     the argument value array, with one additional entry for the NULL
+ *     terminator.
+ *
+ * @param argv
+ *     An array of all argument values, corresponding to the provided array of
+ *     argument names. This array must be exactly the same size as the argument
+ *     name array, with the exception of the NULL terminator.
+ *
+ * @param index
+ *     The index of the entry in both the arg_names and argv arrays which
+ *     corresponds to the argument being parsed.
+ *
+ * @param default_value
+ *     The value to return if the provided argument is blank. If this value is
+ *     not NULL, the returned value will be a newly-allocated string containing
+ *     this value.
+ *
+ * @return
+ *     A newly-allocated string containing the provided argument value. If the
+ *     provided argument value is blank, this newly-allocated string will
+ *     contain the default value. If the default value is NULL and the provided
+ *     argument value is blank, no string will be allocated and NULL is
+ *     returned.
+ */
+char* guac_user_parse_args_string(guac_user* user, const char** arg_names,
+        const char** argv, int index, const char* default_value);
+
+/**
+ * Automatically handles a single integer argument received from a joining
+ * user, returning the integer value of that argument. If the argument provided
+ * by the user is blank or invalid, the default value is returned.
+ *
+ * @param user
+ *     The user joining the connection and providing the given arguments.
+ *
+ * @param arg_names
+ *     A NULL-terminated array of argument names, corresponding to the provided
+ *     array of argument values. This array must be exactly the same size as
+ *     the argument value array, with one additional entry for the NULL
+ *     terminator.
+ *
+ * @param argv
+ *     An array of all argument values, corresponding to the provided array of
+ *     argument names. This array must be exactly the same size as the argument
+ *     name array, with the exception of the NULL terminator.
+ *
+ * @param index
+ *     The index of the entry in both the arg_names and argv arrays which
+ *     corresponds to the argument being parsed.
+ *
+ * @param default_value
+ *     The value to return if the provided argument is blank or invalid.
+ *
+ * @return
+ *     The integer value parsed from the provided argument value, or the
+ *     default value if the provided argument value is blank or invalid.
+ */
+int guac_user_parse_args_int(guac_user* user, const char** arg_names,
+        const char** argv, int index, int default_value);
+
+/**
+ * Automatically handles a single boolean argument received from a joining
+ * user, returning the value of that argument (either 1 for true or 0 for
+ * false). Only "true" and "false" are legitimate values for a boolean
+ * argument. If the argument provided by the user is blank or invalid, the
+ * default value is returned.
+ *
+ * @param user
+ *     The user joining the connection and providing the given arguments.
+ *
+ * @param arg_names
+ *     A NULL-terminated array of argument names, corresponding to the provided
+ *     array of argument values. This array must be exactly the same size as
+ *     the argument value array, with one additional entry for the NULL
+ *     terminator.
+ *
+ * @param argv
+ *     An array of all argument values, corresponding to the provided array of
+ *     argument names. This array must be exactly the same size as the argument
+ *     name array, with the exception of the NULL terminator.
+ *
+ * @param index
+ *     The index of the entry in both the arg_names and argv arrays which
+ *     corresponds to the argument being parsed.
+ *
+ * @param default_value
+ *     The value to return if the provided argument is blank or invalid.
+ *
+ * @return
+ *     true (1) if the provided argument value is "true", false (0) if the
+ *     provided argument value is "false", or the default value if the provided
+ *     argument value is blank or invalid.
+ */
+int guac_user_parse_args_boolean(guac_user* user, const char** arg_names,
+        const char** argv, int index, int default_value);
+
 #endif
 

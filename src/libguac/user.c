@@ -36,6 +36,8 @@
 #include "user.h"
 #include "user-handlers.h"
 
+#include <errno.h>
+#include <limits.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -331,6 +333,110 @@ int guac_user_supports_webp(guac_user* user) {
     /* Support for WebP is completely absent */
     return 0;
 #endif
+
+}
+
+char* guac_user_parse_args_str(guac_user* user, const char** arg_names,
+        const char** argv, int index, const char* default_value) {
+
+    /* Pull parameter value from argv */
+    const char* value = argv[index];
+
+    /* Use default value if blank */
+    if (value[0] == 0) {
+
+        /* NULL is a completely legal default value */
+        if (default_value == NULL)
+            return NULL;
+
+        /* Log use of default */
+        guac_user_log(user, GUAC_LOG_DEBUG, "Parameter \"%s\" omitted. Using "
+                "default value of \"%s\".", arg_names[index], default_value);
+
+        return strdup(default_value);
+
+    }
+
+    /* Otherwise use provided value */
+    return strdup(value);
+
+}
+
+int guac_user_parse_args_int(guac_user* user, const char** arg_names,
+        const char** argv, int index, int default_value) {
+
+    char* parse_end;
+    long parsed_value;
+
+    /* Pull parameter value from argv */
+    const char* value = argv[index];
+
+    /* Use default value if blank */
+    if (value[0] == 0) {
+
+        /* Log use of default */
+        guac_user_log(user, GUAC_LOG_DEBUG, "Parameter \"%s\" omitted. Using "
+                "default value of %i.", arg_names[index], default_value);
+
+        return default_value;
+
+    }
+
+    /* Parse value, checking for errors */
+    errno = 0;
+    parsed_value = strtol(value, &parse_end, 10);
+
+    /* Ensure parsed value is within the legal range of an int */
+    if (parsed_value < INT_MIN || parsed_value > INT_MAX)
+        errno = ERANGE;
+
+    /* Resort to default if input is invalid */
+    if (errno != 0 || *parse_end != '\0') {
+
+        /* Log use of default */
+        guac_user_log(user, GUAC_LOG_WARNING, "Specified value \"%s\" for "
+                "parameter \"%s\" is not a valid integer. Using default value "
+                "of %i.", value, arg_names[index], default_value);
+
+        return default_value;
+
+    }
+
+    /* Parsed successfully */
+    return parsed_value;
+
+}
+
+int guac_user_parse_args_bool(guac_user* user, const char** arg_names,
+        const char** argv, int index, int default_value) {
+
+    /* Pull parameter value from argv */
+    const char* value = argv[index];
+
+    /* Use default value if blank */
+    if (value[0] == 0) {
+
+        /* Log use of default */
+        guac_user_log(user, GUAC_LOG_DEBUG, "Parameter \"%s\" omitted. Using "
+                "default value of %i.", arg_names[index], default_value);
+
+        return default_value;
+
+    }
+
+    /* Parse string "true" as true */
+    if (strcmp(value, "true") == 0)
+        return 1;
+
+    /* Parse string "false" as false */
+    if (strcmp(value, "false") == 0)
+        return 0;
+
+    /* All other values are invalid */
+    guac_user_log(user, GUAC_LOG_WARNING, "Parameter \"%s\" must be either "
+            "\"true\" or \"false\". Using default value.", arg_names[index]);
+
+    return default_value;
 
 }
 
