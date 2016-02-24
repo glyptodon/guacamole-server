@@ -552,7 +552,10 @@ int guac_terminal_printf(guac_terminal* terminal, const char* format, ...) {
 
 }
 
-void guac_terminal_prompt(guac_terminal* terminal, const char* title, char* str, int size, bool echo) {
+char* guac_terminal_prompt(guac_terminal* terminal, const char* title,
+        bool echo) {
+
+    char buffer[1024];
 
     int pos;
     char in_byte;
@@ -560,16 +563,12 @@ void guac_terminal_prompt(guac_terminal* terminal, const char* title, char* str,
     /* Print title */
     guac_terminal_printf(terminal, "%s", title);
 
-    /* Make room for null terminator */
-    size--;
-
     /* Read bytes until newline */
     pos = 0;
-    while (pos < size && guac_terminal_read_stdin(terminal, &in_byte, 1) == 1) {
+    while (guac_terminal_read_stdin(terminal, &in_byte, 1) == 1) {
 
         /* Backspace */
         if (in_byte == 0x7F) {
-
             if (pos > 0) {
                 guac_terminal_printf(terminal, "\b \b");
                 pos--;
@@ -582,10 +581,11 @@ void guac_terminal_prompt(guac_terminal* terminal, const char* title, char* str,
             break;
         }
 
-        else {
+        /* Otherwise, store byte if there is room */
+        else if (pos < sizeof(buffer) - 1) {
 
             /* Store character, update buffers */
-            str[pos++] = in_byte;
+            buffer[pos++] = in_byte;
 
             /* Print character if echoing */
             if (echo)
@@ -595,10 +595,15 @@ void guac_terminal_prompt(guac_terminal* terminal, const char* title, char* str,
 
         }
 
+        /* Ignore all other input */
+
     }
 
     /* Terminate string */
-    str[pos] = 0;
+    buffer[pos] = 0;
+
+    /* Return newly-allocated string containing result */
+    return strdup(buffer);
 
 }
 

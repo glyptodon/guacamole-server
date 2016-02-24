@@ -482,11 +482,29 @@ int guac_terminal_write_stdout(guac_terminal* terminal, const char* c, int size)
 int guac_terminal_notify(guac_terminal* terminal);
 
 /**
- * Reads a single line from this terminal's STDIN. Input is retrieved in
- * the same manner as guac_terminal_read_stdin() and the same restrictions
- * apply.
+ * Reads a single line from this terminal's STDIN, storing the result in a
+ * newly-allocated string. Input is retrieved in the same manner as
+ * guac_terminal_read_stdin() and the same restrictions apply.
+ *
+ * @param terminal
+ *     The terminal to which the provided title should be output, and from
+ *     whose STDIN the single line of input should be read.
+ *
+ * @param title
+ *     The human-readable title to output to the terminal just prior to reading
+ *     from STDIN.
+ *
+ * @param echo
+ *     Non-zero if the characters read from STDIN should be echoed back as
+ *     terminal output, or zero if asterisks should be displayed instead.
+ *
+ * @return
+ *     A newly-allocated string containing a single line of input read from the
+ *     provided terminal's STDIN. This string must eventually be manually
+ *     freed with a call to free().
  */
-void guac_terminal_prompt(guac_terminal* terminal, const char* title, char* str, int size, bool echo);
+char* guac_terminal_prompt(guac_terminal* terminal, const char* title,
+        bool echo);
 
 /**
  * Writes the given format string and arguments to this terminal's STDOUT in
