@@ -1853,3 +1853,18 @@ int guac_terminal_create_typescript(guac_terminal* term, const char* path,
 
 }
 
+void guac_terminal_add_user(guac_terminal* term, guac_user* user,
+        guac_socket* socket) {
+
+    /* Synchronize display state with new user */
+    guac_common_display_dup(term->display, user, socket);
+
+}
+
+void guac_terminal_remove_user(guac_terminal* term, guac_user* user) {
+
+    /* Do not include this user when synchronizing the cursor */
+    guac_common_cursor_remove_user(term->display->cursor, user);
+
+}
+

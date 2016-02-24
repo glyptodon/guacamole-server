@@ -532,6 +532,37 @@ void guac_terminal_clipboard_reset(guac_terminal* term, const char* mimetype);
  */
 void guac_terminal_clipboard_append(guac_terminal* term, const void* data, int length);
 
+/**
+ * Signals the terminal emulator that a new user has joined the connection, and
+ * requests that the current display state be replicated to that user.
+ *
+ * @param term
+ *     The terminal emulator associated with the connection being joined.
+ *
+ * @param user
+ *     The user joining the connection.
+ *
+ * @param socket
+ *     The guac_socket specific to the joining user and across which messages
+ *     synchronizing the current display state should be sent.
+ */
+void guac_terminal_add_user(guac_terminal* term, guac_user* user,
+        guac_socket* socket);
+
+/**
+ * Signals the terminal emulator that an existing user has left the connection,
+ * updating the internal state of the terminal emulator accordingly, and
+ * ensuring that future terminal emulator output will not make assumptions
+ * based on that user's presence.
+ *
+ * @param term
+ *     The terminal emulator associated with the connection being left.
+ *
+ * @param user
+ *     The user leaving the connection.
+ */
+void guac_terminal_remove_user(guac_terminal* term, guac_user* user);
+
 
 /* INTERNAL FUNCTIONS */
 
