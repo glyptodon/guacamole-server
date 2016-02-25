@@ -38,7 +38,7 @@ int guac_sftp_file_handler(guac_user* user, guac_stream* stream,
     guac_object* filesystem = ssh_client->sftp_filesystem;
 
     /* Handle file upload */
-    return guac_common_ssh_sftp_handle_file_stream(filesystem, stream,
+    return guac_common_ssh_sftp_handle_file_stream(filesystem, user, stream,
             mimetype, filename);
 
 }
@@ -51,7 +51,7 @@ guac_stream* guac_sftp_download_file(guac_user* user,
     guac_object* filesystem = ssh_client->sftp_filesystem;
 
     /* Initiate download of requested file */
-    return guac_common_ssh_sftp_download_file(filesystem, filename);
+    return guac_common_ssh_sftp_download_file(filesystem, user, filename);
 
 }
 
