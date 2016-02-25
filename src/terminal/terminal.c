@@ -515,6 +515,10 @@ void* guac_terminal_thread(void* data) {
         if (guac_terminal_render_frame(terminal))
             break;
 
+        /* Signal end of frame */
+        guac_client_end_frame(client);
+        guac_socket_flush(client->socket);
+
     }
 
     /* The client has stopped or an error has occurred */
