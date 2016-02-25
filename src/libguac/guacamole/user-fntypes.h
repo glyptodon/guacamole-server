@@ -40,13 +40,15 @@
  * data.
  *
  * @see guac_client_foreach_user()
+ * @see guac_client_for_owner()
  */
-typedef void guac_user_callback(guac_user* user, void* data);
+typedef void* guac_user_callback(guac_user* user, void* data);
 
 /**
  * Handler for Guacamole mouse events.
  */
-typedef int guac_user_mouse_handler(guac_user* user, int x, int y, int button_mask);
+typedef int guac_user_mouse_handler(guac_user* user, int x, int y,
+        int button_mask);
 
 /**
  * Handler for Guacamole key events.

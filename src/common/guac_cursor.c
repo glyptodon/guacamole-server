@@ -172,12 +172,14 @@ static void guac_common_cursor_resize(guac_common_cursor* cursor,
  * Callback for guac_client_foreach_user() which sends the current cursor image
  * as PNG data to each connected client.
  */
-static void __send_user_cursor_image(guac_user* user, void* data) {
+static void* __send_user_cursor_image(guac_user* user, void* data) {
 
     guac_common_cursor* cursor = (guac_common_cursor*) data;
 
     guac_user_stream_png(user, user->socket, GUAC_COMP_SRC,
             cursor->layer, 0, 0, cursor->surface);
+
+    return NULL;
 
 }
 

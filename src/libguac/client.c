@@ -156,13 +156,15 @@ static ssize_t __guac_socket_broadcast_read_handler(guac_socket* socket,
 /**
  * Writes a chunk of data to a given user.
  */
-static void __write_chunk_callback(guac_user* user, void* data) {
+static void* __write_chunk_callback(guac_user* user, void* data) {
 
     __write_chunk* chunk = (__write_chunk*) data;
 
     /* Attempt write, disconnect on failure */
     if (guac_socket_write(user->socket, chunk->buffer, chunk->length))
         guac_user_stop(user);
+
+    return NULL;
 
 }
 
@@ -187,11 +189,13 @@ static ssize_t __guac_socket_broadcast_write_handler(guac_socket* socket,
 
 }
 
-static void __flush_callback(guac_user* user, void* data) {
+static void* __flush_callback(guac_user* user, void* data) {
 
     /* Attempt flush, disconnect on failure */
     if (guac_socket_flush(user->socket))
         guac_user_stop(user);
+
+    return NULL;
 
 }
 
@@ -206,10 +210,12 @@ static ssize_t __guac_socket_broadcast_flush_handler(guac_socket* socket) {
 
 }
 
-static void __lock_callback(guac_user* user, void* data) {
+static void* __lock_callback(guac_user* user, void* data) {
 
     /* Lock socket */
     guac_socket_instruction_begin(user->socket);
+
+    return NULL;
 
 }
 
@@ -222,10 +228,12 @@ static void __guac_socket_broadcast_lock_handler(guac_socket* socket) {
 
 }
 
-static void __unlock_callback(guac_user* user, void* data) {
+static void* __unlock_callback(guac_user* user, void* data) {
 
     /* Lock socket */
     guac_socket_instruction_end(user->socket);
+
+    return NULL;
 
 }
 
@@ -423,6 +431,10 @@ int guac_client_add_user(guac_client* client, guac_user* user, int argc, char** 
         client->__users = user;
         client->connected_users++;
 
+        /* Update owner pointer if user is owner */
+        if (user->owner)
+            client->__owner = user;
+
     }
 
     pthread_rwlock_unlock(&(client->__users_lock));
@@ -453,6 +465,10 @@ void guac_client_remove_user(guac_client* client, guac_user* user) {
 
     client->connected_users--;
 
+    /* Update owner pointer if user was owner */
+    if (user->owner)
+        client->__owner = NULL;
+
     pthread_rwlock_unlock(&(client->__users_lock));
 
 }
@@ -471,6 +487,23 @@ void guac_client_foreach_user(guac_client* client, guac_user_callback* callback,
     }
 
     pthread_rwlock_unlock(&(client->__users_lock));
+
+}
+
+void* guac_client_for_owner(guac_client* client, guac_user_callback* callback,
+        void* data) {
+
+    void* retval;
+
+    pthread_rwlock_rdlock(&(client->__users_lock));
+
+    /* Invoke callback with current owner */
+    retval = callback(client->__owner, data);
+
+    pthread_rwlock_unlock(&(client->__users_lock));
+
+    /* Return value from callback */
+    return retval;
 
 }
 
@@ -545,13 +578,15 @@ int guac_client_load_plugin(guac_client* client, const char* protocol) {
  *     The int will be updated according to the processing lag of the given
  *     user.
  */
-static void __calculate_lag(guac_user* user, void* data) {
+static void* __calculate_lag(guac_user* user, void* data) {
 
     int* processing_lag = (int*) data;
 
     /* Simply find maximum */
     if (user->processing_lag > *processing_lag)
         *processing_lag = user->processing_lag;
+
+    return NULL;
 
 }
 
@@ -647,13 +682,15 @@ void guac_client_stream_webp(guac_client* client, guac_socket* socket,
  *     client associated with the given user. This flag will be 0 if any user
  *     already checked has lacked WebP support, or 1 otherwise.
  */
-static void __webp_support_callback(guac_user* user, void* data) {
+static void* __webp_support_callback(guac_user* user, void* data) {
 
     int* webp_supported = (int*) data;
 
     /* Check whether current user supports WebP */
     if (*webp_supported)
         *webp_supported = guac_user_supports_webp(user);
+
+    return NULL;
 
 }
 #endif

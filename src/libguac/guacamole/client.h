@@ -59,7 +59,7 @@ struct guac_client {
      *
      * Because this socket broadcasts to all connected users, this socket MUST
      * NOT be used within the same thread as a "leave" or "join" handler. Doing
-     * so results in undefined behavior.
+     * so results in undefined behavior, including possible segfaults.
      */
     guac_socket* socket;
 
@@ -178,14 +178,26 @@ struct guac_client {
     guac_user* __users;
 
     /**
+     * The user that first created this connection. This user will also have
+     * their "owner" flag set to a non-zero value. If the owner has left the
+     * connection, this will be NULL.
+     */
+    guac_user* __owner;
+
+    /**
      * The number of currently-connected users. This value may include inactive
      * users if cleanup of those users has not yet finished.
      */
     int connected_users;
 
     /**
-     * Handler for join events, called whenever a new user is joining an
-     * active connection.
+     * Handler for join events, called whenever a new user is joining an active
+     * connection. Note that because users may leave the connection at any
+     * time, a reference to a guac_user can become invalid at any time and
+     * should never be maintained outside the scope of a function invoked by
+     * libguac to which that guac_user was passed (the scope in which the
+     * guac_user reference is guaranteed to be valid) UNLESS that reference is
+     * properly invalidated within the leave_handler.
      *
      * The handler is given a pointer to a newly-allocated guac_user which
      * must then be initialized, if needed.
@@ -421,7 +433,8 @@ void guac_client_remove_user(guac_client* client, guac_user* user);
 /**
  * Calls the given function on all currently-connected users of the given
  * client. The function will be given a reference to a guac_user and the
- * specified arbitrary data.
+ * specified arbitrary data. The value returned by the callback will be
+ * ignored.
  *
  * This function is reentrant, but the user list MUST NOT be manipulated
  * within the same thread as a callback to this function. Though the callback
@@ -430,7 +443,7 @@ void guac_client_remove_user(guac_client* client, guac_user* user);
  *
  * Because this function loops through all connected users, this function MUST
  * NOT be invoked within the same thread as a "leave" or "join" handler. Doing
- * so results in undefined behavior.
+ * so results in undefined behavior, including possible segfaults.
  *
  * @param client
  *     The client whose users should be iterated.
@@ -443,6 +456,36 @@ void guac_client_remove_user(guac_client* client, guac_user* user);
  */
 void guac_client_foreach_user(guac_client* client,
         guac_user_callback* callback, void* data);
+
+/**
+ * Retrieves the connected user that is marked as the owner. The owner of a
+ * connection is the user that established the initial connection that created
+ * the connection (the first user to connect and join).
+ *
+ * Calls the given function on with the currently-connected user that is marked
+ * as the owner. The owner of a connection is the user that established the
+ * initial connection that created the connection (the first user to connect
+ * and join). The function will be given a reference to a guac_user and the
+ * specified arbitrary data. If the owner has since left the connection, the
+ * function will instead be invoked with NULL as the guac_user. The value
+ * returned by the callback will be returned by this function.
+ *
+ * This function is reentrant, but the user list MUST NOT be manipulated
+ * within the same thread as a callback to this function.
+ *
+ * Because this function depends on a consistent list of connected users, this
+ * function MUST NOT be invoked within the same thread as a "leave" or "join"
+ * handler. Doing so results in undefined behavior, including possible
+ * segfaults.
+ *
+ * @param client
+ *     The client to retrieve the owner from.
+ *
+ * @return
+ *     The value returned by the callback.
+ */
+void* guac_client_for_owner(guac_client* client, guac_user_callback* callback,
+        void* data);
 
 /**
  * Marks the end of the current frame by sending a "sync" instruction to

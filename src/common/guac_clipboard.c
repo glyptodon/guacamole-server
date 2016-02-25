@@ -53,7 +53,7 @@ void guac_common_clipboard_free(guac_common_clipboard* clipboard) {
  * Callback for guac_client_foreach_user() which sends clipboard data to each
  * connected client.
  */
-static void __send_user_clipboard(guac_user* user, void* data) {
+static void* __send_user_clipboard(guac_user* user, void* data) {
 
     guac_common_clipboard* clipboard = (guac_common_clipboard*) data;
 
@@ -95,6 +95,8 @@ static void __send_user_clipboard(guac_user* user, void* data) {
     /* End stream */
     guac_protocol_send_end(user->socket, stream);
     guac_user_free_stream(user, stream);
+
+    return NULL;
 
 }
 
