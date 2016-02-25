@@ -165,24 +165,6 @@ static int guac_vnc_wait_for_messages(rfbClient* rfb_client, int timeout) {
 
 }
 
-/**
- * Sleeps for the given number of milliseconds.
- *
- * @param msec
- *     The number of milliseconds to sleep;
- */
-static void guac_vnc_msleep(int msec) {
-
-    /* Split milliseconds into equivalent seconds + nanoseconds */
-    struct timespec sleep_period = {
-        .tv_sec  =  msec / 1000,
-        .tv_nsec = (msec % 1000) * 1000000
-    };
-
-    nanosleep(&sleep_period, NULL);
-
-}
-
 void* guac_vnc_client_thread(void* data) {
 
     guac_client* client = (guac_client*) data;
@@ -215,7 +197,7 @@ void* guac_vnc_client_thread(void* data) {
                 GUAC_VNC_CONNECT_INTERVAL);
 
         /* Wait for given interval then retry */
-        guac_vnc_msleep(GUAC_VNC_CONNECT_INTERVAL);
+        guac_timestamp_msleep(GUAC_VNC_CONNECT_INTERVAL);
         rfb_client = guac_vnc_get_client(client);
         retries_remaining--;
 
@@ -387,7 +369,7 @@ void* guac_vnc_client_thread(void* data) {
 
             /* Force roughly-equal length of server and client frames */
             if (time_elapsed < processing_lag)
-                guac_vnc_msleep(processing_lag - time_elapsed);
+                guac_timestamp_msleep(processing_lag - time_elapsed);
 
             /* Read server messages until frame is built */
             do {
