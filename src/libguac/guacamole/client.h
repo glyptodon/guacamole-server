@@ -49,11 +49,17 @@
 struct guac_client {
 
     /**
-     * The guac_socket structure to be used to communicate with the web-client.
-     * It is expected that the implementor of any Guacamole proxy client will
+     * The guac_socket structure to be used to communicate with all connected
+     * web-clients (users). Unlike the user-level guac_socket, this guac_socket
+     * will broadcast instructions to all connected users simultaneously.  It
+     * is expected that the implementor of any Guacamole proxy client will
      * provide their own mechanism of I/O for their protocol. The guac_socket
      * structure is used only to communicate conveniently with the Guacamole
      * web-client.
+     *
+     * Because this socket broadcasts to all connected users, this socket MUST
+     * NOT be used within the same thread as a "leave" or "join" handler. Doing
+     * so results in undefined behavior.
      */
     guac_socket* socket;
 
@@ -421,6 +427,10 @@ void guac_client_remove_user(guac_client* client, guac_user* user);
  * within the same thread as a callback to this function. Though the callback
  * MAY invoke guac_client_foreach_user(), doing so should not be necessary, and
  * may indicate poor design choices.
+ *
+ * Because this function loops through all connected users, this function MUST
+ * NOT be invoked within the same thread as a "leave" or "join" handler. Doing
+ * so results in undefined behavior.
  *
  * @param client
  *     The client whose users should be iterated.
