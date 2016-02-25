@@ -62,8 +62,8 @@ int guac_sftp_file_handler(guac_user* user, guac_stream* stream,
  * after this function terminates in response to "ack" instructions received by
  * the client.
  *
- * @param user
- *     The user receiving the file.
+ * @param client
+ *     The client associated with the terminal emulator receiving the file.
  *
  * @param filename
  *     The filename of the file to download, relative to the given filesystem.
@@ -72,7 +72,7 @@ int guac_sftp_file_handler(guac_user* user, guac_stream* stream,
  *     The file stream created for the file download, already configured to
  *     properly handle "ack" responses, etc. from the client.
  */
-guac_stream* guac_sftp_download_file(guac_user* user, char* filename);
+guac_stream* guac_sftp_download_file(guac_client* client, char* filename);
 
 /**
  * Sets the destination directory for future uploads submitted via Guacamole
