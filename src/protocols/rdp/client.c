@@ -112,6 +112,7 @@ int guac_rdp_client_free_handler(guac_client* client) {
     if (rdp_client->filesystem != NULL)
         guac_rdp_fs_free(rdp_client->filesystem);
 
+#if 0
 #ifdef ENABLE_COMMON_SSH
     /* Free SFTP filesystem, if loaded */
     if (guac_client_data->sftp_filesystem)
@@ -126,6 +127,7 @@ int guac_rdp_client_free_handler(guac_client* client) {
         guac_common_ssh_destroy_user(guac_client_data->sftp_user);
 
     guac_common_ssh_uninit();
+#endif
 #endif
 
 #ifdef HAVE_FREERDP_DISPLAY_UPDATE_SUPPORT

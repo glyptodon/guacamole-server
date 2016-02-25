@@ -611,6 +611,7 @@ void* guac_rdp_client_thread(void* data) {
     /* Load keymap into client */
     __guac_rdp_client_load_keymap(client, settings->server_layout);
 
+#if 0
 #ifdef ENABLE_COMMON_SSH
     guac_common_ssh_init(client);
 
@@ -710,6 +711,7 @@ void* guac_rdp_client_thread(void* data) {
                 "SFTP connection succeeded.");
 
     }
+#endif
 #endif
 
     /* Send connection name */

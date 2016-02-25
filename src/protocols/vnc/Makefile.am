@@ -72,9 +72,9 @@ libguac_client_vnc_la_LIBADD = \
     @LIBGUAC_LTLIB@
 
 # Optional SFTP support
-if ENABLE_COMMON_SSH
-libguac_client_vnc_la_SOURCES += sftp.c
-noinst_HEADERS                += sftp.h
-libguac_client_vnc_la_LIBADD  += @COMMON_SSH_LTLIB@
-endif
+#if ENABLE_COMMON_SSH
+#libguac_client_vnc_la_SOURCES += sftp.c
+#noinst_HEADERS                += sftp.h
+#libguac_client_vnc_la_LIBADD  += @COMMON_SSH_LTLIB@
+#endif
 

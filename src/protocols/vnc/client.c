@@ -89,6 +89,7 @@ int guac_vnc_client_free_handler(guac_client* client) {
         guac_pa_stop_stream(client);
 #endif
 
+#if 0
 #ifdef ENABLE_COMMON_SSH
     /* Free SFTP filesystem, if loaded */
     if (guac_client_data->sftp_filesystem)
@@ -103,6 +104,7 @@ int guac_vnc_client_free_handler(guac_client* client) {
         guac_common_ssh_destroy_user(guac_client_data->sftp_user);
 
     guac_common_ssh_uninit();
+#endif
 #endif
 
     /* Free encodings string, if used */

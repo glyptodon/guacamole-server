@@ -245,6 +245,7 @@ void* guac_vnc_client_thread(void* data) {
     } /* end if audio enabled */
 #endif
 
+#if 0
 #ifdef ENABLE_COMMON_SSH
     guac_common_ssh_init(client);
 
@@ -328,6 +329,7 @@ void* guac_vnc_client_thread(void* data) {
                 "SFTP connection succeeded.");
 
     }
+#endif
 #endif
 
     /* Set remaining client data */

@@ -199,11 +199,11 @@ libguac_client_rdp_la_LIBADD =     \
 # Optional SFTP support
 #
 
-if ENABLE_COMMON_SSH
-libguac_client_rdp_la_SOURCES += sftp.c
-noinst_HEADERS                += sftp.h
-libguac_client_rdp_la_LIBADD  += @COMMON_SSH_LTLIB@
-endif
+#if ENABLE_COMMON_SSH
+#libguac_client_rdp_la_SOURCES += sftp.c
+#noinst_HEADERS                += sftp.h
+#libguac_client_rdp_la_LIBADD  += @COMMON_SSH_LTLIB@
+#endif
 
 #
 # Autogenerate keymaps

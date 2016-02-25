@@ -29,7 +29,6 @@ libguac_client_ssh_la_SOURCES = \
     client.c                    \
     clipboard.c                 \
     input.c                     \
-    sftp.c                      \
     settings.c                  \
     ssh.c                       \
     user.c
@@ -38,7 +37,6 @@ noinst_HEADERS =                \
     client.h                    \
     clipboard.h                 \
     input.h                     \
-    sftp.h                      \
     settings.h                  \
     ssh.h                       \
     user.h
