@@ -224,6 +224,40 @@ static void guac_terminal_paint_background(guac_terminal* terminal,
 
 }
 
+/**
+ * Automatically and continuously renders frames of terminal data while the
+ * associated guac_client is running.
+ *
+ * @param data
+ *     A pointer to the guac_terminal that should be continuously rendered
+ *     while its associated guac_client is running.
+ *
+ * @return
+ *     Always NULL.
+ */
+void* guac_terminal_thread(void* data) {
+
+    guac_terminal* terminal = (guac_terminal*) data;
+    guac_client* client = terminal->client;
+
+    /* Render frames only while client is running */
+    while (client->state == GUAC_CLIENT_RUNNING) {
+
+        /* Stop rendering if an error occurs */
+        if (guac_terminal_render_frame(terminal))
+            break;
+
+        /* Signal end of frame */
+        guac_client_end_frame(client);
+        guac_socket_flush(client->socket);
+
+    }
+
+    /* The client has stopped or an error has occurred */
+    return NULL;
+
+}
+
 guac_terminal* guac_terminal_create(guac_client* client,
         const char* font_name, int font_size, int dpi,
         int width, int height, const char* color_scheme) {
@@ -363,17 +397,18 @@ guac_terminal* guac_terminal_create(guac_client* client,
     /* Allocate clipboard */
     term->clipboard = guac_common_clipboard_alloc(GUAC_TERMINAL_CLIPBOARD_MAX_LENGTH);
 
+    /* Start terminal thread */
+    if (pthread_create(&(term->thread), NULL,
+                guac_terminal_thread, (void*) term)) {
+        guac_terminal_free(term);
+        return NULL;
+    }
+
     return term;
 
 }
 
 void guac_terminal_free(guac_terminal* term) {
-
-    /* Close and flush any open pipe stream */
-    guac_terminal_pipe_stream_close(term);
-
-    /* Close and flush any active typescript */
-    guac_terminal_typescript_free(term->typescript);
 
     /* Close terminal output pipe */
     close(term->stdout_pipe_fd[1]);
@@ -382,6 +417,15 @@ void guac_terminal_free(guac_terminal* term) {
     /* Close user input pipe */
     close(term->stdin_pipe_fd[1]);
     close(term->stdin_pipe_fd[0]);
+
+    /* Wait for render thread to finish */
+    pthread_join(term->thread, NULL);
+
+    /* Close and flush any open pipe stream */
+    guac_terminal_pipe_stream_close(term);
+
+    /* Close and flush any active typescript */
+    guac_terminal_typescript_free(term->typescript);
 
     /* Free display */
     guac_terminal_display_free(term->term_display);
@@ -394,6 +438,9 @@ void guac_terminal_free(guac_terminal* term) {
 
     /* Free scrollbar */
     guac_terminal_scrollbar_free(term->scrollbar);
+
+    /* Free the terminal itself */
+    free(term);
 
 }
 
@@ -500,29 +547,6 @@ int guac_terminal_render_frame(guac_terminal* terminal) {
     }
 
     return 0;
-
-}
-
-void* guac_terminal_thread(void* data) {
-
-    guac_terminal* terminal = (guac_terminal*) data;
-    guac_client* client = terminal->client;
-
-    /* Render frames only while client is running */
-    while (client->state == GUAC_CLIENT_RUNNING) {
-
-        /* Stop rendering if an error occurs */
-        if (guac_terminal_render_frame(terminal))
-            break;
-
-        /* Signal end of frame */
-        guac_client_end_frame(client);
-        guac_socket_flush(client->socket);
-
-    }
-
-    /* The client has stopped or an error has occurred */
-    return NULL;
 
 }
 

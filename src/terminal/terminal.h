@@ -139,6 +139,11 @@ struct guac_terminal {
     guac_client* client;
 
     /**
+     * The terminal render thread.
+     */
+    pthread_t thread;
+
+    /**
      * The display associated with the Guacamole client this terminal emulator
      * will use for rendering.
      */
@@ -453,16 +458,6 @@ void guac_terminal_free(guac_terminal* term);
  * this function will block until data is written.
  */
 int guac_terminal_render_frame(guac_terminal* terminal);
-
-/**
- * Automatically and continuously renders frames of terminal data while the
- * associated guac_client is running.
- *
- * @param data
- *     A pointer to the guac_terminal that should be continuously rendered
- *     while its associated guac_client is running.
- */
-void* guac_terminal_thread(void* data);
 
 /**
  * Reads from this terminal's STDIN. Input comes from key and mouse events
