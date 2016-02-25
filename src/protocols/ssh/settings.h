@@ -47,6 +47,11 @@
 #define GUAC_SSH_DEFAULT_PORT "22"
 
 /**
+ * The filename to use for the typescript, if not specified.
+ */
+#define GUAC_SSH_DEFAULT_TYPESCRIPT_NAME "typescript" 
+
+/**
  * Settings for the SSH connection. The values for this structure are parsed
  * from the arguments given during the Guacamole protocol handshake using the
  * guac_ssh_parse_args() function.
@@ -64,22 +69,26 @@ typedef struct guac_ssh_settings {
     char* port;
 
     /**
-     * The name of the user to login as.
+     * The name of the user to login as, if any. If no username is specified,
+     * this will be NULL.
      */
     char* username;
 
     /**
-     * The password to give when authenticating.
+     * The password to give when authenticating, if any. If no password is
+     * specified, this will be NULL.
      */
     char* password;
 
     /**
-     * The private key, encoded as base64.
+     * The private key, encoded as base64, if any. If no private key is
+     * specified, this will be NULL.
      */
     char* key_base64;
 
     /**
-     * The password to use to decrypt the given private key.
+     * The passphrase to use to decrypt the given private key, if any. If no
+     * passphrase is specified, this will be NULL.
      */
     char* key_passphrase;
 
@@ -99,12 +108,24 @@ typedef struct guac_ssh_settings {
      */
     int font_size;
 
+    /**
+     * The name of the color scheme to use.
+     */
     char* color_scheme; 
 
+    /**
+     * The desired width of the terminal display, in pixels.
+     */
     int width;
 
+    /**
+     * The desired height of the terminal display, in pixels.
+     */
     int height;
 
+    /**
+     * The desired screen resolution, in DPI.
+     */
     int resolution;
 
     /**
@@ -119,10 +140,21 @@ typedef struct guac_ssh_settings {
     bool enable_agent;
 #endif
 
-    char* typescript_name;
-
+    /**
+     * The path in which the typescript should be saved, if enabled. If no
+     * typescript should be saved, this will be NULL.
+     */
     char* typescript_path;
 
+    /**
+     * The filename to use for the typescript, if enabled.
+     */
+    char* typescript_name;
+
+    /**
+     * Whether the typescript path should be automatically created if it does
+     * not already exist.
+     */
     bool create_typescript_path;
 
 } guac_ssh_settings;
@@ -130,10 +162,32 @@ typedef struct guac_ssh_settings {
 /**
  * Parses all given args, storing them in a newly-allocated settings object. If
  * the args fail to parse, NULL is returned.
+ *
+ * @param user
+ *     The user who submitted the given arguments while joining the
+ *     connection.
+ *
+ * @param argc
+ *     The number of arguments within the argv array.
+ *
+ * @param argv
+ *     The values of all arguments provided by the user.
+ *
+ * @return
+ *     A newly-allocated settings object which must be freed with
+ *     guac_ssh_settings_free() when no longer needed. If the arguments fail
+ *     to parse, NULL is returned.
  */
 guac_ssh_settings* guac_ssh_parse_args(guac_user* user,
         int argc, const char** argv);
 
+/**
+ * Frees the given guac_ssh_settings object, having been previously allocated
+ * via guac_ssh_parse_args().
+ *
+ * @param settings
+ *     The settings object to free.
+ */
 void guac_ssh_settings_free(guac_ssh_settings* settings);
 
 /**

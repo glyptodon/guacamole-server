@@ -227,7 +227,7 @@ guac_ssh_settings* guac_ssh_parse_args(guac_user* user,
     /* Read typescript name */
     settings->typescript_name =
         guac_user_parse_args_string(user, GUAC_SSH_CLIENT_ARGS, argv,
-                IDX_TYPESCRIPT_NAME, "typescript");
+                IDX_TYPESCRIPT_NAME, GUAC_SSH_DEFAULT_TYPESCRIPT_NAME);
 
     /* Parse path creation flag */
     settings->create_typescript_path =
