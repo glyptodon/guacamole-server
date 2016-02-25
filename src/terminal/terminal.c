@@ -503,6 +503,25 @@ int guac_terminal_render_frame(guac_terminal* terminal) {
 
 }
 
+void* guac_terminal_thread(void* data) {
+
+    guac_terminal* terminal = (guac_terminal*) data;
+    guac_client* client = terminal->client;
+
+    /* Render frames only while client is running */
+    while (client->state == GUAC_CLIENT_RUNNING) {
+
+        /* Stop rendering if an error occurs */
+        if (guac_terminal_render_frame(terminal))
+            break;
+
+    }
+
+    /* The client has stopped or an error has occurred */
+    return NULL;
+
+}
+
 int guac_terminal_read_stdin(guac_terminal* terminal, char* c, int size) {
     int stdin_fd = terminal->stdin_pipe_fd[0];
     return read(stdin_fd, c, size);
