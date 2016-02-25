@@ -336,7 +336,7 @@ int guac_user_supports_webp(guac_user* user) {
 
 }
 
-char* guac_user_parse_args_str(guac_user* user, const char** arg_names,
+char* guac_user_parse_args_string(guac_user* user, const char** arg_names,
         const char** argv, int index, const char* default_value) {
 
     /* Pull parameter value from argv */
@@ -407,7 +407,7 @@ int guac_user_parse_args_int(guac_user* user, const char** arg_names,
 
 }
 
-int guac_user_parse_args_bool(guac_user* user, const char** arg_names,
+int guac_user_parse_args_boolean(guac_user* user, const char** arg_names,
         const char** argv, int index, int default_value) {
 
     /* Pull parameter value from argv */
