@@ -26,8 +26,8 @@
 #include "guac_json.h"
 #include "guac_ssh.h"
 
-#include <guacamole/client.h>
 #include <guacamole/object.h>
+#include <guacamole/user.h>
 #include <libssh2.h>
 #include <libssh2_sftp.h>
 
@@ -40,6 +40,13 @@
  * Data associated with an SFTP-driven filesystem object.
  */
 typedef struct guac_common_ssh_sftp_data {
+
+    /**
+     * The Guacamole user this SFTP filesystem has been exposed to. No other
+     * user will have direct access to this filesystem via the associated
+     * guac_object.
+     */
+    guac_user* user;
 
     /**
      * The distinct SSH session used for SFTP.
@@ -97,6 +104,9 @@ typedef struct guac_common_ssh_sftp_ls_state {
  *     The session to use to provide SFTP. This session will automatically be
  *     destroyed when this filesystem is destroyed.
  *
+ * @param user
+ *     The user that the SFTP filesystem should be exposed to.
+ *
  * @param name
  *     The name to send as the name of the filesystem.
  *
@@ -105,7 +115,7 @@ typedef struct guac_common_ssh_sftp_ls_state {
  *     uploading and downloading files.
  */
 guac_object* guac_common_ssh_create_sftp_filesystem(
-        guac_common_ssh_session* session,
+        guac_common_ssh_session* session, guac_user* user,
         const char* name);
 
 /**
@@ -122,20 +132,23 @@ void guac_common_ssh_destroy_sftp_filesystem(guac_object* filesystem);
  * Initiates an SFTP file download to the user via the Guacamole "file"
  * instruction. The download will be automatically monitored and continued
  * after this function terminates in response to "ack" instructions received by
- * the client.
+ * the user.
  *
  * @param filesystem
  *     The filesystem containing the file to be downloaded.
+ *
+ * @param user
+ *     The user that should receive the file (via a "file" instruction).
  *
  * @param filename
  *     The filename of the file to download, relative to the given filesystem.
  *
  * @return
  *     The file stream created for the file download, already configured to
- *     properly handle "ack" responses, etc. from the client.
+ *     properly handle "ack" responses, etc. from the user.
  */
 guac_stream* guac_common_ssh_sftp_download_file(guac_object* filesystem,
-        char* filename);
+        guac_user* user, char* filename);
 
 /**
  * Handles an incoming stream from a Guacamole "file" instruction, saving the
@@ -144,6 +157,10 @@ guac_stream* guac_common_ssh_sftp_download_file(guac_object* filesystem,
  *
  * @param filesystem
  *     The filesystem that should receive the uploaded file.
+ *
+ * @param user
+ *     The user who is attempting to open the file stream (the user that sent
+ *     the "file" instruction).
  *
  * @param stream
  *     The stream through which the uploaded file data will be received.
@@ -161,7 +178,7 @@ guac_stream* guac_common_ssh_sftp_download_file(guac_object* filesystem,
  *     failure.
  */
 int guac_common_ssh_sftp_handle_file_stream(guac_object* filesystem,
-        guac_stream* stream, char* mimetype, char* filename);
+        guac_user* user, guac_stream* stream, char* mimetype, char* filename);
 
 /**
  * Set the destination directory for future uploads submitted via
