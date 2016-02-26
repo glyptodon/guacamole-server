@@ -35,7 +35,7 @@ int guac_vnc_sftp_file_handler(guac_user* user, guac_stream* stream,
 
     guac_client* client = user->client;
     guac_vnc_client* vnc_client = (guac_vnc_client*) client->data;
-    guac_object* filesystem = vnc_client->sftp_filesystem;
+    guac_common_ssh_sftp_filesystem* filesystem = vnc_client->sftp_filesystem;
 
     /* Handle file upload */
     return guac_common_ssh_sftp_handle_file_stream(filesystem, user, stream,

@@ -35,7 +35,7 @@ int guac_sftp_file_handler(guac_user* user, guac_stream* stream,
 
     guac_client* client = user->client;
     guac_ssh_client* ssh_client = (guac_ssh_client*) client->data;
-    guac_object* filesystem = ssh_client->sftp_filesystem;
+    guac_common_ssh_sftp_filesystem* filesystem = ssh_client->sftp_filesystem;
 
     /* Handle file upload */
     return guac_common_ssh_sftp_handle_file_stream(filesystem, user, stream,
@@ -66,7 +66,7 @@ static void* guac_sftp_download_to_owner(guac_user* owner, void* data) {
 
     guac_client* client = owner->client;
     guac_ssh_client* ssh_client = (guac_ssh_client*) client->data;
-    guac_object* filesystem = ssh_client->sftp_filesystem;
+    guac_common_ssh_sftp_filesystem* filesystem = ssh_client->sftp_filesystem;
 
     char* filename = (char*) data;
 
@@ -86,7 +86,7 @@ guac_stream* guac_sftp_download_file(guac_client* client, char* filename) {
 void guac_sftp_set_upload_path(guac_client* client, char* path) {
 
     guac_ssh_client* ssh_client = (guac_ssh_client*) client->data;
-    guac_object* filesystem = ssh_client->sftp_filesystem;
+    guac_common_ssh_sftp_filesystem* filesystem = ssh_client->sftp_filesystem;
 
     /* Set upload path as specified */
     guac_common_ssh_sftp_set_upload_path(filesystem, path);

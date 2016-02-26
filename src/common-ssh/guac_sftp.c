@@ -40,22 +40,20 @@
  * session into a Guacamole protocol status code.
  *
  * @param filesystem
- *     The Guacamole protocol object defining the filesystem associated with
- *     the SFTP and SSH sessions.
+ *     The object (not guac_object) defining the filesystem associated with the
+ *     SFTP and SSH sessions.
  *
  * @return
  *     The Guacamole protocol status code corresponding to the last reported
  *     error of the SFTP layer, if nay, or GUAC_PROTOCOL_STATUS_SUCCESS if no
  *     error has occurred.
  */
-static guac_protocol_status guac_sftp_get_status(guac_object* filesystem) {
-
-    guac_common_ssh_sftp_data* sftp_data =
-        (guac_common_ssh_sftp_data*) filesystem->data;
+static guac_protocol_status guac_sftp_get_status(
+        guac_common_ssh_sftp_filesystem* filesystem) {
 
     /* Get libssh2 objects */
-    LIBSSH2_SFTP*    sftp    = sftp_data->sftp_session;
-    LIBSSH2_SESSION* session = sftp_data->ssh_session->session;
+    LIBSSH2_SFTP*    sftp    = filesystem->sftp_session;
+    LIBSSH2_SESSION* session = filesystem->ssh_session->session;
 
     /* Return success code if no error occurred */
     if (libssh2_session_last_errno(session) != LIBSSH2_ERROR_SFTP_PROTOCOL)
@@ -274,17 +272,15 @@ static int guac_common_ssh_sftp_end_handler(guac_user* user,
 
 }
 
-int guac_common_ssh_sftp_handle_file_stream(guac_object* filesystem,
-        guac_user* user, guac_stream* stream, char* mimetype, char* filename) {
-
-    guac_common_ssh_sftp_data* sftp_data =
-        (guac_common_ssh_sftp_data*) filesystem->data;
+int guac_common_ssh_sftp_handle_file_stream(
+        guac_common_ssh_sftp_filesystem* filesystem, guac_user* user,
+        guac_stream* stream, char* mimetype, char* filename) {
 
     char fullpath[GUAC_COMMON_SSH_SFTP_MAX_PATH];
     LIBSSH2_SFTP_HANDLE* file;
 
     /* Concatenate filename with path */
-    if (!guac_ssh_append_filename(fullpath, sftp_data->upload_path,
+    if (!guac_ssh_append_filename(fullpath, filesystem->upload_path,
                 filename)) {
 
         guac_user_log(user, GUAC_LOG_DEBUG,
@@ -301,7 +297,7 @@ int guac_common_ssh_sftp_handle_file_stream(guac_object* filesystem,
     }
 
     /* Open file via SFTP */
-    file = libssh2_sftp_open(sftp_data->sftp_session, fullpath,
+    file = libssh2_sftp_open(filesystem->sftp_session, fullpath,
             LIBSSH2_FXF_WRITE | LIBSSH2_FXF_CREAT | LIBSSH2_FXF_TRUNC,
             S_IRUSR | S_IWUSR);
 
@@ -405,17 +401,15 @@ static int guac_common_ssh_sftp_ack_handler(guac_user* user,
     return 0;
 }
 
-guac_stream* guac_common_ssh_sftp_download_file(guac_object* filesystem,
-        guac_user* user, char* filename) {
-
-    guac_common_ssh_sftp_data* sftp_data =
-        (guac_common_ssh_sftp_data*) filesystem->data;
+guac_stream* guac_common_ssh_sftp_download_file(
+        guac_common_ssh_sftp_filesystem* filesystem, guac_user* user,
+        char* filename) {
 
     guac_stream* stream;
     LIBSSH2_SFTP_HANDLE* file;
 
     /* Attempt to open file for reading */
-    file = libssh2_sftp_open(sftp_data->sftp_session, filename,
+    file = libssh2_sftp_open(filesystem->sftp_session, filename,
             LIBSSH2_FXF_READ, 0);
     if (file == NULL) {
         guac_user_log(user, GUAC_LOG_INFO, 
@@ -439,13 +433,10 @@ guac_stream* guac_common_ssh_sftp_download_file(guac_object* filesystem,
 
 }
 
-void guac_common_ssh_sftp_set_upload_path(guac_object* filesystem,
-        const char* path) {
+void guac_common_ssh_sftp_set_upload_path(
+        guac_common_ssh_sftp_filesystem* filesystem, const char* path) {
 
-    guac_common_ssh_sftp_data* sftp_data =
-        (guac_common_ssh_sftp_data*) filesystem->data;
-
-    guac_client* client = sftp_data->ssh_session->client;
+    guac_client* client = filesystem->ssh_session->client;
 
     /* Ignore requests which exceed maximum-allowed path */
     int length = strnlen(path, GUAC_COMMON_SSH_SFTP_MAX_PATH)+1;
@@ -457,7 +448,7 @@ void guac_common_ssh_sftp_set_upload_path(guac_object* filesystem,
     }
 
     /* Copy path */
-    memcpy(sftp_data->upload_path, path, length);
+    memcpy(filesystem->upload_path, path, length);
     guac_client_log(client, GUAC_LOG_DEBUG, "Upload path set to \"%s\"", path);
 
 }
@@ -495,9 +486,9 @@ static int guac_common_ssh_sftp_ls_ack_handler(guac_user* user,
     guac_common_ssh_sftp_ls_state* list_state =
         (guac_common_ssh_sftp_ls_state*) stream->data;
 
-    guac_common_ssh_sftp_data* sftp_data = list_state->sftp_data;
+    guac_common_ssh_sftp_filesystem* filesystem = list_state->filesystem;
 
-    LIBSSH2_SFTP* sftp = sftp_data->sftp_session;
+    LIBSSH2_SFTP* sftp = filesystem->sftp_session;
 
     /* If unsuccessful, free stream and abort */
     if (status != GUAC_PROTOCOL_STATUS_SUCCESS) {
@@ -588,10 +579,10 @@ static int guac_common_ssh_sftp_ls_ack_handler(guac_user* user,
 static int guac_common_ssh_sftp_get_handler(guac_user* user,
         guac_object* object, char* name) {
 
-    guac_common_ssh_sftp_data* sftp_data =
-        (guac_common_ssh_sftp_data*) object->data;
+    guac_common_ssh_sftp_filesystem* filesystem =
+        (guac_common_ssh_sftp_filesystem*) object->data;
 
-    LIBSSH2_SFTP* sftp = sftp_data->sftp_session;
+    LIBSSH2_SFTP* sftp = filesystem->sftp_session;
     LIBSSH2_SFTP_ATTRIBUTES attributes;
 
     /* Attempt to read file information */
@@ -617,7 +608,7 @@ static int guac_common_ssh_sftp_get_handler(guac_user* user,
             malloc(sizeof(guac_common_ssh_sftp_ls_state));
 
         list_state->directory = dir;
-        list_state->sftp_data = sftp_data;
+        list_state->filesystem = filesystem;
         strncpy(list_state->directory_name, name,
                 sizeof(list_state->directory_name) - 1);
 
@@ -689,10 +680,10 @@ static int guac_common_ssh_sftp_get_handler(guac_user* user,
 static int guac_common_ssh_sftp_put_handler(guac_user* user,
         guac_object* object, guac_stream* stream, char* mimetype, char* name) {
 
-    guac_common_ssh_sftp_data* sftp_data =
-        (guac_common_ssh_sftp_data*) object->data;
+    guac_common_ssh_sftp_filesystem* filesystem =
+        (guac_common_ssh_sftp_filesystem*) object->data;
 
-    LIBSSH2_SFTP* sftp = sftp_data->sftp_session;
+    LIBSSH2_SFTP* sftp = filesystem->sftp_session;
 
     /* Open file via SFTP */
     LIBSSH2_SFTP_HANDLE* file = libssh2_sftp_open(sftp, name,
@@ -711,7 +702,7 @@ static int guac_common_ssh_sftp_put_handler(guac_user* user,
         guac_user_log(user, GUAC_LOG_INFO,
                 "Unable to open file \"%s\"", name);
         guac_protocol_send_ack(user->socket, stream, "SFTP: Open failed",
-                guac_sftp_get_status(object));
+                guac_sftp_get_status(filesystem));
     }
 
     /* Set handlers for file stream */
@@ -725,9 +716,26 @@ static int guac_common_ssh_sftp_put_handler(guac_user* user,
     return 0;
 }
 
-guac_object* guac_common_ssh_create_sftp_filesystem(
-        guac_common_ssh_session* session, guac_user* user,
+guac_object* guac_common_ssh_alloc_sftp_filesystem_object(
+        guac_common_ssh_sftp_filesystem* filesystem, guac_user* user,
         const char* name) {
+
+    /* Init filesystem */
+    guac_object* fs_object = guac_user_alloc_object(user);
+    fs_object->get_handler = guac_common_ssh_sftp_get_handler;
+    fs_object->put_handler = guac_common_ssh_sftp_put_handler;
+    fs_object->data = filesystem;
+
+    /* Send filesystem to user */
+    guac_protocol_send_filesystem(user->socket, fs_object, name);
+    guac_socket_flush(user->socket);
+
+    return fs_object;
+
+}
+
+guac_common_ssh_sftp_filesystem* guac_common_ssh_create_sftp_filesystem(
+        guac_common_ssh_session* session) {
 
     /* Request SFTP */
     LIBSSH2_SFTP* sftp_session = libssh2_sftp_init(session->session);
@@ -735,42 +743,29 @@ guac_object* guac_common_ssh_create_sftp_filesystem(
         return NULL;
 
     /* Allocate data for SFTP session */
-    guac_common_ssh_sftp_data* sftp_data =
-        malloc(sizeof(guac_common_ssh_sftp_data));
+    guac_common_ssh_sftp_filesystem* filesystem =
+        malloc(sizeof(guac_common_ssh_sftp_filesystem));
 
     /* Associate SSH session with SFTP data and user */
-    sftp_data->ssh_session = session;
-    sftp_data->sftp_session = sftp_session;
-    sftp_data->user = user;
+    filesystem->ssh_session = session;
+    filesystem->sftp_session = sftp_session;
 
     /* Initially upload files to current directory */
-    strcpy(sftp_data->upload_path, ".");
-
-    /* Init filesystem */
-    guac_object* filesystem = guac_user_alloc_object(user);
-    filesystem->get_handler = guac_common_ssh_sftp_get_handler;
-    filesystem->put_handler = guac_common_ssh_sftp_put_handler;
-    filesystem->data = sftp_data;
-
-    /* Send filesystem to user */
-    guac_protocol_send_filesystem(user->socket, filesystem, "/");
-    guac_socket_flush(user->socket);
+    strcpy(filesystem->upload_path, ".");
 
     /* Return allocated filesystem */
     return filesystem;
 
 }
 
-void guac_common_ssh_destroy_sftp_filesystem(guac_object* filesystem) {
-
-    guac_common_ssh_sftp_data* sftp_data =
-        (guac_common_ssh_sftp_data*) filesystem->data;
+void guac_common_ssh_destroy_sftp_filesystem(
+        guac_common_ssh_sftp_filesystem* filesystem) {
 
     /* Shutdown SFTP session */
-    libssh2_sftp_shutdown(sftp_data->sftp_session);
+    libssh2_sftp_shutdown(filesystem->sftp_session);
 
-    /* Clean up the SFTP filesystem object */
-    guac_user_free_object(sftp_data->user, filesystem);
+    /* Free associated memory */
+    free(filesystem);
 
 }
 

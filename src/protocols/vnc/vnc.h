@@ -114,9 +114,9 @@ typedef struct guac_vnc_client {
     guac_common_ssh_session* sftp_session;
 
     /**
-     * The exposed filesystem object, implemented with SFTP.
+     * An SFTP-based filesystem.
      */
-    guac_object* sftp_filesystem;
+    guac_common_ssh_sftp_filesystem* sftp_filesystem;
 #endif
 
     /**

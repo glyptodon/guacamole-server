@@ -25,6 +25,7 @@
 
 #include "config.h"
 
+#include "guac_sftp.h"
 #include "guac_ssh.h"
 #include "guac_ssh_user.h"
 #include "settings.h"
@@ -35,7 +36,6 @@
 #endif
 
 #include <guacamole/client.h>
-#include <guacamole/object.h>
 
 #include <pthread.h>
 
@@ -79,7 +79,7 @@ typedef struct guac_ssh_client {
     /**
      * The filesystem object exposed for the SFTP session.
      */
-    guac_object* sftp_filesystem;
+    guac_common_ssh_sftp_filesystem* sftp_filesystem;
 
     /**
      * SSH terminal channel, used by the SSH client thread.

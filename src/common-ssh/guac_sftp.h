@@ -37,16 +37,10 @@
 #define GUAC_COMMON_SSH_SFTP_MAX_PATH 2048
 
 /**
- * Data associated with an SFTP-driven filesystem object.
+ * Representation of an SFTP-driven filesystem object. Unlike guac_object, this
+ * structure is not tied to any particular user.
  */
-typedef struct guac_common_ssh_sftp_data {
-
-    /**
-     * The Guacamole user this SFTP filesystem has been exposed to. No other
-     * user will have direct access to this filesystem via the associated
-     * guac_object.
-     */
-    guac_user* user;
+typedef struct guac_common_ssh_sftp_filesystem {
 
     /**
      * The distinct SSH session used for SFTP.
@@ -64,7 +58,7 @@ typedef struct guac_common_ssh_sftp_data {
      */
     char upload_path[GUAC_COMMON_SSH_SFTP_MAX_PATH];
 
-} guac_common_ssh_sftp_data;
+} guac_common_ssh_sftp_filesystem;
 
 /**
  * The current state of a directory listing operation.
@@ -72,9 +66,9 @@ typedef struct guac_common_ssh_sftp_data {
 typedef struct guac_common_ssh_sftp_ls_state {
 
     /**
-     * Data associated with the current SFTP session.
+     * The SFTP filesystem being listed.
      */
-    guac_common_ssh_sftp_data* sftp_data;
+    guac_common_ssh_sftp_filesystem* filesystem;
 
     /**
      * Reference to the directory currently being listed over SFTP. This
@@ -98,11 +92,39 @@ typedef struct guac_common_ssh_sftp_ls_state {
  * Creates a new Guacamole filesystem object which provides access to files
  * and directories via SFTP using the given SSH session. When the filesystem
  * will no longer be used, it must be explicitly destroyed with
- * guac_common_ssh_destroy_sftp_filesystem().
+ * guac_common_ssh_destroy_sftp_filesystem(). The resulting object is not
+ * automatically exposed to users of the connection - filesystem operations
+ * must be mediated either through various handlers or through exposing a
+ * filesystem guac_object via guac_common_ssh_alloc_sftp_filesystem_object().
  *
  * @param session
  *     The session to use to provide SFTP. This session will automatically be
  *     destroyed when this filesystem is destroyed.
+ *
+ * @return
+ *     A new SFTP filesystem object, not yet exposed to users.
+ */
+guac_common_ssh_sftp_filesystem* guac_common_ssh_create_sftp_filesystem(
+        guac_common_ssh_session* session);
+
+/**
+ * Destroys the given filesystem object, disconnecting from SFTP and freeing
+ * and associated resources. Any associated session or user objects must be
+ * explicitly destroyed.
+ *
+ * @param filesystem
+ *     The filesystem object to destroy.
+ */
+void guac_common_ssh_destroy_sftp_filesystem(
+        guac_common_ssh_sftp_filesystem* filesystem);
+
+/**
+ * Creates and exposes a new filesystem guac_object to the given user,
+ * providing access to the files within the given SFTP filesystem. The
+ * allocated guac_object must eventually be freed via guac_user_free_object().
+ *
+ * @param filesystem
+ *     The filesystem object to expose.
  *
  * @param user
  *     The user that the SFTP filesystem should be exposed to.
@@ -111,22 +133,12 @@ typedef struct guac_common_ssh_sftp_ls_state {
  *     The name to send as the name of the filesystem.
  *
  * @return
- *     A new Guacamole filesystem object, already configured to use SFTP for
- *     uploading and downloading files.
+ *     A new Guacamole filesystem object, configured to use SFTP for uploading
+ *     and downloading files.
  */
-guac_object* guac_common_ssh_create_sftp_filesystem(
-        guac_common_ssh_session* session, guac_user* user,
+guac_object* guac_common_ssh_alloc_sftp_filesystem_object(
+        guac_common_ssh_sftp_filesystem* filesystem, guac_user* user,
         const char* name);
-
-/**
- * Destroys the given filesystem object, disconnecting from SFTP and freeing
- * and associated resources. Any associated session or user objects must be
- * explicitly destroyed.
- *
- * @param object
- *     The filesystem object to destroy.
- */
-void guac_common_ssh_destroy_sftp_filesystem(guac_object* filesystem);
 
 /**
  * Initiates an SFTP file download to the user via the Guacamole "file"
@@ -147,8 +159,9 @@ void guac_common_ssh_destroy_sftp_filesystem(guac_object* filesystem);
  *     The file stream created for the file download, already configured to
  *     properly handle "ack" responses, etc. from the user.
  */
-guac_stream* guac_common_ssh_sftp_download_file(guac_object* filesystem,
-        guac_user* user, char* filename);
+guac_stream* guac_common_ssh_sftp_download_file(
+        guac_common_ssh_sftp_filesystem* filesystem, guac_user* user,
+        char* filename);
 
 /**
  * Handles an incoming stream from a Guacamole "file" instruction, saving the
@@ -177,8 +190,9 @@ guac_stream* guac_common_ssh_sftp_download_file(guac_object* filesystem,
  *     Zero if the incoming stream has been handled successfully, non-zero on
  *     failure.
  */
-int guac_common_ssh_sftp_handle_file_stream(guac_object* filesystem,
-        guac_user* user, guac_stream* stream, char* mimetype, char* filename);
+int guac_common_ssh_sftp_handle_file_stream(
+        guac_common_ssh_sftp_filesystem* filesystem, guac_user* user,
+        guac_stream* stream, char* mimetype, char* filename);
 
 /**
  * Set the destination directory for future uploads submitted via
@@ -192,8 +206,8 @@ int guac_common_ssh_sftp_handle_file_stream(guac_object* filesystem,
  *     The path to use for future uploads submitted via the
  *     guac_common_ssh_sftp_handle_file_stream() function.
  */
-void guac_common_ssh_sftp_set_upload_path(guac_object* filesystem,
-        const char* path);
+void guac_common_ssh_sftp_set_upload_path(
+        guac_common_ssh_sftp_filesystem* filesystem, const char* path);
 
 #endif
 
