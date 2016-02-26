@@ -242,7 +242,6 @@ void* ssh_client_thread(void* data) {
     ssh_client->auth_agent = NULL;
 #endif
 
-#if 0
     /* Start SFTP session as well, if enabled */
     if (settings->enable_sftp) {
 
@@ -258,11 +257,7 @@ void* ssh_client_thread(void* data) {
 
         /* Request SFTP */
         ssh_client->sftp_filesystem =
-            guac_common_ssh_create_sftp_filesystem(
-                    ssh_client->sftp_session, "/");
-
-        /* Set generic (non-filesystem) file upload handler */
-        client->file_handler = guac_sftp_file_handler;
+            guac_common_ssh_create_sftp_filesystem(ssh_client->sftp_session);
 
         /* Init handlers for Guacamole-specific console codes */
         ssh_client->term->upload_path_handler = guac_sftp_set_upload_path;
@@ -271,7 +266,6 @@ void* ssh_client_thread(void* data) {
         guac_client_log(client, GUAC_LOG_DEBUG, "SFTP session initialized");
 
     }
-#endif
 
     /* Request PTY */
     if (libssh2_channel_request_pty_ex(ssh_client->term_channel, "linux", sizeof("linux")-1, NULL, 0,

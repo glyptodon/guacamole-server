@@ -26,6 +26,7 @@
 #include "input.h"
 #include "guac_display.h"
 #include "user.h"
+#include "sftp.h"
 #include "ssh.h"
 #include "settings.h"
 
@@ -45,11 +46,11 @@ int guac_ssh_user_join_handler(guac_user* user, int argc, char** argv) {
     if (user->owner) {
 
         /* Parse arguments into client */
-        guac_ssh_settings* ssh_settings = ssh_client->settings =
+        guac_ssh_settings* settings = ssh_client->settings =
             guac_ssh_parse_args(user, argc, (const char**) argv);
 
         /* Fail if settings cannot be parsed */
-        if (ssh_settings == NULL) {
+        if (settings == NULL) {
             guac_user_log(user, GUAC_LOG_INFO,
                     "Badly formatted client arguments.");
             return 1;
@@ -76,6 +77,9 @@ int guac_ssh_user_join_handler(guac_user* user, int argc, char** argv) {
     user->mouse_handler     = guac_ssh_user_mouse_handler;
     user->size_handler      = guac_ssh_user_size_handler;
     user->clipboard_handler = guac_ssh_clipboard_handler;
+
+    /* Set generic (non-filesystem) file upload handler */
+    user->file_handler = guac_sftp_file_handler;
 
     return 0;
 

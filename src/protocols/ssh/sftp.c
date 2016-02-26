@@ -68,6 +68,10 @@ static void* guac_sftp_download_to_owner(guac_user* owner, void* data) {
     guac_ssh_client* ssh_client = (guac_ssh_client*) client->data;
     guac_common_ssh_sftp_filesystem* filesystem = ssh_client->sftp_filesystem;
 
+    /* Ignore download if filesystem has been unloaded */
+    if (filesystem == NULL)
+        return NULL;
+
     char* filename = (char*) data;
 
     /* Initiate download of requested file */
