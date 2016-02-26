@@ -169,6 +169,42 @@ void* ssh_input_thread(void* data) {
 
 }
 
+/**
+ * Allocates a new filesystem guac_object for the given user, which must be the
+ * connection owner, returning the resulting guac_object. Note that this
+ * guac_object will be tracked internally by libguac, will be provided to us in
+ * the parameters of handlers related to that guac_object, and will
+ * automatically be freed when the associated guac_user is freed, so the
+ * return value of this function can safely be ignored.
+ *
+ * If the connection owner has left, or no filesystem has been associated with
+ * the given SSH client, then this function has no effect.
+ *
+ * @param owner
+ *     The owner of the current connection, or NULL if the connection owner has
+ *     left.
+ *
+ * @param data
+ *     The guac_ssh_client instance associated with the current connection.
+ *
+ * @return
+ *     The guac_object allocated for the filesystem associated with the given
+ *     SSH client, or NULL if no filesystem object could be allocated.
+ */
+static void* guac_ssh_expose_filesystem(guac_user* owner, void* data) {
+
+    guac_ssh_client* ssh_client = (guac_ssh_client*) data;
+    guac_common_ssh_sftp_filesystem* filesystem = ssh_client->sftp_filesystem;
+
+    /* No need to expose if there is no filesystem or the owner has left */
+    if (owner == NULL || filesystem == NULL)
+        return NULL;
+
+    /* Allocate and expose filesystem object for owner */
+    return guac_common_ssh_alloc_sftp_filesystem_object(filesystem, owner, "/");
+
+}
+
 void* ssh_client_thread(void* data) {
 
     guac_client* client = (guac_client*) data;
@@ -258,6 +294,9 @@ void* ssh_client_thread(void* data) {
         /* Request SFTP */
         ssh_client->sftp_filesystem =
             guac_common_ssh_create_sftp_filesystem(ssh_client->sftp_session);
+
+        /* Expose filesystem to connection owner */
+        guac_client_for_owner(client, guac_ssh_expose_filesystem, ssh_client);
 
         /* Init handlers for Guacamole-specific console codes */
         ssh_client->term->upload_path_handler = guac_sftp_set_upload_path;
