@@ -184,7 +184,7 @@ int guac_parser_read(guac_parser* parser, guac_socket* socket, int usec_timeout)
         int parsed = guac_parser_append(parser, unparsed_start, unparsed_end - unparsed_start);
 
         /* Read more data if not enough data to parse */
-        if (parsed == 0) {
+        if (parsed == 0 && parser->state != GUAC_PARSE_ERROR) {
 
             int retval;
 
