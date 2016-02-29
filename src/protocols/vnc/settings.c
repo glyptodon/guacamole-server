@@ -25,6 +25,9 @@
 #include "client.h"
 #include "settings.h"
 
+#include <guacamole/user.h>
+
+#include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
@@ -113,75 +116,128 @@ enum VNC_ARGS_IDX {
     VNC_ARGS_COUNT
 };
 
-int guac_vnc_parse_args(guac_vnc_settings* settings, int argc, const char** argv) {
+guac_vnc_settings* guac_vnc_parse_args(guac_user* user,
+        int argc, const char** argv) {
 
     /* Validate arg count */
-    if (argc != VNC_ARGS_COUNT)
-        return 1;
+    if (argc != VNC_ARGS_COUNT) {
+        guac_user_log(user, GUAC_LOG_WARNING, "Incorrect number of connection "
+                "parameters provided: expected %i, got %i.",
+                VNC_ARGS_COUNT, argc);
+        return NULL;
+    }
 
-    settings->hostname = strdup(argv[IDX_HOSTNAME]);
-    settings->port = atoi(argv[IDX_PORT]);
-    settings->password = strdup(argv[IDX_PASSWORD]); /* NOTE: freed by libvncclient */
+    guac_vnc_settings* settings = calloc(1, sizeof(guac_vnc_settings));
 
-    /* Set flags */
-    settings->remote_cursor = (strcmp(argv[IDX_CURSOR], "remote") == 0);
-    settings->swap_red_blue = (strcmp(argv[IDX_SWAP_RED_BLUE], "true") == 0);
-    settings->read_only     = (strcmp(argv[IDX_READ_ONLY], "true") == 0);
+    settings->hostname =
+        guac_user_parse_args_string(user, GUAC_VNC_CLIENT_ARGS, argv,
+                IDX_HOSTNAME, "");
+
+    settings->port =
+        guac_user_parse_args_int(user, GUAC_VNC_CLIENT_ARGS, argv,
+                IDX_PORT, 0);
+
+    settings->password =
+        guac_user_parse_args_string(user, GUAC_VNC_CLIENT_ARGS, argv,
+                IDX_PASSWORD, ""); /* NOTE: freed by libvncclient */
+
+    /* Remote cursor */
+    if (strcmp(argv[IDX_CURSOR], "remote") == 0) {
+        guac_user_log(user, GUAC_LOG_INFO, "Cursor rendering: remote");
+        settings->remote_cursor = true;
+    }
+
+    /* Local cursor */
+    else {
+        guac_user_log(user, GUAC_LOG_INFO, "Cursor rendering: local");
+        settings->remote_cursor = false;
+    }
+
+    /* Swap red/blue (for buggy VNC servers) */
+    settings->swap_red_blue =
+        guac_user_parse_args_boolean(user, GUAC_VNC_CLIENT_ARGS, argv,
+                IDX_SWAP_RED_BLUE, false);
+
+    /* Read-only mode */
+    settings->read_only =
+        guac_user_parse_args_boolean(user, GUAC_VNC_CLIENT_ARGS, argv,
+                IDX_READ_ONLY, false);
 
     /* Parse color depth */
-    settings->color_depth = atoi(argv[IDX_COLOR_DEPTH]);
+    settings->color_depth =
+        guac_user_parse_args_int(user, GUAC_VNC_CLIENT_ARGS, argv,
+                IDX_COLOR_DEPTH, 0);
 
 #ifdef ENABLE_VNC_REPEATER
     /* Set repeater parameters if specified */
-    if (argv[IDX_DEST_HOST][0] != '\0')
-        settings->dest_host = strdup(argv[IDX_DEST_HOST]);
-    else
-        settings->dest_host = NULL;
+    settings->dest_host =
+        guac_user_parse_args_string(user, GUAC_VNC_CLIENT_ARGS, argv,
+                IDX_DEST_HOST, NULL);
 
-    if (argv[IDX_DEST_PORT][0] != '\0')
-        settings->dest_port = atoi(argv[IDX_DEST_PORT]);
+    /* VNC repeater port */
+    settings->dest_port =
+        guac_user_parse_args_int(user, GUAC_VNC_CLIENT_ARGS, argv,
+                IDX_DEST_PORT, 0);
 #endif
 
     /* Set encodings if specified */
-    if (argv[IDX_ENCODINGS][0] != '\0')
-        settings->encodings = strdup(argv[IDX_ENCODINGS]);
-    else
-        settings->encodings = NULL;
+    settings->encodings =
+        guac_user_parse_args_string(user, GUAC_VNC_CLIENT_ARGS, argv,
+                IDX_ENCODINGS, NULL);
 
     /* Parse autoretry */
-    if (argv[IDX_AUTORETRY][0] != '\0')
-        settings->retries = atoi(argv[IDX_AUTORETRY]);
-    else
-        settings->retries = 0; 
+    settings->retries =
+        guac_user_parse_args_int(user, GUAC_VNC_CLIENT_ARGS, argv,
+                IDX_AUTORETRY, 0);
 
 #ifdef ENABLE_VNC_LISTEN
     /* Set reverse-connection flag */
-    settings->reverse_connect = (strcmp(argv[IDX_REVERSE_CONNECT], "true") == 0);
+    settings->reverse_connect =
+        guac_user_parse_args_boolean(user, GUAC_VNC_CLIENT_ARGS, argv,
+                IDX_REVERSE_CONNECT, false);
 
     /* Parse listen timeout */
-    if (argv[IDX_LISTEN_TIMEOUT][0] != '\0')
-        settings->listen_timeout = atoi(argv[IDX_LISTEN_TIMEOUT]);
-    else
-        settings->listen_timeout = 5000;
+    settings->listen_timeout =
+        guac_user_parse_args_int(user, GUAC_VNC_CLIENT_ARGS, argv,
+                IDX_LISTEN_TIMEOUT, 5000);
 #endif
 
 #ifdef ENABLE_PULSE
-    settings->audio_enabled = (strcmp(argv[IDX_ENABLE_AUDIO], "true") == 0);
+    /* Audio enable/disable */
+    settings->audio_enabled =
+        guac_user_parse_args_boolean(user, GUAC_VNC_CLIENT_ARGS, argv,
+                IDX_ENABLE_AUDIO, false);
 
     /* Load servername if specified and applicable */
-    if (settings->audio_enabled && argv[IDX_AUDIO_SERVERNAME][0] != '\0')
-        settings->pa_servername = strdup(argv[IDX_AUDIO_SERVERNAME]);
-    else
-        settings->pa_servername = NULL;
+    if (settings->audio_enabled)
+        settings->pa_servername =
+            guac_user_parse_args_string(user, GUAC_VNC_CLIENT_ARGS, argv,
+                    IDX_AUDIO_SERVERNAME, NULL);
 #endif
 
     /* Set clipboard encoding if specified */
-    if (argv[IDX_CLIPBOARD_ENCODING][0] != '\0')
-        settings->clipboard_encoding = strdup(argv[IDX_CLIPBOARD_ENCODING]);
-    else
-        settings->clipboard_encoding = NULL;
+    settings->clipboard_encoding =
+        guac_user_parse_args_string(user, GUAC_VNC_CLIENT_ARGS, argv,
+                IDX_CLIPBOARD_ENCODING, NULL);
 
-    return 0;
+    return settings;
+
+}
+
+void guac_vnc_settings_free(guac_vnc_settings* settings) {
+
+    /* Free settings strings */
+    free(settings->clipboard_encoding);
+    free(settings->dest_host);
+    free(settings->encodings);
+    free(settings->hostname);
+
+#ifdef ENABLE_PULSE
+    free(settings->pa_servername);
+#endif
+
+    /* Free settings structure */
+    free(settings);
 
 }
 

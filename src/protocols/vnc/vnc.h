@@ -78,7 +78,7 @@ typedef struct guac_vnc_client {
     /**
      * Client settings, parsed from args.
      */
-    guac_vnc_settings settings;
+    guac_vnc_settings* settings;
 
     /**
      * The current display state.

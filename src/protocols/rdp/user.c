@@ -43,8 +43,11 @@ int guac_rdp_user_join_handler(guac_user* user, int argc, char** argv) {
     if (user->owner) {
 
         /* Parse arguments into client */
-        if (guac_rdp_parse_args(&(rdp_client->settings), user,
-                    argc, (const char**) argv)) {
+        guac_rdp_settings* settings = rdp_client->settings =
+            guac_rdp_parse_args(user, argc, (const char**) argv);
+
+        /* Fail if settings cannot be parsed */
+        if (settings == NULL) {
             guac_user_log(user, GUAC_LOG_INFO,
                     "Badly formatted client arguments.");
             return 1;

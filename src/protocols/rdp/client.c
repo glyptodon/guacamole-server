@@ -138,6 +138,10 @@ int guac_rdp_client_free_handler(guac_client* client) {
     /* Free SVC list */
     guac_common_list_free(rdp_client->available_svc);
 
+    /* Free parsed settings */
+    if (rdp_client->settings != NULL)
+        guac_rdp_settings_free(rdp_client->settings);
+
     /* Free client data */
     guac_common_clipboard_free(rdp_client->clipboard);
     guac_common_display_free(rdp_client->display);

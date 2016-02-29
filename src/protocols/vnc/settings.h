@@ -124,11 +124,35 @@ typedef struct guac_vnc_settings {
 } guac_vnc_settings;
 
 /**
- * Parses all given args, storing them in the given settings. If the args are
- * successfully parsed, zero is returned. Non-zero is returned if an error
- * occurs.
+ * Parses all given args, storing them in a newly-allocated settings object. If
+ * the args fail to parse, NULL is returned.
+ *
+ * @param user
+ *     The user who submitted the given arguments while joining the
+ *     connection.
+ *
+ * @param argc
+ *     The number of arguments within the argv array.
+ *
+ * @param argv
+ *     The values of all arguments provided by the user.
+ *
+ * @return
+ *     A newly-allocated settings object which must be freed with
+ *     guac_vnc_settings_free() when no longer needed. If the arguments fail
+ *     to parse, NULL is returned.
  */
-int guac_vnc_parse_args(guac_vnc_settings* settings, int argc, const char** argv);
+guac_vnc_settings* guac_vnc_parse_args(guac_user* user,
+        int argc, const char** argv);
+
+/**
+ * Frees the given guac_vnc_settings object, having been previously allocated
+ * via guac_vnc_parse_args().
+ *
+ * @param settings
+ *     The settings object to free.
+ */
+void guac_vnc_settings_free(guac_vnc_settings* settings);
 
 /**
  * NULL-terminated array of accepted client args.

@@ -31,6 +31,6 @@
 
 char* guac_vnc_get_password(rfbClient* client) {
     guac_client* gc = rfbClientGetClientData(client, GUAC_VNC_CLIENT_KEY);
-    return ((guac_vnc_client*) gc->data)->settings.password;
+    return ((guac_vnc_client*) gc->data)->settings->password;
 }
 

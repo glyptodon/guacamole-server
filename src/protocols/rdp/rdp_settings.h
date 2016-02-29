@@ -283,22 +283,35 @@ typedef struct guac_rdp_settings {
 } guac_rdp_settings;
 
 /**
- * Parses all given args, storing them in the given settings. If the args are
- * successfully parsed, zero is returned. Non-zero is returned if an error
- * occurs.
+ * Parses all given args, storing them in a newly-allocated settings object. If
+ * the args fail to parse, NULL is returned.
  *
- * @param settings The guac_rdp_settings object to populate with parsed data.
- * @param user The user whose connection arguments are to be parsed.
- * @param argc The number of connection arguments.
+ * @param user
+ *     The user who submitted the given arguments while joining the
+ *     connection.
+ *
+ * @param argc
+ *     The number of arguments within the argv array.
  *
  * @param argv
- *     An array of connection arguments. Each of these arguments will
- *     correspond, in order, to the arguments declared in GUAC_RDP_CLIENT_ARGS.
+ *     The values of all arguments provided by the user.
  *
- * @return Zero if the arguments were successfully parsed, non-zero otherwise.
+ * @return
+ *     A newly-allocated settings object which must be freed with
+ *     guac_rdp_settings_free() when no longer needed. If the arguments fail
+ *     to parse, NULL is returned.
  */
-int guac_rdp_parse_args(guac_rdp_settings* settings, guac_user* user,
+guac_rdp_settings* guac_rdp_parse_args(guac_user* user,
         int argc, const char** argv);
+
+/**
+ * Frees the given guac_rdp_settings object, having been previously allocated
+ * via guac_rdp_parse_args().
+ *
+ * @param settings
+ *     The settings object to free.
+ */
+void guac_rdp_settings_free(guac_rdp_settings* settings);
 
 /**
  * NULL-terminated array of accepted client args.

@@ -108,8 +108,8 @@ int guac_vnc_client_free_handler(guac_client* client) {
 #endif
 
     /* Free encodings string, if used */
-    if (vnc_client->settings.encodings != NULL)
-        free(vnc_client->settings.encodings);
+    if (vnc_client->settings->encodings != NULL)
+        free(vnc_client->settings->encodings);
 
     /* Free clipboard */
     if (vnc_client->clipboard != NULL)
@@ -118,6 +118,10 @@ int guac_vnc_client_free_handler(guac_client* client) {
     /* Free display */
     if (vnc_client->display != NULL)
         guac_common_display_free(vnc_client->display);
+
+    /* Free parsed settings */
+    if (vnc_client->settings != NULL)
+        guac_vnc_settings_free(vnc_client->settings);
 
     /* Free generic data struct */
     free(client->data);

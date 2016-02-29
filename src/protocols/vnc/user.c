@@ -41,14 +41,18 @@
 int guac_vnc_user_join_handler(guac_user* user, int argc, char** argv) {
 
     guac_vnc_client* vnc_client = (guac_vnc_client*) user->client->data;
-    guac_vnc_settings* vnc_settings = &(vnc_client->settings);
 
     /* Connect via VNC if owner */
     if (user->owner) {
 
         /* Parse arguments into client */
-        if (guac_vnc_parse_args(&(vnc_client->settings), argc, (const char**) argv)) {
-            guac_user_log(user, GUAC_LOG_INFO, "Badly formatted client arguments.");
+        guac_vnc_settings* settings = vnc_client->settings =
+            guac_vnc_parse_args(user, argc, (const char**) argv);
+
+        /* Fail if settings cannot be parsed */
+        if (settings == NULL) {
+            guac_user_log(user, GUAC_LOG_INFO,
+                    "Badly formatted client arguments.");
             return 1;
         }
 
@@ -67,7 +71,7 @@ int guac_vnc_user_join_handler(guac_user* user, int argc, char** argv) {
     }
 
     /* Only handle mouse/keyboard/clipboard if not read-only */
-    if (vnc_settings->read_only == 0) {
+    if (vnc_client->settings->read_only == 0) {
         user->mouse_handler = guac_vnc_user_mouse_handler;
         user->key_handler = guac_vnc_user_key_handler;
         user->clipboard_handler = guac_vnc_clipboard_handler;

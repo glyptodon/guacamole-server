@@ -262,10 +262,10 @@ int guac_rdp_user_size_handler(guac_user* user, int width, int height) {
         return 0;
 
     /* Convert client pixels to remote pixels */
-    width  = width  * rdp_client->settings.resolution
+    width  = width  * rdp_client->settings->resolution
                     / user->info.optimal_resolution;
 
-    height = height * rdp_client->settings.resolution
+    height = height * rdp_client->settings->resolution
                     / user->info.optimal_resolution;
 
     /* Send display update */

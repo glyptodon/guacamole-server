@@ -69,7 +69,7 @@ typedef struct guac_rdp_client {
     /**
      * All settings associated with the current or pending RDP connection.
      */
-    guac_rdp_settings settings;
+    guac_rdp_settings* settings;
 
     /**
      * Button mask containing the OR'd value of all currently pressed buttons.

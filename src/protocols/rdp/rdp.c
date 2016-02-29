@@ -198,7 +198,7 @@ BOOL rdp_freerdp_pre_connect(freerdp* instance) {
 /* FIXME: Audio disabled for now */
 #if 0
     /* If audio enabled, choose an encoder */
-    if (rdp_client->settings.audio_enabled) {
+    if (rdp_client->settings->audio_enabled) {
 
         rdp_client->audio = guac_audio_stream_alloc(client, NULL,
                 GUAC_RDP_AUDIO_RATE,
@@ -216,12 +216,12 @@ BOOL rdp_freerdp_pre_connect(freerdp* instance) {
 /* FIXME: Drive disabled for now */
 #if 0
     /* Load filesystem if drive enabled */
-    if (rdp_client->settings.drive_enabled) {
+    if (rdp_client->settings->drive_enabled) {
 
         /* Allocate filesystem */
         rdp_client->filesystem =
-            guac_rdp_fs_alloc(client, rdp_client->settings.drive_path,
-                    rdp_client->settings.create_drive_path);
+            guac_rdp_fs_alloc(client, rdp_client->settings->drive_path,
+                    rdp_client->settings->create_drive_path);
 
         /* Use for basic uploads if no other handler set */
         if (client->file_handler == NULL)
@@ -230,9 +230,9 @@ BOOL rdp_freerdp_pre_connect(freerdp* instance) {
     }
 
     /* If RDPSND/RDPDR required, load them */
-    if (rdp_client->settings.printing_enabled
-        || rdp_client->settings.drive_enabled
-        || rdp_client->settings.audio_enabled) {
+    if (rdp_client->settings->printing_enabled
+        || rdp_client->settings->drive_enabled
+        || rdp_client->settings->audio_enabled) {
 
         /* Load RDPDR plugin */
         if (freerdp_channels_load_plugin(channels, instance->settings,
@@ -253,15 +253,15 @@ BOOL rdp_freerdp_pre_connect(freerdp* instance) {
 #endif
 
     /* Load RAIL plugin if RemoteApp in use */
-    if (rdp_client->settings.remote_app != NULL) {
+    if (rdp_client->settings->remote_app != NULL) {
 
 #ifdef LEGACY_FREERDP
         RDP_PLUGIN_DATA* plugin_data = malloc(sizeof(RDP_PLUGIN_DATA) * 2);
 
         plugin_data[0].size = sizeof(RDP_PLUGIN_DATA);
-        plugin_data[0].data[0] = rdp_client->settings.remote_app;
-        plugin_data[0].data[1] = rdp_client->settings.remote_app_dir;
-        plugin_data[0].data[2] = rdp_client->settings.remote_app_args; 
+        plugin_data[0].data[0] = rdp_client->settings->remote_app;
+        plugin_data[0].data[1] = rdp_client->settings->remote_app_dir;
+        plugin_data[0].data[2] = rdp_client->settings->remote_app_args; 
         plugin_data[0].data[3] = NULL;
 
         plugin_data[1].size = 0;
@@ -284,9 +284,9 @@ BOOL rdp_freerdp_pre_connect(freerdp* instance) {
 /* FIXME: Static channels disabled for now */
 #if 0
     /* Load SVC plugin instances for all static channels */
-    if (rdp_client->settings.svc_names != NULL) {
+    if (rdp_client->settings->svc_names != NULL) {
 
-        char** current = rdp_client->settings.svc_names;
+        char** current = rdp_client->settings->svc_names;
         do {
 
             guac_rdp_svc* svc = guac_rdp_alloc_svc(client, *current);
@@ -428,7 +428,7 @@ BOOL rdp_freerdp_verify_certificate(freerdp* instance, char* subject,
         (guac_rdp_client*) client->data;
 
     /* Bypass validation if ignore_certificate given */
-    if (rdp_client->settings.ignore_certificate) {
+    if (rdp_client->settings->ignore_certificate) {
         guac_client_log(client, GUAC_LOG_INFO, "Certificate validation bypassed");
         return TRUE;
     }
@@ -571,16 +571,15 @@ void* guac_rdp_client_thread(void* data) {
 
     guac_client* client = (guac_client*) data;
     guac_rdp_client* rdp_client = (guac_rdp_client*) client->data;
-
-    guac_rdp_settings* settings = &(rdp_client->settings);
+    guac_rdp_settings* settings = rdp_client->settings;
 
     /* Init random number generator */
     srandom(time(NULL));
 
     /* Create display */
     rdp_client->display = guac_common_display_alloc(client,
-            rdp_client->settings.width,
-            rdp_client->settings.height);
+            rdp_client->settings->width,
+            rdp_client->settings->height);
 
     rdp_client->current_surface = rdp_client->display->default_surface;
 
