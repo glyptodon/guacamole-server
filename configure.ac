@@ -230,6 +230,9 @@ AC_ARG_WITH([pulse],
             [],
             [with_pulse=check])
 
+# FIXME: Temporarily disabled
+with_pulse=no
+
 if test "x$with_pulse" != "xno"
 then
     have_pulse=yes
@@ -918,6 +921,9 @@ AC_ARG_WITH([telnet],
                             [support Telnet @<:@default=check@:>@])],
             [],
             [with_telnet=check])
+
+# FIXME: Temporarily disabled
+with_telnet=no
 
 if test "x$with_telnet" != "xno"
 then

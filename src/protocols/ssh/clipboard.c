@@ -21,19 +21,21 @@
  */
 
 #include "config.h"
-#include "client.h"
 #include "clipboard.h"
+#include "ssh.h"
 #include "terminal.h"
 
 #include <guacamole/client.h>
 #include <guacamole/stream.h>
+#include <guacamole/user.h>
 
-int guac_ssh_clipboard_handler(guac_client* client, guac_stream* stream,
+int guac_ssh_clipboard_handler(guac_user* user, guac_stream* stream,
         char* mimetype) {
 
     /* Clear clipboard and prepare for new data */
-    ssh_guac_client_data* client_data = (ssh_guac_client_data*) client->data;
-    guac_terminal_clipboard_reset(client_data->term, mimetype);
+    guac_client* client = user->client;
+    guac_ssh_client* ssh_client = (guac_ssh_client*) client->data;
+    guac_terminal_clipboard_reset(ssh_client->term, mimetype);
 
     /* Set handlers for clipboard stream */
     stream->blob_handler = guac_ssh_clipboard_blob_handler;
@@ -42,17 +44,18 @@ int guac_ssh_clipboard_handler(guac_client* client, guac_stream* stream,
     return 0;
 }
 
-int guac_ssh_clipboard_blob_handler(guac_client* client, guac_stream* stream,
+int guac_ssh_clipboard_blob_handler(guac_user* user, guac_stream* stream,
         void* data, int length) {
 
     /* Append new data */
-    ssh_guac_client_data* client_data = (ssh_guac_client_data*) client->data;
-    guac_terminal_clipboard_append(client_data->term, data, length);
+    guac_client* client = user->client;
+    guac_ssh_client* ssh_client = (guac_ssh_client*) client->data;
+    guac_terminal_clipboard_append(ssh_client->term, data, length);
 
     return 0;
 }
 
-int guac_ssh_clipboard_end_handler(guac_client* client, guac_stream* stream) {
+int guac_ssh_clipboard_end_handler(guac_user* user, guac_stream* stream) {
 
     /* Nothing to do - clipboard is implemented within client */
 
