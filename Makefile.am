@@ -41,6 +41,9 @@ SUBDIRS =       \
     src/common  \
     tests
 
+DISTCHECK_CONFIGURE_FLAGS = \
+  --with-systemdsystemunitdir=$$dc_install_base/$(systemdsystemunitdir)
+
 if ENABLE_COMMON_SSH
 SUBDIRS += src/common-ssh
 endif
