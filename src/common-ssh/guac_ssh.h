@@ -104,6 +104,33 @@ guac_common_ssh_session* guac_common_ssh_create_session(guac_client* client,
         const char* hostname, const char* port, guac_common_ssh_user* user);
 
 /**
+ * Used within VNC and RDP connections to create an SFTP connection using the
+ * given hostname and port, and authenticates as the given user. If an error
+ * occurs while connecting or authenticating, the Guacamole client will log
+ * the error encountered and continue without aborting. The user object provided
+ * must eventually be explicitly destroyed, but should not be destroyed until the
+ * entire VNC or RDP session is terminated.
+ *
+ * @param client
+ *     The Guacamole client that will be using SSH.
+ *
+ * @param hostname
+ *     The hostname of the SSH server to connect to.
+ *
+ * @param port
+ *     The port to connect to on the given hostname.
+ *
+ * @param user
+ *     The user to authenticate as, once connected.
+ *
+ * @return
+ *     A new SSH session if the connection and authentication succeed, or NULL
+ *     if the connection or authentication were not successful.
+ */
+guac_common_ssh_session* guac_common_ssh_create_secondary_session(guac_client* client,
+        const char* hostname, const char* port, guac_common_ssh_user* user);
+
+/**
  * Disconnects and destroys the given SSH session, freeing all associated
  * resources. Any associated user must be explicitly destroyed, and will not
  * be destroyed automatically.
