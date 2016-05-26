@@ -43,6 +43,7 @@
 #include <string.h>
 #include <sys/socket.h>
 #include <unistd.h>
+#include <stdbool.h>
 
 #ifdef LIBSSH2_USES_GCRYPT
 GCRY_THREAD_OPTION_PTHREAD_IMPL;
@@ -277,19 +278,36 @@ static void guac_common_ssh_kbd_callback(const char *name, int name_len,
 
 }
 
+void ssh_client_error(bool abortOnError, guac_client* client, guac_protocol_status status,
+        const char* format, ...) {
+    va_list args;
+    va_start(args, format);
+    if(abortOnError) {
+        vguac_client_abort(client, status, format, args);
+    }
+    else {
+        vguac_client_log(client, GUAC_LOG_ERROR, format, args);
+    }
+    va_end(args);
+}
+
 /**
  * Authenticates the user associated with the given session over SSH. All
  * required credentials must already be present within the user object
  * associated with the given session.
  *
- * @param session
+ * @param abortOnError
+ *     If set to true, the connection will be aborted. Otherwise, the error
+ *     will be logged.
+ *
+ * @param common_session
  *     The session associated with the user to be authenticated.
  *
  * @return
  *     Zero if authentication succeeds, or non-zero if authentication has
  *     failed.
  */
-static int guac_common_ssh_authenticate(guac_common_ssh_session* common_session) {
+static int guac_common_ssh_authenticate(bool abortOnError, guac_common_ssh_session* common_session) {
 
     guac_client* client = common_session->client;
     guac_common_ssh_user* user = common_session->user;
@@ -302,7 +320,7 @@ static int guac_common_ssh_authenticate(guac_common_ssh_session* common_session)
 
     /* Validate username provided */
     if (username == NULL) {
-        guac_client_abort(client, GUAC_PROTOCOL_STATUS_CLIENT_UNAUTHORIZED,
+        ssh_client_error(abortOnError, client, GUAC_PROTOCOL_STATUS_CLIENT_UNAUTHORIZED,
                 "SSH authentication requires a username.");
         return 1;
     }
@@ -318,7 +336,7 @@ static int guac_common_ssh_authenticate(guac_common_ssh_session* common_session)
 
         /* Check if public key auth is supported on the server */
         if (strstr(user_authlist, "publickey") == NULL) {
-            guac_client_abort(client, GUAC_PROTOCOL_STATUS_CLIENT_UNAUTHORIZED,
+            ssh_client_error(abortOnError, client, GUAC_PROTOCOL_STATUS_CLIENT_UNAUTHORIZED,
                     "Public key authentication is not supported by "
                     "the SSH server");
             return 1;
@@ -332,7 +350,7 @@ static int guac_common_ssh_authenticate(guac_common_ssh_session* common_session)
             /* Abort on failure */
             char* error_message;
             libssh2_session_last_error(session, &error_message, NULL, 0);
-            guac_client_abort(client, GUAC_PROTOCOL_STATUS_CLIENT_UNAUTHORIZED,
+            ssh_client_error(abortOnError, client, GUAC_PROTOCOL_STATUS_CLIENT_UNAUTHORIZED,
                     "Public key authentication failed: %s", error_message);
 
             return 1;
@@ -356,7 +374,7 @@ static int guac_common_ssh_authenticate(guac_common_ssh_session* common_session)
                 /* Abort on failure */
                 char* error_message;
                 libssh2_session_last_error(session, &error_message, NULL, 0);
-                guac_client_abort(client,
+                ssh_client_error(abortOnError, client,
                         GUAC_PROTOCOL_STATUS_CLIENT_UNAUTHORIZED,
                         "Password authentication failed: %s", error_message);
 
@@ -378,7 +396,7 @@ static int guac_common_ssh_authenticate(guac_common_ssh_session* common_session)
                 /* Abort on failure */
                 char* error_message;
                 libssh2_session_last_error(session, &error_message, NULL, 0);
-                guac_client_abort(client,
+                ssh_client_error(abortOnError, client,
                         GUAC_PROTOCOL_STATUS_CLIENT_UNAUTHORIZED,
                         "Keyboard-interactive authentication failed: %s",
                         error_message);
@@ -392,7 +410,7 @@ static int guac_common_ssh_authenticate(guac_common_ssh_session* common_session)
         }
 
         /* No known authentication types available */
-        guac_client_abort(client, GUAC_PROTOCOL_STATUS_CLIENT_UNAUTHORIZED,
+        ssh_client_error(abortOnError, client, GUAC_PROTOCOL_STATUS_CLIENT_UNAUTHORIZED,
                 "Password and keyboard-interactive authentication are not "
                 "supported by the SSH server");
         return 1;
@@ -400,13 +418,13 @@ static int guac_common_ssh_authenticate(guac_common_ssh_session* common_session)
     }
 
     /* No credentials provided */
-    guac_client_abort(client, GUAC_PROTOCOL_STATUS_CLIENT_UNAUTHORIZED,
+    ssh_client_error(abortOnError, client, GUAC_PROTOCOL_STATUS_CLIENT_UNAUTHORIZED,
             "SSH authentication requires either a private key or a password.");
     return 1;
 
 }
 
-guac_common_ssh_session* guac_common_ssh_create_session(guac_client* client,
+guac_common_ssh_session* guac_common_ssh_create_session_common(bool abortOnError, guac_client* client,
         const char* hostname, const char* port, guac_common_ssh_user* user) {
 
     int retval;
@@ -427,14 +445,14 @@ guac_common_ssh_session* guac_common_ssh_create_session(guac_client* client,
     /* Get socket */
     fd = socket(AF_INET, SOCK_STREAM, 0);
     if (fd < 0) {
-        guac_client_abort(client, GUAC_PROTOCOL_STATUS_SERVER_ERROR,
+        ssh_client_error(abortOnError, client, GUAC_PROTOCOL_STATUS_SERVER_ERROR,
                 "Unable to create socket: %s", strerror(errno));
         return NULL;
     }
 
     /* Get addresses connection */
     if ((retval = getaddrinfo(hostname, port, &hints, &addresses))) {
-        guac_client_abort(client, GUAC_PROTOCOL_STATUS_SERVER_ERROR,
+        ssh_client_error(abortOnError, client, GUAC_PROTOCOL_STATUS_SERVER_ERROR,
                 "Error parsing given address or port: %s",
                 gai_strerror(retval));
         close(fd);
@@ -482,7 +500,7 @@ guac_common_ssh_session* guac_common_ssh_create_session(guac_client* client,
 
     /* If unable to connect to anything, fail */
     if (current_address == NULL) {
-        guac_client_abort(client, GUAC_PROTOCOL_STATUS_UPSTREAM_ERROR,
+        ssh_client_error(abortOnError, client, GUAC_PROTOCOL_STATUS_UPSTREAM_ERROR,
                 "Unable to connect to any addresses.");
         close(fd);
         return NULL;
@@ -496,7 +514,7 @@ guac_common_ssh_session* guac_common_ssh_create_session(guac_client* client,
     LIBSSH2_SESSION* session = libssh2_session_init_ex(NULL, NULL,
             NULL, common_session);
     if (session == NULL) {
-        guac_client_abort(client, GUAC_PROTOCOL_STATUS_SERVER_ERROR,
+        ssh_client_error(abortOnError, client, GUAC_PROTOCOL_STATUS_SERVER_ERROR,
                 "Session allocation failed.");
         free(common_session);
         close(fd);
@@ -505,7 +523,7 @@ guac_common_ssh_session* guac_common_ssh_create_session(guac_client* client,
 
     /* Perform handshake */
     if (libssh2_session_handshake(session, fd)) {
-        guac_client_abort(client, GUAC_PROTOCOL_STATUS_UPSTREAM_ERROR,
+        ssh_client_error(abortOnError, client, GUAC_PROTOCOL_STATUS_UPSTREAM_ERROR,
                 "SSH handshake failed.");
         free(common_session);
         close(fd);
@@ -519,7 +537,7 @@ guac_common_ssh_session* guac_common_ssh_create_session(guac_client* client,
     common_session->fd = fd;
 
     /* Attempt authentication */
-    if (guac_common_ssh_authenticate(common_session)) {
+    if (guac_common_ssh_authenticate(abortOnError, common_session)) {
         free(common_session);
         close(fd);
         return NULL;
@@ -528,6 +546,16 @@ guac_common_ssh_session* guac_common_ssh_create_session(guac_client* client,
     /* Return created session */
     return common_session;
 
+}
+
+guac_common_ssh_session* guac_common_ssh_create_secondary_session(guac_client* client,
+        const char* hostname, const char* port, guac_common_ssh_user* user) {
+    return guac_common_ssh_create_session_common(false, client, hostname, port, user);
+}
+
+guac_common_ssh_session* guac_common_ssh_create_session(guac_client* client,
+        const char* hostname, const char* port, guac_common_ssh_user* user) {
+    return guac_common_ssh_create_session_common(true, client, hostname, port, user);
 }
 
 void guac_common_ssh_destroy_session(guac_common_ssh_session* session) {
