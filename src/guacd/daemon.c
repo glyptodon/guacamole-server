@@ -152,6 +152,35 @@ static int daemonize() {
 
 }
 
+#ifdef ENABLE_SSL
+unsigned int check_psk(SSL *ssl, const char *id, unsigned char *key, unsigned int max_key_len) {
+    tls_psk* list = (tls_psk*) SSL_get_app_data(ssl);
+    if (list == NULL) {
+        guacd_log(GUAC_LOG_ERROR, "TLS-PSK no available PSK list.");
+        return 0;
+    }
+
+    while (list) {
+        if (strcmp(id, list->identity) == 0) {
+            guacd_log(GUAC_LOG_INFO,"TLS-PSK found entry for identity: %s.", id);
+
+            if (list->key_len > max_key_len) {
+                guacd_log(GUAC_LOG_ERROR, "TLS-PSK insuffient buffer provided by TLS engine "
+                          "required (%d), provided (%d).", list->key_len, max_key_len);
+                return 0;
+            }
+            memcpy(key, list->key, list->key_len);
+            return list->key_len;
+        }
+        list = list->next;
+    }
+
+    guacd_log(GUAC_LOG_INFO,"TLS-PSK identity %s not found.", id);
+
+    return 0;
+}
+#endif
+
 int main(int argc, char* argv[]) {
 
     /* Server */
@@ -264,7 +293,7 @@ int main(int argc, char* argv[]) {
 
 #ifdef ENABLE_SSL
     /* Init SSL if enabled */
-    if (config->key_file != NULL || config->cert_file != NULL) {
+    if (config->key_file != NULL || config->cert_file != NULL || config->psk_list != NULL) {
 
         /* Init SSL */
         guacd_log(GUAC_LOG_INFO, "Communication will require SSL/TLS.");
@@ -293,6 +322,19 @@ int main(int argc, char* argv[]) {
         }
         else
             guacd_log(GUAC_LOG_WARNING, "No certificate file given - SSL/TLS may not work.");
+
+       /* Set PSK callback if requested */
+       if (config->psk_list != NULL) {
+            guacd_log(GUAC_LOG_INFO, "Using TLS-PSK.");
+            SSL_CTX_set_app_data(ssl_context, config->psk_list);
+            SSL_CTX_set_psk_server_callback(ssl_context, check_psk);
+
+            /* If PSK was specify we only allow PSK ciphers to enforce mutual auth */
+            if (!SSL_CTX_set_cipher_list(ssl_context, "PSK")) {
+                guacd_log(GUAC_LOG_ERROR, "No PSK ciphers available.");
+                exit(EXIT_FAILURE);
+            }
+        }
 
     }
 #endif

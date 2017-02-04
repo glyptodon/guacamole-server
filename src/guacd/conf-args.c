@@ -32,7 +32,7 @@ int guacd_conf_parse_args(guacd_config* config, int argc, char** argv) {
 
     /* Parse arguments */
     int opt;
-    while ((opt = getopt(argc, argv, "l:b:p:L:C:K:f")) != -1) {
+    while ((opt = getopt(argc, argv, "l:b:p:L:C:K:P:f")) != -1) {
 
         /* -l: Bind port */
         if (opt == 'l') {
@@ -83,8 +83,16 @@ int guacd_conf_parse_args(guacd_config* config, int argc, char** argv) {
             free(config->key_file);
             config->key_file = strdup(optarg);
         }
+
+        /* -P TLS-PSK peer*/
+        else if (opt == 'P') {
+            if (add_psk_to_list(&config->psk_list, optarg)) {
+                fprintf(stderr, "Failed to add PSK peer to list.\n");
+                return 1;
+            }
+        }
 #else
-        else if (opt == 'C' || opt == 'K') {
+        else if (opt == 'C' || opt == 'K' || opt == 'P') {
             fprintf(stderr,
                     "This guacd does not have SSL/TLS support compiled in.\n\n"
 
@@ -104,6 +112,7 @@ int guacd_conf_parse_args(guacd_config* config, int argc, char** argv) {
 #ifdef ENABLE_SSL
                     " [-C CERTIFICATE_FILE]"
                     " [-K PEM_FILE]"
+                    " [-P TLS_PSK_PEER]"
 #endif
                     " [-f]\n", argv[0]);
 

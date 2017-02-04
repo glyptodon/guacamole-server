@@ -35,6 +35,40 @@
 #include <fcntl.h>
 
 /**
+ * Parse string of the form [identity:key] to a PSK peer object and add
+ * to configuration list.
+ */
+int add_psk_to_list(tls_psk** list, const char* psk) {
+    char *colon = strchr(psk, ':');
+    if (colon == NULL) {
+        guacd_conf_parse_error = "Failed to parse PSK peer entry.";
+        return 1;
+    }
+
+    tls_psk* temp = (tls_psk*) malloc(sizeof(struct tls_psk));
+    if (temp == NULL) {
+        guacd_conf_parse_error = "Memory allocation failure.";
+        return 1;
+    }
+
+    temp->identity = strndup(psk, colon - psk);
+    temp->key_len = strlen(colon + 1);
+    temp->key = (char*) malloc(temp->key_len);
+
+    if (temp->identity == NULL || temp->key == NULL) {
+        guacd_conf_parse_error = "Memory allocation failure.";
+        return 1;
+    }
+
+    memcpy(temp->key, colon + 1, temp->key_len);
+
+    temp->next = *list;
+    *list = temp;
+
+    return 0;
+}
+
+/**
  * Updates the configuration with the given parameter/value pair, flagging
  * errors as necessary.
  */
@@ -104,6 +138,15 @@ static int guacd_conf_callback(const char* section, const char* param, const cha
         else if (strcmp(param, "server_key") == 0) {
             free(config->key_file);
             config->key_file = strdup(value);
+            return 0;
+        }
+
+        /* PSK */
+        else if (strcmp(param, "psk_peer") == 0) {
+            if (add_psk_to_list(&config->psk_list, value)) {
+                guacd_conf_parse_error = "Failed to parse psk and add to peer list.";
+                return 1;
+            }
             return 0;
         }
 #else
@@ -184,6 +227,7 @@ guacd_config* guacd_conf_load() {
 #ifdef ENABLE_SSL
     conf->cert_file = NULL;
     conf->key_file = NULL;
+    conf->psk_list = NULL;
 #endif
 
     /* Read configuration from file */
