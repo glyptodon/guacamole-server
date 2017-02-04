@@ -33,7 +33,7 @@
  * milliseconds. If the server is silent for at least this amount of time, the
  * frame will be considered finished.
  */
-#define GUAC_VNC_FRAME_TIMEOUT 0
+#define GUAC_VNC_FRAME_TIMEOUT 10
 
 /**
  * The amount of time to wait for a new message from the VNC server when
