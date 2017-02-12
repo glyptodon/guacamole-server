@@ -1,0 +1,15 @@
+[Unit]
+Description=Guacamole proxy daemon
+Documentation=man:guacd(8)
+After=network.target
+
+[Service]
+ExecStart=@sbindir@/guacd -f
+Restart=on-failure
+# the following 2 allow to set the user/group for guacd process
+#User=guacd
+#Group=guacd
+
+[Install]
+WantedBy=multi-user.target
+
