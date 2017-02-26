@@ -242,7 +242,6 @@ void* guac_vnc_client_thread(void* data) {
             if (guac_common_ssh_user_import_key(vnc_client->sftp_user,
                         settings->sftp_private_key,
                         settings->sftp_passphrase)) {
-                guac_common_ssh_destroy_user(vnc_client->sftp_user);
                 guac_client_abort(client, GUAC_PROTOCOL_STATUS_SERVER_ERROR,
                         "Private key unreadable.");
                 return NULL;
@@ -266,7 +265,6 @@ void* guac_vnc_client_thread(void* data) {
         /* Fail if SSH connection does not succeed */
         if (vnc_client->sftp_session == NULL) {
             /* Already aborted within guac_common_ssh_create_session() */
-            guac_common_ssh_destroy_user(vnc_client->sftp_user);
             return NULL;
         }
 
@@ -282,8 +280,6 @@ void* guac_vnc_client_thread(void* data) {
 
         /* Abort if SFTP connection fails */
         if (vnc_client->sftp_filesystem == NULL) {
-            guac_common_ssh_destroy_session(vnc_client->sftp_session);
-            guac_common_ssh_destroy_user(vnc_client->sftp_user);
             guac_client_abort(client, GUAC_PROTOCOL_STATUS_UPSTREAM_ERROR,
                     "SFTP connection failed.");
             return NULL;
