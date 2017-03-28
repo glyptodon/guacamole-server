@@ -45,6 +45,8 @@ ENV \
         pango                         \
         pulseaudio-libs               \
         terminus-fonts                \
+        ffmpeg                        \
+        ffmpeg-libs                   \
         uuid"                         \
     BUILD_DEPENDENCIES="              \
         autoconf                      \
@@ -62,11 +64,14 @@ ENV \
         make                          \
         pango-devel                   \
         pulseaudio-libs-devel         \
+        ffmpeg-devel                  \
         uuid-devel"
 
 # Bring environment up-to-date and install guacamole-server dependencies
 RUN yum -y update                        && \
     yum -y install epel-release          && \
+    rpm --import http://li.nux.ro/download/nux/RPM-GPG-KEY-nux.ro && \
+    rpm -Uvh http://li.nux.ro/download/nux/dextop/el7/x86_64/nux-dextop-release-0-1.el7.nux.noarch.rpm && \
     yum -y install $RUNTIME_DEPENDENCIES && \
     yum clean all
 
