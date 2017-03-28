@@ -46,6 +46,7 @@ ENV \
         pulseaudio-libs               \
         terminus-fonts                \
         ffmpeg                        \
+        ffmpeg-libs                   \
         uuid"                         \
     BUILD_DEPENDENCIES="              \
         autoconf                      \
@@ -63,7 +64,6 @@ ENV \
         make                          \
         pango-devel                   \
         pulseaudio-libs-devel         \
-        ffmpeg                        \
         ffmpeg-devel                  \
         uuid-devel"
 
