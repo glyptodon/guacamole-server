@@ -114,7 +114,8 @@ int guac_vnc_clipboard_end_handler(guac_user* user, guac_stream* stream) {
                writer, &output, sizeof(output_data));
 
     /* Send via VNC */
-    SendClientCutText(rfb_client, output_data, output - output_data);
+    if (rfb_client != NULL)
+        SendClientCutText(rfb_client, output_data, output - output_data);
 
     return 0;
 }
