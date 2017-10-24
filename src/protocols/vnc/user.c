@@ -112,6 +112,10 @@ int guac_vnc_user_leave_handler(guac_user* user) {
 
     guac_vnc_client* vnc_client = (guac_vnc_client*) user->client->data;
 
+    if (vnc_client->display == NULL) {
+        return 1;
+    }
+
     /* Update shared cursor state */
     guac_common_cursor_remove_user(vnc_client->display->cursor, user);
 
