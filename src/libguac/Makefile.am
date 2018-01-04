@@ -101,7 +101,7 @@ endif
 
 
 libguac_la_CFLAGS = \
-    -Werror -Wall -pedantic -Iguacamole
+    -Werror -Wall -pedantic -I$(srcdir)/guacamole
 
 libguac_la_LDFLAGS =     \
     -version-info 13:0:1 \
