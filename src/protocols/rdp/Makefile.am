@@ -250,12 +250,14 @@ rdp_keymaps =                   \
     $(srcdir)/keymaps/de_de_qwertz.keymap \
     $(srcdir)/keymaps/en_gb_qwerty.keymap \
     $(srcdir)/keymaps/en_us_qwerty.keymap \
+    $(srcdir)/keymaps/es_es_qwerty.keymap \
     $(srcdir)/keymaps/fr_fr_azerty.keymap \
     $(srcdir)/keymaps/fr_ch_qwertz.keymap \
     $(srcdir)/keymaps/it_it_qwerty.keymap \
     $(srcdir)/keymaps/ja_jp_qwerty.keymap \
     $(srcdir)/keymaps/pt_br_qwerty.keymap \
-    $(srcdir)/keymaps/sv_se_qwerty.keymap
+    $(srcdir)/keymaps/sv_se_qwerty.keymap \
+    $(srcdir)/keymaps/tr_tr_qwerty.keymap
 
 _generated_keymaps.c: $(rdp_keymaps)
 	$(srcdir)/keymaps/generate.pl $(rdp_keymaps)
