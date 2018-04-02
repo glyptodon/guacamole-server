@@ -47,6 +47,7 @@ const char* GUAC_TELNET_CLIENT_ARGS[] = {
     "recording-name",
     "create-recording-path",
     "read-only",
+    "backspace",
     NULL
 };
 
@@ -144,6 +145,12 @@ enum TELNET_ARGS_IDX {
      * dropped), "false" or blank otherwise.
      */
     IDX_READ_ONLY,
+
+    /**
+     * ASCII code, as an integer to use for the backspace key, or 127
+     * if not specified.
+     */
+    IDX_BACKSPACE,
 
     TELNET_ARGS_COUNT
 };
@@ -283,6 +290,11 @@ guac_telnet_settings* guac_telnet_parse_args(guac_user* user,
     settings->create_recording_path =
         guac_user_parse_args_boolean(user, GUAC_TELNET_CLIENT_ARGS, argv,
                 IDX_CREATE_RECORDING_PATH, false);
+
+    /* Parse backspace key code */
+    settings->backspace =
+        guac_user_parse_args_int(user, GUAC_TELNET_CLIENT_ARGS, argv,
+                IDX_BACKSPACE, 127);
 
     /* Parsing was successful */
     return settings;

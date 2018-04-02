@@ -181,6 +181,11 @@ typedef struct guac_ssh_settings {
      */
     bool create_recording_path;
 
+    /**
+     * The integer ASCII code of the command to send for backspace.
+     */
+    int backspace;
+
 } guac_ssh_settings;
 
 /**

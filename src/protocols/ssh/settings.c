@@ -51,6 +51,7 @@ const char* GUAC_SSH_CLIENT_ARGS[] = {
     "recording-name",
     "create-recording-path",
     "read-only",
+    "backspace",
     NULL
 };
 
@@ -165,6 +166,13 @@ enum SSH_ARGS_IDX {
      */
     IDX_READ_ONLY,
 
+    /**
+     * The ASCII code, as an integer, to send for the backspace key, as configured
+     * by the SSH connection from the client.  By default this will be 127,
+     * the ASCII DELETE code.
+     */
+    IDX_BACKSPACE,
+
     SSH_ARGS_COUNT
 };
 
@@ -278,6 +286,11 @@ guac_ssh_settings* guac_ssh_parse_args(guac_user* user,
     settings->create_recording_path =
         guac_user_parse_args_boolean(user, GUAC_SSH_CLIENT_ARGS, argv,
                 IDX_CREATE_RECORDING_PATH, false);
+
+    /* Parse backspace key setting */
+    settings->backspace =
+        guac_user_parse_args_int(user, GUAC_SSH_CLIENT_ARGS, argv,
+                IDX_BACKSPACE, 127);
 
     /* Parsing was successful */
     return settings;
