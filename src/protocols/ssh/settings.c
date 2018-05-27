@@ -52,6 +52,7 @@ const char* GUAC_SSH_CLIENT_ARGS[] = {
     "create-recording-path",
     "read-only",
     "backspace",
+    "terminal-type",
     NULL
 };
 
@@ -173,6 +174,12 @@ enum SSH_ARGS_IDX {
      */
     IDX_BACKSPACE,
 
+    /**
+     * The terminal emulator type that is passed to the remote system (e.g.
+     * "xterm" or "xterm-256color"). "linux" is used if unspecified.
+     */
+    IDX_TERMINAL_TYPE,
+
     SSH_ARGS_COUNT
 };
 
@@ -292,6 +299,11 @@ guac_ssh_settings* guac_ssh_parse_args(guac_user* user,
         guac_user_parse_args_int(user, GUAC_SSH_CLIENT_ARGS, argv,
                 IDX_BACKSPACE, 127);
 
+    /* Read terminal emulator type. */
+    settings->terminal_type =
+        guac_user_parse_args_string(user, GUAC_SSH_CLIENT_ARGS, argv,
+                IDX_TERMINAL_TYPE, "linux");
+
     /* Parsing was successful */
     return settings;
 
@@ -323,6 +335,9 @@ void guac_ssh_settings_free(guac_ssh_settings* settings) {
     /* Free screen recording settings */
     free(settings->recording_name);
     free(settings->recording_path);
+
+    /* Free terminal emulator type. */
+    free(settings->terminal_type);
 
     /* Free overall structure */
     free(settings);
