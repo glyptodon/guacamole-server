@@ -18,7 +18,7 @@
 #
 
 AC_PREREQ([2.61])
-AC_INIT([guacamole-server], [0.9.12-incubating])
+AC_INIT([guacamole-server], [0.9.12-GLEN-1.8])
 AM_INIT_AUTOMAKE([-Wall -Werror foreign subdir-objects])
 AM_SILENT_RULES([yes])
 
@@ -1111,7 +1111,10 @@ AC_CONFIG_FILES([Makefile
                  src/libguac/Makefile
                  src/libguacd/Makefile
                  src/guacd/Makefile
+                 src/guacd/man/guacd.8
+                 src/guacd/man/guacd.conf.5
                  src/guacenc/Makefile
+                 src/guacenc/man/guacenc.1
                  src/pulse/Makefile
                  src/protocols/rdp/Makefile
                  src/protocols/ssh/Makefile
