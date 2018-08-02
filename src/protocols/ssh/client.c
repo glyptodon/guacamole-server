@@ -20,6 +20,7 @@
 #include "config.h"
 
 #include "client.h"
+#include "common/clipboard.h"
 #include "common-ssh/sftp.h"
 #include "ssh.h"
 #include "terminal/terminal.h"
@@ -40,6 +41,9 @@ int guac_client_init(guac_client* client) {
     /* Allocate client instance data */
     guac_ssh_client* ssh_client = calloc(1, sizeof(guac_ssh_client));
     client->data = ssh_client;
+
+    /* Init clipboard */
+    ssh_client->clipboard = guac_common_clipboard_alloc(GUAC_SSH_CLIPBOARD_MAX_LENGTH);
 
     /* Set handlers */
     client->join_handler = guac_ssh_user_join_handler;
@@ -101,6 +105,7 @@ int guac_ssh_client_free_handler(guac_client* client) {
         guac_ssh_settings_free(ssh_client->settings);
 
     /* Free client structure */
+    guac_common_clipboard_free(ssh_client->clipboard);
     free(ssh_client);
 
     guac_common_ssh_uninit();
