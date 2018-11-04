@@ -47,6 +47,8 @@ const char* GUAC_TELNET_CLIENT_ARGS[] = {
     "recording-name",
     "create-recording-path",
     "read-only",
+    "backspace",
+    "terminal-type",
     NULL
 };
 
@@ -144,6 +146,18 @@ enum TELNET_ARGS_IDX {
      * dropped), "false" or blank otherwise.
      */
     IDX_READ_ONLY,
+
+    /**
+     * ASCII code, as an integer to use for the backspace key, or 127
+     * if not specified.
+     */
+    IDX_BACKSPACE,
+
+    /**
+     * The terminal emulator type that is passed to the remote system (e.g.
+     * "xterm" or "xterm-256color"). "linux" is used if unspecified.
+     */
+    IDX_TERMINAL_TYPE,
 
     TELNET_ARGS_COUNT
 };
@@ -284,6 +298,16 @@ guac_telnet_settings* guac_telnet_parse_args(guac_user* user,
         guac_user_parse_args_boolean(user, GUAC_TELNET_CLIENT_ARGS, argv,
                 IDX_CREATE_RECORDING_PATH, false);
 
+    /* Parse backspace key code */
+    settings->backspace =
+        guac_user_parse_args_int(user, GUAC_TELNET_CLIENT_ARGS, argv,
+                IDX_BACKSPACE, 127);
+
+    /* Read terminal emulator type. */
+    settings->terminal_type =
+        guac_user_parse_args_string(user, GUAC_TELNET_CLIENT_ARGS, argv,
+                IDX_TERMINAL_TYPE, "linux");
+
     /* Parsing was successful */
     return settings;
 
@@ -322,6 +346,9 @@ void guac_telnet_settings_free(guac_telnet_settings* settings) {
     /* Free screen recording settings */
     free(settings->recording_name);
     free(settings->recording_path);
+
+    /* Free terminal emulator type. */
+    free(settings->terminal_type);
 
     /* Free overall structure */
     free(settings);

@@ -181,6 +181,16 @@ typedef struct guac_ssh_settings {
      */
     bool create_recording_path;
 
+    /**
+     * The integer ASCII code of the command to send for backspace.
+     */
+    int backspace;
+
+    /**
+     * The terminal emulator type that is passed to the remote system.
+     */
+    char* terminal_type;
+
 } guac_ssh_settings;
 
 /**

@@ -181,6 +181,18 @@ typedef struct guac_telnet_settings {
      */
     bool create_recording_path;
 
+    /**
+     * The ASCII code, as an integer, that the telnet client will use when the
+     * backspace key is pressed.  By default, this is 127, ASCII delete, if
+     * not specified in the client settings.
+     */
+    int backspace;
+
+    /**
+     * The terminal emulator type that is passed to the remote system.
+     */
+    char* terminal_type;
+
 } guac_telnet_settings;
 
 /**

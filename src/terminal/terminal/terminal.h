@@ -438,6 +438,11 @@ struct guac_terminal {
      */
     guac_common_clipboard* clipboard;
 
+    /**
+     * ASCII character to send when backspace is pressed.
+     */
+    char backspace;
+
 };
 
 /**
@@ -477,6 +482,10 @@ struct guac_terminal {
  *     invalid, a warning will be logged, and the terminal will fall back on
  *     GUAC_TERMINAL_SCHEME_GRAY_BLACK.
  *
+ * @param backspace
+ *     The integer ASCII code to send when backspace is pressed in
+ *     this terminal.
+ *
  * @return
  *     A new guac_terminal having the given font, dimensions, and attributes
  *     which renders all text to the given client.
@@ -484,7 +493,8 @@ struct guac_terminal {
 guac_terminal* guac_terminal_create(guac_client* client,
         guac_common_clipboard* clipboard,
         const char* font_name, int font_size, int dpi,
-        int width, int height, const char* color_scheme);
+        int width, int height, const char* color_scheme,
+        const int backspace);
 
 /**
  * Frees all resources associated with the given terminal.
