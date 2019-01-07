@@ -32,14 +32,12 @@ DIST_SUBDIRS =           \
     src/protocols/rdp    \
     src/protocols/ssh    \
     src/protocols/telnet \
-    src/protocols/vnc    \
-    tests
+    src/protocols/vnc
 
 SUBDIRS =        \
     src/libguac  \
     src/common   \
-    src/libguacd \
-    tests
+    src/libguacd
 
 if ENABLE_COMMON_SSH
 SUBDIRS += src/common-ssh
@@ -77,14 +75,15 @@ if ENABLE_GUACENC
 SUBDIRS += src/guacenc
 endif
 
-EXTRA_DIST =      \
-    .dockerignore \
-    CONTRIBUTING  \
-    DISCLAIMER    \
-    Dockerfile    \
-    LICENSE       \
-    NOTICE        \
-    bin/guacctl   \
-    doc/Doxyfile  \
-    src/guacd-docker
+EXTRA_DIST =                     \
+    .dockerignore                \
+    CONTRIBUTING                 \
+    DISCLAIMER                   \
+    Dockerfile                   \
+    LICENSE                      \
+    NOTICE                       \
+    bin/guacctl                  \
+    doc/Doxyfile                 \
+    src/guacd-docker             \
+    util/generate-test-runner.pl
 
