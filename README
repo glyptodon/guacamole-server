@@ -95,6 +95,11 @@ otherwise.
 All software within guacamole-server is built using the popular GNU Automake,
 and thus provides the standard configure script.
 
+0) run autoreconf if not contain this configure script
+
+$ autoreconf -fi
+
+
 1) Run configure
 
     $ ./configure
