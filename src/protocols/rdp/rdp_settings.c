@@ -98,6 +98,8 @@ const char* GUAC_RDP_CLIENT_ARGS[] = {
     "enable-audio-input",
     "read-only",
 
+    "disable-copy",
+    "disable-paste",
     NULL
 };
 
@@ -422,6 +424,20 @@ enum RDP_ARGS_IDX {
      * dropped), "false" or blank otherwise.
      */
     IDX_READ_ONLY,
+
+    /**
+     * Whether outbound clipboard access should be blocked. If set to "true",
+     * it will not be possible to copy data from the remote desktop to the
+     * client using the clipboard. By default, clipboard access is not blocked.
+     */
+    IDX_DISABLE_COPY,
+
+    /**
+     * Whether inbound clipboard access should be blocked. If set to "true", it
+     * will not be possible to paste data from the client to the remote desktop
+     * using the clipboard. By default, clipboard access is not blocked.
+     */
+    IDX_DISABLE_PASTE,
 
     RDP_ARGS_COUNT
 };
@@ -813,6 +829,16 @@ guac_rdp_settings* guac_rdp_parse_args(guac_user* user,
     settings->enable_audio_input =
         guac_user_parse_args_boolean(user, GUAC_RDP_CLIENT_ARGS, argv,
                 IDX_ENABLE_AUDIO_INPUT, 0);
+
+    /* Parse clipboard copy disable flag */
+    settings->disable_copy =
+        guac_user_parse_args_boolean(user, GUAC_RDP_CLIENT_ARGS, argv,
+                IDX_DISABLE_COPY, 0);
+
+    /* Parse clipboard paste disable flag */
+    settings->disable_paste =
+        guac_user_parse_args_boolean(user, GUAC_RDP_CLIENT_ARGS, argv,
+                IDX_DISABLE_PASTE, 0);
 
     /* Success */
     return settings;
