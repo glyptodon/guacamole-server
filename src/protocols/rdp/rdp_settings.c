@@ -27,6 +27,7 @@
 
 #include <freerdp/constants.h>
 #include <freerdp/settings.h>
+#include <guacamole/string.h>
 #include <guacamole/user.h>
 
 #ifdef ENABLE_WINPR
@@ -124,7 +125,7 @@ const char* GUAC_RDP_CLIENT_ARGS[] = {
 };
 
 enum RDP_ARGS_IDX {
-
+    
     /**
      * The hostname to connect to.
      */
@@ -866,10 +867,10 @@ guac_rdp_settings* guac_rdp_parse_args(guac_user* user,
     if (settings->server_layout == NULL)
         settings->server_layout = guac_rdp_keymap_find(GUAC_DEFAULT_KEYMAP);
 
-    /* Timezone if provied by client */
+    /* Timezone if provided by client, or use handshake version */
     settings->timezone =
         guac_user_parse_args_string(user, GUAC_RDP_CLIENT_ARGS, argv,
-                IDX_TIMEZONE, NULL);
+                IDX_TIMEZONE, user->info.timezone);
 
 #ifdef ENABLE_COMMON_SSH
     /* SFTP enable/disable */
@@ -1268,11 +1269,11 @@ void guac_rdp_push_settings(guac_client* client,
     /* Client name */
     if (guac_settings->client_name != NULL) {
 #ifdef LEGACY_RDPSETTINGS
-        strncpy(rdp_settings->client_hostname, guac_settings->client_name,
-                RDP_CLIENT_HOSTNAME_SIZE - 1);
+        guac_strlcpy(rdp_settings->client_hostname, guac_settings->client_name,
+                RDP_CLIENT_HOSTNAME_SIZE);
 #else
-        strncpy(rdp_settings->ClientHostname, guac_settings->client_name,
-                RDP_CLIENT_HOSTNAME_SIZE - 1);
+        guac_strlcpy(rdp_settings->ClientHostname, guac_settings->client_name,
+                RDP_CLIENT_HOSTNAME_SIZE);
 #endif
     }
 
