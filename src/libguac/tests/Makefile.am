@@ -42,6 +42,9 @@ test_libguac_SOURCES =               \
     protocol/base64_decode.c         \
     socket/fd_send_instruction.c     \
     socket/nested_send_instruction.c \
+    string/strlcat.c                 \
+    string/strlcpy.c                 \
+    string/strljoin.c                \
     unicode/charsize.c               \
     unicode/read.c                   \
     unicode/strlen.c                 \
@@ -64,7 +67,7 @@ GEN_RUNNER = $(top_srcdir)/util/generate-test-runner.pl
 CLEANFILES = _generated_runner.c
 
 _generated_runner.c: $(test_libguac_SOURCES)
-	$(AM_V_GEN) $(GEN_RUNNER) $^ > $@
+	$(AM_V_GEN) $(GEN_RUNNER) $(test_libguac_SOURCES) > $@
 
 nodist_test_libguac_SOURCES = \
     _generated_runner.c
