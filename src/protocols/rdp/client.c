@@ -17,14 +17,16 @@
  * under the License.
  */
 
-#include "config.h"
-
-#include "audio_input.h"
-#include "common/recording.h"
 #include "client.h"
+#include "channels/audio-input/audio-buffer.h"
+#include "channels/cliprdr.h"
+#include "channels/disp.h"
+#include "common/recording.h"
+#include "config.h"
+#include "fs.h"
+#include "log.h"
 #include "rdp.h"
-#include "rdp_disp.h"
-#include "rdp_fs.h"
+#include "settings.h"
 #include "user.h"
 
 #ifdef ENABLE_COMMON_SSH
@@ -33,28 +35,104 @@
 #include "common-ssh/user.h"
 #endif
 
-#include <freerdp/cache/cache.h>
-#include <freerdp/channels/channels.h>
-#include <freerdp/freerdp.h>
 #include <guacamole/audio.h>
 #include <guacamole/client.h>
-#include <guacamole/socket.h>
 
-#ifdef HAVE_FREERDP_CLIENT_CLIPRDR_H
-#include <freerdp/client/cliprdr.h>
-#else
-#include "compat/client-cliprdr.h"
-#endif
-
-#ifdef HAVE_FREERDP_CLIENT_CHANNELS_H
-#include <freerdp/client/channels.h>
-#endif
-
+#include <dirent.h>
+#include <errno.h>
+#include <fcntl.h>
 #include <pthread.h>
+#include <pwd.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/types.h>
+#include <unistd.h>
+
+/**
+ * Tests whether the given path refers to a directory which the current user
+ * can write to. If the given path is not a directory, is not writable, or is
+ * not a link pointing to a writable directory, this test will fail, and
+ * errno will be set appropriately.
+ *
+ * @param path
+ *     The path to test.
+ *
+ * @return
+ *     Non-zero if the given path is (or points to) a writable directory, zero
+ *     otherwise.
+ */
+static int is_writable_directory(const char* path) {
+
+    /* Verify path is writable */
+    if (faccessat(AT_FDCWD, path, W_OK, 0))
+        return 0;
+
+    /* If writable, verify path is actually a directory */
+    DIR* dir = opendir(path);
+    if (!dir)
+        return 0;
+
+    /* Path is both writable and a directory */
+    closedir(dir);
+    return 1;
+
+}
 
 int guac_client_init(guac_client* client, int argc, char** argv) {
+
+    /* Automatically set HOME environment variable if unset (FreeRDP's
+     * initialization process will fail within freerdp_settings_new() if this
+     * is unset) */
+    const char* current_home = getenv("HOME");
+    if (current_home == NULL) {
+
+        /* Warn if the correct home directory cannot be determined */
+        struct passwd* passwd = getpwuid(getuid());
+        if (passwd == NULL)
+            guac_client_log(client, GUAC_LOG_WARNING, "FreeRDP initialization "
+                    "may fail: The \"HOME\" environment variable is unset and "
+                    "its correct value could not be automatically determined: "
+                    "%s", strerror(errno));
+
+        /* Warn if the correct home directory could be determined but can't be
+         * assigned */
+        else if (setenv("HOME", passwd->pw_dir, 1))
+            guac_client_log(client, GUAC_LOG_WARNING, "FreeRDP initialization "
+                    "may fail: The \"HOME\" environment variable is unset "
+                    "and its correct value (detected as \"%s\") could not be "
+                    "assigned: %s", passwd->pw_dir, strerror(errno));
+
+        /* HOME has been successfully set */
+        else {
+            guac_client_log(client, GUAC_LOG_DEBUG, "\"HOME\" "
+                    "environment variable was unset and has been "
+                    "automatically set to \"%s\"", passwd->pw_dir);
+            current_home = passwd->pw_dir;
+        }
+
+    }
+
+    /* Verify that detected home directory is actually writable and actually a
+     * directory, as FreeRDP initialization will mysteriously fail otherwise */
+    if (current_home != NULL && !is_writable_directory(current_home)) {
+        if (errno == EACCES)
+            guac_client_log(client, GUAC_LOG_WARNING, "FreeRDP initialization "
+                    "may fail: The current user's home directory (\"%s\") is "
+                    "not writable, but FreeRDP generally requires a writable "
+                    "home directory for storage of configuration files and "
+                    "certificates.", current_home);
+        else if (errno == ENOTDIR)
+            guac_client_log(client, GUAC_LOG_WARNING, "FreeRDP initialization "
+                    "may fail: The current user's home directory (\"%s\") is "
+                    "not actually a directory, but FreeRDP generally requires "
+                    "a writable home directory for storage of configuration "
+                    "files and certificates.", current_home);
+        else
+            guac_client_log(client, GUAC_LOG_WARNING, "FreeRDP initialization "
+                    "may fail: Writability of the current user's home "
+                    "directory (\"%s\") could not be determined: %s",
+                    current_home, strerror(errno));
+    }
 
     /* Set client args */
     client->args = GUAC_RDP_CLIENT_ARGS;
@@ -64,18 +142,18 @@ int guac_client_init(guac_client* client, int argc, char** argv) {
     client->data = rdp_client;
 
     /* Init clipboard */
-    rdp_client->clipboard = guac_common_clipboard_alloc(GUAC_RDP_CLIPBOARD_MAX_LENGTH);
+    rdp_client->clipboard = guac_rdp_clipboard_alloc(client);
 
     /* Init display update module */
     rdp_client->disp = guac_rdp_disp_alloc();
+
+    /* Redirect FreeRDP log messages to guac_client_log() */
+    guac_rdp_redirect_wlog(client);
 
     /* Recursive attribute for locks */
     pthread_mutexattr_init(&(rdp_client->attributes));
     pthread_mutexattr_settype(&(rdp_client->attributes),
             PTHREAD_MUTEX_RECURSIVE);
-
-    /* Init RDP lock */
-    pthread_mutex_init(&(rdp_client->rdp_lock), &(rdp_client->attributes));
 
     /* Set handlers */
     client->join_handler = guac_rdp_user_join_handler;
@@ -99,6 +177,9 @@ int guac_rdp_client_free_handler(guac_client* client) {
     /* Free parsed settings */
     if (rdp_client->settings != NULL)
         guac_rdp_settings_free(rdp_client->settings);
+
+    /* Clean up clipboard */
+    guac_rdp_clipboard_free(rdp_client->clipboard);
 
     /* Free display update module */
     guac_rdp_disp_free(rdp_client->disp);
@@ -136,7 +217,6 @@ int guac_rdp_client_free_handler(guac_client* client) {
         guac_rdp_audio_buffer_free(rdp_client->audio_input);
 
     /* Free client data */
-    guac_common_clipboard_free(rdp_client->clipboard);
     free(rdp_client);
 
     return 0;
