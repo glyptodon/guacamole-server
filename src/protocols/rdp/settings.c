@@ -1176,5 +1176,10 @@ void guac_rdp_push_settings(guac_client* client,
     rdp_settings->AllowUnanouncedOrdersFromServer = TRUE;
 #endif
 
+#ifdef HAVE_RDPSETTINGS_ALLOWUNANOUNCEDORDERSFROMSERVER
+    /* Do not consider server use of unannounced orders to be a fatal error */
+    rdp_settings->AllowUnanouncedOrdersFromServer = TRUE;
+#endif
+
 }
 
