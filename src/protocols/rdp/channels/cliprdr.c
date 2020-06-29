@@ -86,9 +86,6 @@ static UINT guac_rdp_cliprdr_send_format_list(CliprdrClientContext* cliprdr) {
         .numFormats = 2
     };
 
-    guac_client_log(clipboard->client, GUAC_LOG_TRACE, "CLIPRDR: Sending "
-            "format list");
-
     return cliprdr->ClientFormatList(cliprdr, &format_list);
 
 }
@@ -151,9 +148,6 @@ static UINT guac_rdp_cliprdr_monitor_ready(CliprdrClientContext* cliprdr,
     guac_rdp_clipboard* clipboard = (guac_rdp_clipboard*) cliprdr->custom;
     assert(clipboard != NULL);
 
-    guac_client_log(clipboard->client, GUAC_LOG_TRACE, "CLIPRDR: Received "
-            "monitor ready.");
-
     /* Respond with capabilities ... */
     int status = guac_rdp_cliprdr_send_capabilities(cliprdr);
     if (status != CHANNEL_RC_OK)
@@ -198,9 +192,6 @@ static UINT guac_rdp_cliprdr_send_format_data_request(
     /* Note the format we've requested for reference later when the requested
      * data is received via a Format Data Response PDU */
     clipboard->requested_format = format;
-
-    guac_client_log(clipboard->client, GUAC_LOG_TRACE, "CLIPRDR: Sending "
-            "format data request.");
 
     /* Send request */
     return cliprdr->ClientFormatDataRequest(cliprdr, &data_request);
@@ -265,9 +256,6 @@ static UINT guac_rdp_cliprdr_format_list(CliprdrClientContext* cliprdr,
     guac_rdp_clipboard* clipboard = (guac_rdp_clipboard*) cliprdr->custom;
     assert(clipboard != NULL);
 
-    guac_client_log(clipboard->client, GUAC_LOG_TRACE, "CLIPRDR: Received "
-            "format list.");
-
     CLIPRDR_FORMAT_LIST_RESPONSE format_list_response = {
         .msgFlags = CB_RESPONSE_OK
     };
@@ -320,9 +308,6 @@ static UINT guac_rdp_cliprdr_format_data_request(CliprdrClientContext* cliprdr,
     guac_rdp_clipboard* clipboard = (guac_rdp_clipboard*) cliprdr->custom;
     assert(clipboard != NULL);
 
-    guac_client_log(clipboard->client, GUAC_LOG_TRACE, "CLIPRDR: Received "
-            "format data request.");
-
     guac_iconv_write* writer;
     const char* input = clipboard->clipboard->buffer;
     char* output = malloc(GUAC_RDP_CLIPBOARD_MAX_LENGTH);
@@ -363,9 +348,6 @@ static UINT guac_rdp_cliprdr_format_data_request(CliprdrClientContext* cliprdr,
         .msgFlags = CB_RESPONSE_OK
     };
 
-    guac_client_log(clipboard->client, GUAC_LOG_TRACE, "CLIPRDR: Sending "
-            "format data response.");
-
     return cliprdr->ClientFormatDataResponse(cliprdr, &data_response);
 
 }
@@ -396,9 +378,6 @@ static UINT guac_rdp_cliprdr_format_data_response(CliprdrClientContext* cliprdr,
      * allocated and associated with the CliprdrClientContext */
     guac_rdp_clipboard* clipboard = (guac_rdp_clipboard*) cliprdr->custom;
     assert(clipboard != NULL);
-
-    guac_client_log(clipboard->client, GUAC_LOG_TRACE, "CLIPRDR: Received "
-            "format data response.");
 
     char received_data[GUAC_RDP_CLIPBOARD_MAX_LENGTH];
 
