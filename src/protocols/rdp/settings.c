@@ -72,9 +72,6 @@ const char* GUAC_RDP_CLIENT_ARGS[] = {
     "enable-full-window-drag",
     "enable-desktop-composition",
     "enable-menu-animations",
-    "disable-bitmap-caching",
-    "disable-offscreen-caching",
-    "disable-glyph-caching",
     "preconnection-id",
     "preconnection-blob",
     "timezone",
@@ -95,21 +92,10 @@ const char* GUAC_RDP_CLIENT_ARGS[] = {
 
     "recording-path",
     "recording-name",
-    "recording-exclude-output",
-    "recording-exclude-mouse",
-    "recording-include-keys",
     "create-recording-path",
     "resize-method",
     "enable-audio-input",
     "read-only",
-
-    "gateway-hostname",
-    "gateway-port",
-    "gateway-domain",
-    "gateway-username",
-    "gateway-password",
-
-    "load-balance-info",
 
     "disable-copy",
     "disable-paste",
@@ -117,7 +103,7 @@ const char* GUAC_RDP_CLIENT_ARGS[] = {
 };
 
 enum RDP_ARGS_IDX {
-    
+
     /**
      * The hostname to connect to.
      */
@@ -324,24 +310,6 @@ enum RDP_ARGS_IDX {
     IDX_ENABLE_MENU_ANIMATIONS,
 
     /**
-     * "true" if bitmap caching should be disabled, "false" if bitmap caching
-     * should remain enabled.
-     */
-    IDX_DISABLE_BITMAP_CACHING,
-
-    /**
-     * "true" if the offscreen caching should be disabled, false if offscren
-     * caching should remain enabled.
-     */
-    IDX_DISABLE_OFFSCREEN_CACHING,
-
-    /**
-     * "true" if glyph caching should be disabled, false if glyph caching should
-     * remain enabled.
-     */
-    IDX_DISABLE_GLYPH_CACHING,
-
-    /**
      * The preconnection ID to send within the preconnection PDU when
      * initiating an RDP connection, if any.
      */
@@ -445,32 +413,6 @@ enum RDP_ARGS_IDX {
     IDX_RECORDING_NAME,
 
     /**
-     * Whether output which is broadcast to each connected client (graphics,
-     * streams, etc.) should NOT be included in the session recording. Output
-     * is included by default, as it is necessary for any recording which must
-     * later be viewable as video.
-     */
-    IDX_RECORDING_EXCLUDE_OUTPUT,
-
-    /**
-     * Whether changes to mouse state, such as position and buttons pressed or
-     * released, should NOT be included in the session recording. Mouse state
-     * is included by default, as it is necessary for the mouse cursor to be
-     * rendered in any resulting video.
-     */
-    IDX_RECORDING_EXCLUDE_MOUSE,
-
-    /**
-     * Whether keys pressed and released should be included in the session
-     * recording. Key events are NOT included by default within the recording,
-     * as doing so has privacy and security implications. Including key events
-     * may be necessary in certain auditing contexts, but should only be done
-     * with caution. Key events can easily contain sensitive information, such
-     * as passwords, credit card numbers, etc.
-     */
-    IDX_RECORDING_INCLUDE_KEYS,
-
-    /**
      * Whether the specified screen recording path should automatically be
      * created if it does not yet exist.
      */
@@ -493,49 +435,6 @@ enum RDP_ARGS_IDX {
      * dropped), "false" or blank otherwise.
      */
     IDX_READ_ONLY,
-
-    /**
-     * The hostname of the remote desktop gateway that should be used as an
-     * intermediary for the remote desktop connection. If omitted, a gateway
-     * will not be used.
-     */
-    IDX_GATEWAY_HOSTNAME,
-
-    /**
-     * The port of the remote desktop gateway that should be used as an
-     * intermediary for the remote desktop connection. By default, this will be
-     * 443.
-     *
-     * NOTE: If using a version of FreeRDP prior to 1.2, this setting has no
-     * effect. FreeRDP instead uses a hard-coded value of 443.
-     */
-    IDX_GATEWAY_PORT,
-
-    /**
-     * The domain of the user authenticating with the remote desktop gateway,
-     * if a gateway is being used. This is not necessarily the same as the
-     * user actually using the remote desktop connection.
-     */
-    IDX_GATEWAY_DOMAIN,
-
-    /**
-     * The username of the user authenticating with the remote desktop gateway,
-     * if a gateway is being used. This is not necessarily the same as the
-     * user actually using the remote desktop connection.
-     */
-    IDX_GATEWAY_USERNAME,
-
-    /**
-     * The password to provide when authenticating with the remote desktop
-     * gateway, if a gateway is being used.
-     */
-    IDX_GATEWAY_PASSWORD,
-
-    /**
-     * The load balancing information/cookie which should be provided to
-     * the connection broker, if a connection broker is being used.
-     */
-    IDX_LOAD_BALANCE_INFO,
 
     /**
      * Whether outbound clipboard access should be blocked. If set to "true",
@@ -769,18 +668,6 @@ guac_rdp_settings* guac_rdp_parse_args(guac_user* user,
         guac_user_parse_args_boolean(user, GUAC_RDP_CLIENT_ARGS, argv,
                 IDX_ENABLE_MENU_ANIMATIONS, 0);
 
-    settings->disable_bitmap_caching =
-        guac_user_parse_args_boolean(user, GUAC_RDP_CLIENT_ARGS, argv,
-                IDX_DISABLE_BITMAP_CACHING, 0);
-
-    settings->disable_offscreen_caching =
-        guac_user_parse_args_boolean(user, GUAC_RDP_CLIENT_ARGS, argv,
-                IDX_DISABLE_OFFSCREEN_CACHING, 0);
-
-    settings->disable_glyph_caching =
-        guac_user_parse_args_boolean(user, GUAC_RDP_CLIENT_ARGS, argv,
-                IDX_DISABLE_GLYPH_CACHING, 0);
-
     /* Session color depth */
     settings->color_depth = 
         guac_user_parse_args_int(user, GUAC_RDP_CLIENT_ARGS, argv,
@@ -930,21 +817,6 @@ guac_rdp_settings* guac_rdp_parse_args(guac_user* user,
         guac_user_parse_args_string(user, GUAC_RDP_CLIENT_ARGS, argv,
                 IDX_RECORDING_NAME, GUAC_RDP_DEFAULT_RECORDING_NAME);
 
-    /* Parse output exclusion flag */
-    settings->recording_exclude_output =
-        guac_user_parse_args_boolean(user, GUAC_RDP_CLIENT_ARGS, argv,
-                IDX_RECORDING_EXCLUDE_OUTPUT, 0);
-
-    /* Parse mouse exclusion flag */
-    settings->recording_exclude_mouse =
-        guac_user_parse_args_boolean(user, GUAC_RDP_CLIENT_ARGS, argv,
-                IDX_RECORDING_EXCLUDE_MOUSE, 0);
-
-    /* Parse key event inclusion flag */
-    settings->recording_include_keys =
-        guac_user_parse_args_boolean(user, GUAC_RDP_CLIENT_ARGS, argv,
-                IDX_RECORDING_INCLUDE_KEYS, 0);
-
     /* Parse path creation flag */
     settings->create_recording_path =
         guac_user_parse_args_boolean(user, GUAC_RDP_CLIENT_ARGS, argv,
@@ -979,36 +851,6 @@ guac_rdp_settings* guac_rdp_parse_args(guac_user* user,
     settings->enable_audio_input =
         guac_user_parse_args_boolean(user, GUAC_RDP_CLIENT_ARGS, argv,
                 IDX_ENABLE_AUDIO_INPUT, 0);
-
-    /* Set gateway hostname */
-    settings->gateway_hostname =
-        guac_user_parse_args_string(user, GUAC_RDP_CLIENT_ARGS, argv,
-                IDX_GATEWAY_HOSTNAME, NULL);
-
-    /* If gateway port specified, use it */
-    settings->gateway_port =
-        guac_user_parse_args_int(user, GUAC_RDP_CLIENT_ARGS, argv,
-                IDX_GATEWAY_PORT, 443);
-
-    /* Set gateway domain */
-    settings->gateway_domain =
-        guac_user_parse_args_string(user, GUAC_RDP_CLIENT_ARGS, argv,
-                IDX_GATEWAY_DOMAIN, NULL);
-
-    /* Set gateway username */
-    settings->gateway_username =
-        guac_user_parse_args_string(user, GUAC_RDP_CLIENT_ARGS, argv,
-                IDX_GATEWAY_USERNAME, NULL);
-
-    /* Set gateway password */
-    settings->gateway_password =
-        guac_user_parse_args_string(user, GUAC_RDP_CLIENT_ARGS, argv,
-                IDX_GATEWAY_PASSWORD, NULL);
-
-    /* Set load balance info */
-    settings->load_balance_info =
-        guac_user_parse_args_string(user, GUAC_RDP_CLIENT_ARGS, argv,
-                IDX_LOAD_BALANCE_INFO, NULL);
 
     /* Parse clipboard copy disable flag */
     settings->disable_copy =
@@ -1072,15 +914,6 @@ void guac_rdp_settings_free(guac_rdp_settings* settings) {
     free(settings->sftp_private_key);
     free(settings->sftp_username);
 #endif
-
-    /* Free RD gateway information */
-    free(settings->gateway_hostname);
-    free(settings->gateway_domain);
-    free(settings->gateway_username);
-    free(settings->gateway_password);
-
-    /* Free load balancer information string */
-    free(settings->load_balance_info);
 
     /* Free settings structure */
     free(settings);
@@ -1321,33 +1154,9 @@ void guac_rdp_push_settings(guac_client* client,
         rdp_settings->PreconnectionBlob = guac_rdp_strdup(guac_settings->preconnection_blob);
     }
 
-    /* Enable use of RD gateway if a gateway hostname is provided */
-    if (guac_settings->gateway_hostname != NULL) {
-
-        /* Enable RD gateway */
-        rdp_settings->GatewayEnabled = TRUE;
-
-        /* RD gateway connection details */
-        rdp_settings->GatewayHostname = guac_rdp_strdup(guac_settings->gateway_hostname);
-        rdp_settings->GatewayPort = guac_settings->gateway_port;
-
-        /* RD gateway credentials */
-        rdp_settings->GatewayUseSameCredentials = FALSE;
-        rdp_settings->GatewayDomain = guac_rdp_strdup(guac_settings->gateway_domain);
-        rdp_settings->GatewayUsername = guac_rdp_strdup(guac_settings->gateway_username);
-        rdp_settings->GatewayPassword = guac_rdp_strdup(guac_settings->gateway_password);
-
-    }
-
-    /* Store load balance info (and calculate length) if provided */
-    if (guac_settings->load_balance_info != NULL) {
-        rdp_settings->LoadBalanceInfo = (BYTE*) guac_rdp_strdup(guac_settings->load_balance_info);
-        rdp_settings->LoadBalanceInfoLength = strlen(guac_settings->load_balance_info);
-    }
-
-    rdp_settings->BitmapCacheEnabled = !guac_settings->disable_bitmap_caching;
-    rdp_settings->OffscreenSupportLevel = !guac_settings->disable_offscreen_caching;
-    rdp_settings->GlyphSupportLevel = !guac_settings->disable_glyph_caching ? GLYPH_SUPPORT_FULL : GLYPH_SUPPORT_NONE;
+    rdp_settings->BitmapCacheEnabled = TRUE;
+    rdp_settings->OffscreenSupportLevel = TRUE;
+    rdp_settings->GlyphSupportLevel = GLYPH_SUPPORT_FULL;
     rdp_settings->OsMajorType = OSMAJORTYPE_UNSPECIFIED;
     rdp_settings->OsMinorType = OSMINORTYPE_UNSPECIFIED;
     rdp_settings->DesktopResize = TRUE;
@@ -1356,11 +1165,11 @@ void guac_rdp_push_settings(guac_client* client,
     ZeroMemory(rdp_settings->OrderSupport, GUAC_RDP_ORDER_SUPPORT_LENGTH);
     rdp_settings->OrderSupport[NEG_DSTBLT_INDEX] = TRUE;
     rdp_settings->OrderSupport[NEG_SCRBLT_INDEX] = TRUE;
-    rdp_settings->OrderSupport[NEG_MEMBLT_INDEX] = !guac_settings->disable_bitmap_caching;
-    rdp_settings->OrderSupport[NEG_MEMBLT_V2_INDEX] = !guac_settings->disable_bitmap_caching;
-    rdp_settings->OrderSupport[NEG_GLYPH_INDEX_INDEX] = !guac_settings->disable_glyph_caching;
-    rdp_settings->OrderSupport[NEG_FAST_INDEX_INDEX] = !guac_settings->disable_glyph_caching;
-    rdp_settings->OrderSupport[NEG_FAST_GLYPH_INDEX] = !guac_settings->disable_glyph_caching;
+    rdp_settings->OrderSupport[NEG_MEMBLT_INDEX] = TRUE;
+    rdp_settings->OrderSupport[NEG_MEMBLT_V2_INDEX] = TRUE;
+    rdp_settings->OrderSupport[NEG_GLYPH_INDEX_INDEX] = TRUE;
+    rdp_settings->OrderSupport[NEG_FAST_INDEX_INDEX] = TRUE;
+    rdp_settings->OrderSupport[NEG_FAST_GLYPH_INDEX] = TRUE;
 
 #ifdef HAVE_RDPSETTINGS_ALLOWUNANOUNCEDORDERSFROMSERVER
     /* Do not consider server use of unannounced orders to be a fatal error */

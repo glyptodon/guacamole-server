@@ -349,24 +349,6 @@ typedef struct guac_rdp_settings {
     int menu_animations_enabled;
 
     /**
-     * Whether bitmap caching should be disabled. By default it is
-     * enabled - this allows users to explicitly disable it.
-     */
-    int disable_bitmap_caching;
-
-    /**
-     * Whether offscreen caching should be disabled. By default it is
-     * enabled - this allows users to explicitly disable it.
-     */
-    int disable_offscreen_caching;
-
-    /**
-     * Whether glyph caching should be disabled. By default it is enabled
-     * - this allows users to explicitly disable it.
-     */
-    int disable_glyph_caching;
-
-    /**
      * The preconnection ID to send within the preconnection PDU when
      * initiating an RDP connection, if any. If no preconnection ID is
      * specified, this will be -1.
@@ -470,32 +452,6 @@ typedef struct guac_rdp_settings {
     int create_recording_path;
 
     /**
-     * Non-zero if output which is broadcast to each connected client
-     * (graphics, streams, etc.) should NOT be included in the session
-     * recording, zero otherwise. Output is included by default, as it is
-     * necessary for any recording which must later be viewable as video.
-     */
-    int recording_exclude_output;
-
-    /**
-     * Non-zero if changes to mouse state, such as position and buttons pressed
-     * or released, should NOT be included in the session recording, zero
-     * otherwise. Mouse state is included by default, as it is necessary for
-     * the mouse cursor to be rendered in any resulting video.
-     */
-    int recording_exclude_mouse;
-
-    /**
-     * Non-zero if keys pressed and released should be included in the session
-     * recording, zero otherwise. Key events are NOT included by default within
-     * the recording, as doing so has privacy and security implications.
-     * Including key events may be necessary in certain auditing contexts, but
-     * should only be done with caution. Key events can easily contain
-     * sensitive information, such as passwords, credit card numbers, etc.
-     */
-    int recording_include_keys;
-
-    /**
      * The method to apply when the user's display changes size.
      */
     guac_rdp_resize_method resize_method;
@@ -504,47 +460,6 @@ typedef struct guac_rdp_settings {
      * Whether audio input (microphone) is enabled.
      */
     int enable_audio_input;
-
-    /**
-     * The hostname of the remote desktop gateway that should be used as an
-     * intermediary for the remote desktop connection. If no gateway should
-     * be used, this will be NULL.
-     */
-    char* gateway_hostname;
-
-    /**
-     * The port of the remote desktop gateway that should be used as an
-     * intermediary for the remote desktop connection. NOTE: versions of
-     * FreeRDP prior to 1.2 which have gateway support ignore this value, and
-     * instead use a hard-coded value of 443.
-     */
-    int gateway_port;
-
-    /**
-     * The domain of the user authenticating with the remote desktop gateway,
-     * if a gateway is being used. This is not necessarily the same as the
-     * user actually using the remote desktop connection.
-     */
-    char* gateway_domain;
-
-    /**
-     * The username of the user authenticating with the remote desktop gateway,
-     * if a gateway is being used. This is not necessarily the same as the
-     * user actually using the remote desktop connection.
-     */
-    char* gateway_username;
-
-    /**
-     * The password to provide when authenticating with the remote desktop
-     * gateway, if a gateway is being used.
-     */
-    char* gateway_password;
-
-    /**
-     * The load balancing information/cookie which should be provided to
-     * the connection broker, if a connection broker is being used.
-     */
-    char* load_balance_info;
 
 } guac_rdp_settings;
 
