@@ -390,7 +390,7 @@ static int guac_rdp_handle_connection(guac_client* client) {
 
     /* Connect to RDP server */
     if (!freerdp_connect(rdp_inst)) {
-        guac_client_abort(client, GUAC_PROTOCOL_STATUS_UPSTREAM_NOT_FOUND,
+        guac_client_abort(client, GUAC_PROTOCOL_STATUS_UPSTREAM_ERROR,
                 "Error connecting to RDP server");
         return 1;
     }
@@ -473,7 +473,7 @@ static int guac_rdp_handle_connection(guac_client* client) {
 
         /* If a low-level connection error occurred, fail */
         else if (wait_result < 0)
-            guac_client_abort(client, GUAC_PROTOCOL_STATUS_UPSTREAM_UNAVAILABLE,
+            guac_client_abort(client, GUAC_PROTOCOL_STATUS_UPSTREAM_ERROR,
                     "Connection closed.");
 
         /* Flush frame only if successful */
@@ -625,7 +625,7 @@ void* guac_rdp_client_thread(void* data) {
 
         /* Abort if SFTP connection fails */
         if (rdp_client->sftp_filesystem == NULL) {
-            guac_client_abort(client, GUAC_PROTOCOL_STATUS_UPSTREAM_UNAVAILABLE,
+            guac_client_abort(client, GUAC_PROTOCOL_STATUS_UPSTREAM_ERROR,
                     "SFTP connection failed.");
             return NULL;
         }

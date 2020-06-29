@@ -55,38 +55,38 @@ void guac_rdp_client_abort(guac_client* client) {
 
         /* Forced disconnect (possibly by admin) */
         case 0x1: /* ERRINFO_RPC_INITIATED_DISCONNECT */
-            status = GUAC_PROTOCOL_STATUS_SESSION_CLOSED;
+            status = GUAC_PROTOCOL_STATUS_UPSTREAM_ERROR;
             message = "Forcibly disconnected.";
             break;
 
         /* The user was logged off (possibly by admin) */
         case 0x2: /* ERRINFO_RPC_INITIATED_LOGOFF */
-            status = GUAC_PROTOCOL_STATUS_SESSION_CLOSED;
+            status = GUAC_PROTOCOL_STATUS_UPSTREAM_ERROR;
             message = "Logged off.";
             break;
 
         /* The user was idle long enough that the RDP server disconnected */
         case 0x3: /* ERRINFO_IDLE_TIMEOUT */
-            status = GUAC_PROTOCOL_STATUS_SESSION_TIMEOUT;
+            status = GUAC_PROTOCOL_STATUS_UPSTREAM_ERROR;
             message = "Idle session time limit exceeded.";
             break;
 
         /* The user's session has been active for too long */
         case 0x4: /* ERRINFO_LOGON_TIMEOUT */
-            status = GUAC_PROTOCOL_STATUS_SESSION_CLOSED;
+            status = GUAC_PROTOCOL_STATUS_UPSTREAM_ERROR;
             message = "Active session time limit exceeded.";
             break;
 
         /* Another user logged on, disconnecting this user */
         case 0x5: /* ERRINFO_DISCONNECTED_BY_OTHER_CONNECTION */
-            status = GUAC_PROTOCOL_STATUS_SESSION_CONFLICT;
+            status = GUAC_PROTOCOL_STATUS_UPSTREAM_ERROR;
             message = "Disconnected by other connection.";
             break;
 
         /* The RDP server is refusing to service the connection */
         case 0x6: /* ERRINFO_OUT_OF_MEMORY */
         case 0x7: /* ERRINFO_SERVER_DENIED_CONNECTION */
-            status = GUAC_PROTOCOL_STATUS_UPSTREAM_UNAVAILABLE;
+            status = GUAC_PROTOCOL_STATUS_UPSTREAM_ERROR;
             message = "Server refused connection.";
             break;
 
