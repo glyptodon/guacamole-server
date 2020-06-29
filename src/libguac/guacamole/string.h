@@ -20,6 +20,20 @@
 #ifndef GUAC_STRING_H
 #define GUAC_STRING_H
 
+/* WARNING: This header was introduced in Apache Guacamole 1.1.0.
+ *
+ * It is possible for Glyptodon Enterprise to include this header within
+ * Glyptodon Enterprise 1.x while maintaining backward compatibility with
+ * Apache Guacamole 0.9.12 release, however third-party code which builds
+ * against this header will NOT be compatible with Apache Guacamole 0.9.12.
+ *
+ * If you are certain that you wish to use this header, define the GLEN_SOURCE
+ * macro.
+ */
+#ifndef GLEN_SOURCE
+#error The <guacamole/string.h> header cannot be used without breaking strict API/ABI compatibility with Apache Guacamole 0.9.12.
+#endif
+
 /**
  * Provides convenience functions for manipulating strings.
  *
