@@ -26,7 +26,6 @@
 #include "common/clipboard.h"
 #include "common/display.h"
 #include "common/list.h"
-#include "common/recording.h"
 #include "common/surface.h"
 #include "config.h"
 #include "fs.h"
@@ -136,12 +135,6 @@ typedef struct guac_rdp_client {
      */
     guac_common_ssh_sftp_filesystem* sftp_filesystem;
 #endif
-
-    /**
-     * The in-progress session recording, or NULL if no recording is in
-     * progress.
-     */
-    guac_common_recording* recording;
 
     /**
      * Display size update module.
