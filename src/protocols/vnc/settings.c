@@ -60,6 +60,7 @@ const char* GUAC_VNC_CLIENT_ARGS[] = {
 #ifdef ENABLE_COMMON_SSH
     "enable-sftp",
     "sftp-hostname",
+    "sftp-host-key",
     "sftp-port",
     "sftp-username",
     "sftp-password",
@@ -193,6 +194,11 @@ enum VNC_ARGS_IDX {
      * hostname of the VNC server will be used.
      */
     IDX_SFTP_HOSTNAME,
+
+    /**
+     * The public SSH host key to identify the SFTP server.
+     */
+    IDX_SFTP_HOST_KEY,
 
     /**
      * The port of the SSH server to connect to for SFTP. If blank, the default
@@ -397,6 +403,11 @@ guac_vnc_settings* guac_vnc_parse_args(guac_user* user,
         guac_user_parse_args_string(user, GUAC_VNC_CLIENT_ARGS, argv,
                 IDX_SFTP_HOSTNAME, settings->hostname);
 
+    /* The public SSH host key. */
+    settings->sftp_host_key =
+        guac_user_parse_args_string(user, GUAC_VNC_CLIENT_ARGS, argv,
+                IDX_SFTP_HOST_KEY, NULL);
+
     /* Port for SFTP connection */
     settings->sftp_port =
         guac_user_parse_args_string(user, GUAC_VNC_CLIENT_ARGS, argv,
@@ -485,6 +496,7 @@ void guac_vnc_settings_free(guac_vnc_settings* settings) {
     /* Free SFTP settings */
     free(settings->sftp_directory);
     free(settings->sftp_root_directory);
+    free(settings->sftp_host_key);
     free(settings->sftp_hostname);
     free(settings->sftp_passphrase);
     free(settings->sftp_password);
