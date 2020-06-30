@@ -21,6 +21,7 @@ AUTOMAKE_OPTIONS = foreign
 ACLOCAL_AMFLAGS = -I m4
 
 noinst_LTLIBRARIES = libguac_common.la
+SUBDIRS = . tests
 
 noinst_HEADERS =            \
     common/io.h             \
