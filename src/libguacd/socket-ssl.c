@@ -20,6 +20,8 @@
 #include "config.h"
 
 #include "libguacd/socket-ssl.h"
+#include "guacamole/error.h"
+#include "guacamole/socket.h"
 
 #include <poll.h>
 #include <stdlib.h>

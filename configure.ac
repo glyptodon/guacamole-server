@@ -42,6 +42,8 @@ AC_CHECK_HEADERS([fcntl.h stdlib.h string.h sys/socket.h time.h sys/time.h syslo
 
 # Source characteristics
 AC_DEFINE([_XOPEN_SOURCE], [700], [Uses X/Open and POSIX APIs])
+AC_DEFINE([__BSD_VISIBLE], [1], [Uses BSD-specific APIs (if available)])
+AC_DEFINE([GLEN_SOURCE],   [1], [Uses backported Apache Guacamole APIs not strictly part of 0.9.12])
 
 # Check for whether math library is required
 AC_CHECK_LIB([m], [cos],
@@ -111,6 +113,16 @@ AC_CHECK_DECL([cairo_format_stride_for_width],
                [Whether cairo_format_stride_for_width() is defined])],,
 	[#include <cairo/cairo.h>])
 
+AC_CHECK_DECL([strlcpy],
+	[AC_DEFINE([HAVE_STRLCPY],,
+               [Whether strlcpy() is defined])],,
+	[#include <string.h>])
+
+AC_CHECK_DECL([strlcat],
+	[AC_DEFINE([HAVE_STRLCAT],,
+               [Whether strlcat() is defined])],,
+	[#include <string.h>])
+
 # Typedefs
 AC_TYPE_SIZE_T
 AC_TYPE_SSIZE_T
@@ -134,6 +146,10 @@ AC_SUBST([LIBGUACD_INCLUDE], '-I$(top_srcdir)/src/libguacd')
 # Common base SSH client
 AC_SUBST([COMMON_SSH_LTLIB],   '$(top_builddir)/src/common-ssh/libguac_common_ssh.la')
 AC_SUBST([COMMON_SSH_INCLUDE], '-I$(top_srcdir)/src/common-ssh')
+
+# RDP support
+AC_SUBST([LIBGUAC_CLIENT_RDP_LTLIB],   '$(top_builddir)/src/protocols/rdp/libguac-client-rdp.la')
+AC_SUBST([LIBGUAC_CLIENT_RDP_INCLUDE], '-I$(top_srcdir)/src/protocols/rdp')
 
 # Terminal emulator
 AC_SUBST([TERMINAL_LTLIB],   '$(top_builddir)/src/terminal/libguac_terminal.la')
@@ -1111,6 +1127,7 @@ AC_CONFIG_FILES([Makefile
                  src/common/Makefile
                  src/common/tests/Makefile
                  src/common-ssh/Makefile
+                 src/common-ssh/tests/Makefile
                  src/terminal/Makefile
                  src/libguac/Makefile
                  src/libguac/tests/Makefile
@@ -1122,6 +1139,7 @@ AC_CONFIG_FILES([Makefile
                  src/guacenc/man/guacenc.1
                  src/pulse/Makefile
                  src/protocols/rdp/Makefile
+                 src/protocols/rdp/tests/Makefile
                  src/protocols/ssh/Makefile
                  src/protocols/telnet/Makefile
                  src/protocols/vnc/Makefile])
