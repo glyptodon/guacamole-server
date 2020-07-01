@@ -37,10 +37,12 @@ int guac_rdp_user_mouse_handler(guac_user* user, int x, int y, int mask) {
     guac_client* client = user->client;
     guac_rdp_client* rdp_client = (guac_rdp_client*) client->data;
 
+    pthread_rwlock_rdlock(&(rdp_client->lock));
+
     /* Skip if not yet connected */
     freerdp* rdp_inst = rdp_client->rdp_inst;
     if (rdp_inst == NULL)
-        return 0;
+        goto complete;
 
     /* Store current mouse location/state */
     guac_common_cursor_move(rdp_client->display->cursor, user, x, y);
@@ -109,6 +111,9 @@ int guac_rdp_user_mouse_handler(guac_user* user, int x, int y, int mask) {
         rdp_client->mouse_button_mask = mask;
     }
 
+complete:
+    pthread_rwlock_unlock(&(rdp_client->lock));
+
     return 0;
 }
 
@@ -116,14 +121,22 @@ int guac_rdp_user_key_handler(guac_user* user, int keysym, int pressed) {
 
     guac_client* client = user->client;
     guac_rdp_client* rdp_client = (guac_rdp_client*) client->data;
+    int retval = 0;
+
+    pthread_rwlock_rdlock(&(rdp_client->lock));
 
     /* Skip if keyboard not yet ready */
     if (rdp_client->keyboard == NULL)
-        return 0;
+        goto complete;
 
     /* Update keysym state */
-    return guac_rdp_keyboard_update_keysym(rdp_client->keyboard,
+    retval = guac_rdp_keyboard_update_keysym(rdp_client->keyboard,
                 keysym, pressed, GUAC_RDP_KEY_SOURCE_CLIENT);
+
+complete:
+    pthread_rwlock_unlock(&(rdp_client->lock));
+
+    return retval;
 
 }
 
