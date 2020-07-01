@@ -123,7 +123,7 @@ int guac_rdp_user_key_handler(guac_user* user, int keysym, int pressed) {
 
     /* Update keysym state */
     return guac_rdp_keyboard_update_keysym(rdp_client->keyboard,
-            keysym, pressed);
+                keysym, pressed, GUAC_RDP_KEY_SOURCE_CLIENT);
 
 }
 
