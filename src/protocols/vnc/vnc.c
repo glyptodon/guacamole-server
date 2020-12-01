@@ -46,6 +46,7 @@
 #include <guacamole/protocol.h>
 #include <guacamole/socket.h>
 #include <guacamole/timestamp.h>
+#include <guacamole/wol.h>
 #include <rfb/rfbclient.h>
 #include <rfb/rfbproto.h>
 
@@ -54,6 +55,66 @@
 #include <time.h>
 
 char* GUAC_VNC_CLIENT_KEY = "GUAC_VNC";
+
+#ifdef ENABLE_VNC_TLS_LOCKING
+/**
+ * A callback function that is called by the VNC library prior to writing
+ * data to a TLS-encrypted socket.  This returns the rfbBool FALSE value
+ * if there's an error locking the mutex, or rfbBool TRUE otherwise.
+ * 
+ * @param rfb_client
+ *     The rfbClient for which to lock the TLS mutex.
+ *
+ * @returns
+ *     rfbBool FALSE if an error occurs locking the mutex, otherwise
+ *     TRUE.
+ */
+static rfbBool guac_vnc_lock_write_to_tls(rfbClient* rfb_client) {
+
+    /* Retrieve the Guacamole data structures */
+    guac_client* gc = rfbClientGetClientData(rfb_client, GUAC_VNC_CLIENT_KEY);
+    guac_vnc_client* vnc_client = (guac_vnc_client*) gc->data;
+
+    /* Lock write access */
+    int retval = pthread_mutex_lock(&(vnc_client->tls_lock));
+    if (retval) {
+        guac_client_log(gc, GUAC_LOG_ERROR, "Error locking TLS write mutex: %s",
+                strerror(retval));
+        return FALSE;
+    }
+    return TRUE;
+
+}
+
+/**
+ * A callback function for use by the VNC library that is called once
+ * the client is finished writing to a TLS-encrypted socket. A rfbBool
+ * FALSE value is returned if an error occurs unlocking the mutex,
+ * otherwise TRUE is returned.
+ *
+ * @param rfb_client
+ *     The rfbClient for which to unlock the TLS mutex.
+ *
+ * @returns
+ *     rfbBool FALSE if an error occurs unlocking the mutex, otherwise
+ *     TRUE.
+ */
+static rfbBool guac_vnc_unlock_write_to_tls(rfbClient* rfb_client) {
+
+    /* Retrieve the Guacamole data structures */
+    guac_client* gc = rfbClientGetClientData(rfb_client, GUAC_VNC_CLIENT_KEY);
+    guac_vnc_client* vnc_client = (guac_vnc_client*) gc->data;
+
+    /* Unlock write access */
+    int retval = pthread_mutex_unlock(&(vnc_client->tls_lock));
+    if (retval) {
+        guac_client_log(gc, GUAC_LOG_ERROR, "Error unlocking TLS write mutex: %s",
+                strerror(retval));
+        return FALSE;
+    }
+    return TRUE;
+}
+#endif
 
 rfbClient* guac_vnc_get_client(guac_client* client) {
 
@@ -67,6 +128,12 @@ rfbClient* guac_vnc_get_client(guac_client* client) {
     /* Framebuffer update handler */
     rfb_client->GotFrameBufferUpdate = guac_vnc_update;
     rfb_client->GotCopyRect = guac_vnc_copyrect;
+
+#ifdef ENABLE_VNC_TLS_LOCKING
+    /* TLS Locking and Unlocking */
+    rfb_client->LockWriteToTLS = guac_vnc_lock_write_to_tls;
+    rfb_client->UnlockWriteToTLS = guac_vnc_unlock_write_to_tls;
+#endif
 
     /* Do not handle clipboard and local cursor if read-only */
     if (vnc_settings->read_only == 0) {
@@ -87,6 +154,9 @@ rfbClient* guac_vnc_get_client(guac_client* client) {
 
     }
 
+    /* Authentication */
+    rfb_client->GetCredential = guac_vnc_get_credentials;
+    
     /* Password */
     rfb_client->GetPassword = guac_vnc_get_password;
 
@@ -169,14 +239,25 @@ void* guac_vnc_client_thread(void* data) {
     guac_vnc_client* vnc_client = (guac_vnc_client*) client->data;
     guac_vnc_settings* settings = vnc_client->settings;
 
+    /* If Wake-on-LAN is enabled, attempt to wake. */
+    if (settings->wol_send_packet) {
+        guac_client_log(client, GUAC_LOG_DEBUG, "Sending Wake-on-LAN packet, "
+                "and pausing for %d seconds.", settings->wol_wait_time);
+        
+        /* Send the Wake-on-LAN request. */
+        if (guac_wol_wake(settings->wol_mac_addr, settings->wol_broadcast_addr))
+            return NULL;
+        
+        /* If wait time is specified, sleep for that amount of time. */
+        if (settings->wol_wait_time > 0)
+            guac_timestamp_msleep(settings->wol_wait_time * 1000);
+    }
+    
     /* Configure clipboard encoding */
     if (guac_vnc_set_clipboard_encoding(client, settings->clipboard_encoding)) {
         guac_client_log(client, GUAC_LOG_INFO, "Using non-standard VNC "
                 "clipboard encoding: '%s'.", settings->clipboard_encoding);
     }
-
-    /* Ensure connection is kept alive during lengthy connects */
-    guac_socket_require_keep_alive(client->socket);
 
     /* Set up libvncclient logging */
     rfbClientLog = guac_vnc_client_log_info;
@@ -273,7 +354,9 @@ void* guac_vnc_client_thread(void* data) {
         /* Load filesystem */
         vnc_client->sftp_filesystem =
             guac_common_ssh_create_sftp_filesystem(vnc_client->sftp_session,
-                    settings->sftp_root_directory, NULL);
+                    settings->sftp_root_directory, NULL,
+                    settings->sftp_disable_download,
+                    settings->sftp_disable_upload);
 
         /* Expose filesystem to connection owner */
         guac_client_for_owner(client,
@@ -403,4 +486,3 @@ void* guac_vnc_client_thread(void* data) {
     return NULL;
 
 }
-
