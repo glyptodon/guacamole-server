@@ -18,7 +18,7 @@
 #
 
 AC_PREREQ([2.61])
-AC_INIT([guacamole-server], [1.1.0-GLEN-2.1])
+AC_INIT([guacamole-server], [1.3.0-GLEN-2.2])
 AC_CONFIG_AUX_DIR([build-aux])
 AM_INIT_AUTOMAKE([-Wall -Werror foreign subdir-objects])
 AM_SILENT_RULES([yes])
@@ -201,6 +201,24 @@ then
 fi
 
 AM_CONDITIONAL([ENABLE_AVCODEC], [test "x${have_libavcodec}" = "xyes"])
+
+#
+# libavformat
+#
+
+have_libavformat=disabled
+AC_ARG_WITH([libavformat],
+	    [AS_HELP_STRING([--with-libavformat],
+	                    [use libavformat when encoding video @<:@default=check@:>@])],
+            [].
+            [with_libavformat=check])
+if test "x$with_libavformat" != "xno"
+then
+    have_libavformat=yes
+    PKG_CHECK_MODULES([AVFORMAT], [libavformat],, [have_libavformat=no]);
+fi
+
+AM_CONDITIONAL([ENABLE_AVFORMAT], [test "x${have_libavformat}" = "xyes"])
 
 #
 # libavutil
@@ -528,6 +546,33 @@ then
 fi
 
 #
+# TLS Locking Support within libVNCServer
+#
+
+if test "x${have_libvncserver}" = "xyes"
+then
+
+    have_vnc_tls_locking=yes
+    AC_CHECK_MEMBERS([rfbClient.LockWriteToTLS, rfbClient.UnlockWriteToTLS],
+                     [], [have_vnc_tls_locking=no],
+                     [[#include <rfb/rfbclient.h>]])
+
+    if test "x${have_vnc_tls_locking}" = "xno"
+    then
+        AC_MSG_WARN([
+      --------------------------------------------
+       This version of libvncclient lacks support
+       for TLS locking.  VNC connections that use
+       TLS may experience instability as documented
+       in GUACAMOLE-414])
+    else
+        AC_DEFINE([ENABLE_VNC_TLS_LOCKING],,
+                  [Whether support for TLS locking within VNC is enabled.])
+    fi
+
+fi
+
+#
 # FreeRDP 2 (libfreerdp2, libfreerdp-client2, and libwinpr2)
 #
 
@@ -578,7 +623,35 @@ then
 
 fi
 
-# Variation in memory internal allocation/free behavior
+# It is difficult or impossible to test for variations in FreeRDP behavior in
+# between releases, as the change in behavior may not (yet) be associated with
+# a corresponding change in version number and may not have any detectable
+# effect on the FreeRDP API
+if test "x${have_freerdp2}" = "xyes"
+then
+
+    AC_MSG_CHECKING([whether FreeRDP appears to be a development version])
+    AC_EGREP_CPP([\"[0-9]+\\.[0-9]+\\.[0-9]+(-rc[0-9]+)?\"], [
+
+        #include <freerdp/version.h>
+        FREERDP_VERSION_FULL
+
+    ],
+    [AC_MSG_RESULT([no])],
+    [AC_MSG_RESULT([yes])]
+    [AC_MSG_WARN([
+  --------------------------------------------
+   You are building against a development version of FreeRDP. Non-release
+   versions of FreeRDP may have differences in behavior that are impossible to
+   check for at build time. This may result in memory leaks or other strange
+   behavior.
+
+   *** PLEASE USE A RELEASED VERSION OF FREERDP IF POSSIBLE ***
+  --------------------------------------------])])
+
+fi
+
+# Variation in memory internal allocation/free behavior for bitmaps
 if test "x${have_freerdp2}" = "xyes"
 then
 
@@ -601,6 +674,29 @@ then
     [AC_MSG_RESULT([no])])
 
 fi
+
+# Variation in memory internal allocation/free behavior for channel streams
+if test "x${have_freerdp2}" = "xyes"
+then
+
+    # FreeRDP 2.0.0-rc3 through 2.0.0-rc4 automatically free the wStream
+    # provided to pVirtualChannelWriteEx(). This changed in commit 1b78b59, and
+    # implementations must manually free the wStream after it is no longer
+    # needed (after the write is complete or cancelled).
+    AC_MSG_CHECKING([whether pVirtualChannelWriteEx() frees the wStream upon completion])
+    AC_EGREP_CPP([\"2\\.0\\.0-(rc|dev)[3-4]\"], [
+
+        #include <freerdp/version.h>
+        FREERDP_VERSION_FULL
+
+    ],
+    [AC_MSG_RESULT([yes])]
+    [AC_DEFINE([FREERDP_SVC_CORE_FREES_WSTREAM],,
+               [Whether pVirtualChannelWriteEx() frees the wStream upon completion])],
+    [AC_MSG_RESULT([no])])
+
+fi
+
 
 # Glyph callback variants
 if test "x${have_freerdp2}" = "xyes"
@@ -968,10 +1064,11 @@ AC_ARG_ENABLE([guacenc],
               [],
               [enable_guacenc=yes])
 
-AM_CONDITIONAL([ENABLE_GUACENC], [test "x${enable_guacenc}"  = "xyes" \
-                                    -a "x${have_libavcodec}" = "xyes" \
-                                    -a "x${have_libavutil}"  = "xyes" \
-                                    -a "x${have_libswscale}" = "xyes"])
+AM_CONDITIONAL([ENABLE_GUACENC], [test "x${enable_guacenc}"   = "xyes" \
+                                    -a "x${have_libavcodec}"  = "xyes" \
+                                    -a "x${have_libavutil}"   = "xyes" \
+                                    -a "x${have_libswscale}"  = "xyes" \
+                                    -a "x${have_libavformat}" = "xyes"])
 
 #
 # guaclog
@@ -1064,6 +1161,7 @@ $PACKAGE_NAME version $PACKAGE_VERSION
      freerdp2 ............ ${have_freerdp2}
      pango ............... ${have_pango}
      libavcodec .......... ${have_libavcodec}
+     libavformat.......... ${have_libavformat}
      libavutil ........... ${have_libavutil}
      libssh2 ............. ${have_libssh2}
      libssl .............. ${have_ssl}

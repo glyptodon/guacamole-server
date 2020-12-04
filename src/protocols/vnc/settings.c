@@ -19,10 +19,13 @@
 
 #include "config.h"
 
+#include "argv.h"
 #include "client.h"
+#include "common/defaults.h"
 #include "settings.h"
 
 #include <guacamole/user.h>
+#include <guacamole/wol-constants.h>
 
 #include <stdbool.h>
 #include <stdlib.h>
@@ -35,7 +38,8 @@ const char* GUAC_VNC_CLIENT_ARGS[] = {
     "port",
     "read-only",
     "encodings",
-    "password",
+    GUAC_VNC_ARGV_USERNAME,
+    GUAC_VNC_ARGV_PASSWORD,
     "swap-red-blue",
     "color-depth",
     "cursor",
@@ -69,6 +73,8 @@ const char* GUAC_VNC_CLIENT_ARGS[] = {
     "sftp-directory",
     "sftp-root-directory",
     "sftp-server-alive-interval",
+    "sftp-disable-download",
+    "sftp-disable-upload",
 #endif
 
     "recording-path",
@@ -79,6 +85,11 @@ const char* GUAC_VNC_CLIENT_ARGS[] = {
     "create-recording-path",
     "disable-copy",
     "disable-paste",
+    
+    "wol-send-packet",
+    "wol-mac-addr",
+    "wol-broadcast-addr",
+    "wol-wait-time",
     NULL
 };
 
@@ -108,6 +119,11 @@ enum VNC_ARGS_IDX {
      */
     IDX_ENCODINGS,
 
+    /**
+     * The username to send to the VNC server if authentication is requested.
+     */
+    IDX_USERNAME,
+    
     /**
      * The password to send to the VNC server if authentication is requested.
      */
@@ -253,6 +269,18 @@ enum VNC_ARGS_IDX {
      * cases.
      */
     IDX_SFTP_SERVER_ALIVE_INTERVAL,
+    
+    /**
+     * If set to "true", file downloads over SFTP will be blocked.  If set to
+     * "false" or not set, file downloads will be allowed.
+     */
+    IDX_SFTP_DISABLE_DOWNLOAD,
+    
+    /**
+     * If set to "true", file uploads over SFTP will be blocked.  If set to
+     * "false" or not set, file uploads will be allowed.
+     */
+    IDX_SFTP_DISABLE_UPLOAD,
 #endif
 
     /**
@@ -312,6 +340,32 @@ enum VNC_ARGS_IDX {
      * using the clipboard. By default, clipboard access is not blocked.
      */
     IDX_DISABLE_PASTE,
+    
+    /**
+     * Whether to send the magic Wake-on-LAN (WoL) packet to wake the remote
+     * host prior to attempting to connect.  If set to "true" the packet will
+     * be sent.  By default the packet will not be sent.
+     */
+    IDX_WOL_SEND_PACKET,
+    
+    /**
+     * The MAC address to place in the magic WoL packet to wake the remote host.
+     * If WoL is requested but this is not provided a warning will be logged
+     * and the WoL packet will not be sent.
+     */
+    IDX_WOL_MAC_ADDR,
+    
+    /**
+     * The broadcast packet to which to send the magic WoL packet.
+     */
+    IDX_WOL_BROADCAST_ADDR,
+    
+    /**
+     * The number of seconds to wait after sending the magic WoL packet before
+     * attempting to connect to the remote host.  The default is not to wait
+     * at all (0 seconds).
+     */
+    IDX_WOL_WAIT_TIME,
 
     VNC_ARGS_COUNT
 };
@@ -337,10 +391,14 @@ guac_vnc_settings* guac_vnc_parse_args(guac_user* user,
         guac_user_parse_args_int(user, GUAC_VNC_CLIENT_ARGS, argv,
                 IDX_PORT, 0);
 
+    settings->username =
+        guac_user_parse_args_string(user, GUAC_VNC_CLIENT_ARGS, argv,
+                IDX_USERNAME, NULL);
+    
     settings->password =
         guac_user_parse_args_string(user, GUAC_VNC_CLIENT_ARGS, argv,
-                IDX_PASSWORD, ""); /* NOTE: freed by libvncclient */
-
+                IDX_PASSWORD, NULL);
+    
     /* Remote cursor */
     if (strcmp(argv[IDX_CURSOR], "remote") == 0) {
         guac_user_log(user, GUAC_LOG_INFO, "Cursor rendering: remote");
@@ -476,6 +534,14 @@ guac_vnc_settings* guac_vnc_parse_args(guac_user* user,
     settings->sftp_server_alive_interval =
         guac_user_parse_args_int(user, GUAC_VNC_CLIENT_ARGS, argv,
                 IDX_SFTP_SERVER_ALIVE_INTERVAL, 0);
+    
+    settings->sftp_disable_download =
+        guac_user_parse_args_boolean(user, GUAC_VNC_CLIENT_ARGS, argv,
+                IDX_SFTP_DISABLE_DOWNLOAD, false);
+    
+    settings->sftp_disable_upload =
+        guac_user_parse_args_boolean(user, GUAC_VNC_CLIENT_ARGS, argv,
+                IDX_SFTP_DISABLE_UPLOAD, false);
 #endif
 
     /* Read recording path */
@@ -517,6 +583,37 @@ guac_vnc_settings* guac_vnc_parse_args(guac_user* user,
     settings->disable_paste =
         guac_user_parse_args_boolean(user, GUAC_VNC_CLIENT_ARGS, argv,
                 IDX_DISABLE_PASTE, false);
+    
+    /* Parse Wake-on-LAN (WoL) settings */
+    settings->wol_send_packet =
+        guac_user_parse_args_boolean(user, GUAC_VNC_CLIENT_ARGS, argv,
+                IDX_WOL_SEND_PACKET, false);
+    
+    if (settings->wol_send_packet) {
+        
+        /* If WoL has been enabled but no MAC provided, log warning and disable. */
+        if(strcmp(argv[IDX_WOL_MAC_ADDR], "") == 0) {
+            guac_user_log(user, GUAC_LOG_WARNING, "Wake on LAN was requested, ",
+                    "but no MAC address was specified.  WoL will not be sent.");
+            settings->wol_send_packet = false;
+        }
+        
+        /* Parse the WoL MAC address. */
+        settings->wol_mac_addr =
+            guac_user_parse_args_string(user, GUAC_VNC_CLIENT_ARGS, argv,
+                IDX_WOL_MAC_ADDR, NULL);
+        
+        /* Parse the WoL broadcast address. */
+        settings->wol_broadcast_addr =
+            guac_user_parse_args_string(user, GUAC_VNC_CLIENT_ARGS, argv,
+                IDX_WOL_BROADCAST_ADDR, GUAC_WOL_LOCAL_IPV4_BROADCAST);
+        
+        /* Parse the WoL wait time. */
+        settings->wol_wait_time =
+            guac_user_parse_args_int(user, GUAC_VNC_CLIENT_ARGS, argv,
+                IDX_WOL_WAIT_TIME, GUAC_WOL_DEFAULT_BOOT_WAIT_TIME);
+        
+    }
 
     return settings;
 
@@ -528,8 +625,10 @@ void guac_vnc_settings_free(guac_vnc_settings* settings) {
     free(settings->clipboard_encoding);
     free(settings->encodings);
     free(settings->hostname);
+    free(settings->password);
     free(settings->recording_name);
     free(settings->recording_path);
+    free(settings->username);
 
 #ifdef ENABLE_VNC_REPEATER
     /* Free VNC repeater settings */

@@ -17,6 +17,8 @@
  * under the License.
  */
 
+#include "argv.h"
+#include "common/defaults.h"
 #include "common/string.h"
 #include "config.h"
 #include "resolution.h"
@@ -28,6 +30,7 @@
 #include <guacamole/client.h>
 #include <guacamole/string.h>
 #include <guacamole/user.h>
+#include <guacamole/wol-constants.h>
 #include <winpr/crt.h>
 #include <winpr/wtypes.h>
 
@@ -40,9 +43,9 @@
 const char* GUAC_RDP_CLIENT_ARGS[] = {
     "hostname",
     "port",
-    "domain",
-    "username",
-    "password",
+    GUAC_RDP_ARGV_DOMAIN,
+    GUAC_RDP_ARGV_USERNAME,
+    GUAC_RDP_ARGV_PASSWORD,
     "width",
     "height",
     "dpi",
@@ -55,6 +58,8 @@ const char* GUAC_RDP_CLIENT_ARGS[] = {
     "drive-name",
     "drive-path",
     "create-drive-path",
+    "disable-download",
+    "disable-upload",
     "console",
     "console-audio",
     "server-layout",
@@ -91,6 +96,8 @@ const char* GUAC_RDP_CLIENT_ARGS[] = {
     "sftp-directory",
     "sftp-root-directory",
     "sftp-server-alive-interval",
+    "sftp-disable-download",
+    "sftp-disable-upload",
 #endif
 
     "recording-path",
@@ -113,6 +120,11 @@ const char* GUAC_RDP_CLIENT_ARGS[] = {
 
     "disable-copy",
     "disable-paste",
+    
+    "wol-send-packet",
+    "wol-mac-addr",
+    "wol-broadcast-addr",
+    "wol-wait-time",
     NULL
 };
 
@@ -214,6 +226,18 @@ enum RDP_ARGS_IDX {
      * drive if it does not yet exist, "false" or blank otherwise.
      */
     IDX_CREATE_DRIVE_PATH,
+    
+    /**
+     * "true" to disable the ability to download files from a remote server to
+     * the local client over RDP, "false" or blank otherwise.
+     */
+    IDX_DISABLE_DOWNLOAD,
+    
+    /**
+     * "true" to disable the ability to upload files from the local client to
+     * the remote server over RDP, "false" or blank otherwise.
+     */
+    IDX_DISABLE_UPLOAD,
 
     /**
      * "true" if this session is a console session, "false" or blank otherwise.
@@ -430,6 +454,20 @@ enum RDP_ARGS_IDX {
      * cases.
      */
     IDX_SFTP_SERVER_ALIVE_INTERVAL,
+    
+    /**
+     * "true" to disable file download from the SFTP server to the local client
+     * over the SFTP connection, if SFTP is configured and enabled.  "false" or
+     * blank otherwise.
+     */
+    IDX_SFTP_DISABLE_DOWNLOAD,
+    
+    /**
+     * "true" to disable file upload from the SFTP server to the local client
+     * over the SFTP connection, if SFTP is configured and enabled.  "false" or
+     * blank otherwise.
+     */
+    IDX_SFTP_DISABLE_UPLOAD,
 #endif
 
     /**
@@ -550,6 +588,35 @@ enum RDP_ARGS_IDX {
      * using the clipboard. By default, clipboard access is not blocked.
      */
     IDX_DISABLE_PASTE,
+    
+    /**
+     * Whether or not to send the magic Wake-on-LAN (WoL) packet to the host
+     * prior to attempting to connect.  Non-zero values will enable sending
+     * the WoL packet, while zero will disable this functionality.  By default
+     * the WoL packet is not sent.
+     */
+    IDX_WOL_SEND_PACKET,
+    
+    /**
+     * The MAC address to put in the magic WoL packet for the host that should
+     * be woken up.
+     */
+    IDX_WOL_MAC_ADDR,
+    
+    /**
+     * The broadcast address to which to send the magic WoL packet to wake up
+     * the remote host.
+     */
+    IDX_WOL_BROADCAST_ADDR,
+    
+    /**
+     * The amount of time, in seconds, to wait after sending the WoL packet
+     * before attempting to connect to the host.  This should be a reasonable
+     * amount of time to allow the remote host to fully boot and respond to
+     * network connection requests.  The default is not to wait at all
+     * (0 seconds).
+     */
+    IDX_WOL_WAIT_TIME,
 
     RDP_ARGS_COUNT
 };
@@ -839,13 +906,25 @@ guac_rdp_settings* guac_rdp_parse_args(guac_user* user,
         guac_user_parse_args_string(user, GUAC_RDP_CLIENT_ARGS, argv,
                 IDX_DRIVE_NAME, "Guacamole Filesystem");
 
+    /* The path on the server to connect the drive. */
     settings->drive_path =
         guac_user_parse_args_string(user, GUAC_RDP_CLIENT_ARGS, argv,
                 IDX_DRIVE_PATH, "");
 
+    /* If the server path should be created if it doesn't already exist. */
     settings->create_drive_path =
         guac_user_parse_args_boolean(user, GUAC_RDP_CLIENT_ARGS, argv,
                 IDX_CREATE_DRIVE_PATH, 0);
+    
+    /* If file downloads over RDP should be disabled. */
+    settings->disable_download =
+        guac_user_parse_args_boolean(user, GUAC_RDP_CLIENT_ARGS, argv,
+                IDX_DISABLE_DOWNLOAD, 0);
+    
+    /* If file uploads over RDP should be disabled. */
+    settings->disable_upload =
+        guac_user_parse_args_boolean(user, GUAC_RDP_CLIENT_ARGS, argv,
+                IDX_DISABLE_UPLOAD, 0);
 
     /* Pick keymap based on argument */
     settings->server_layout = NULL;
@@ -918,6 +997,16 @@ guac_rdp_settings* guac_rdp_parse_args(guac_user* user,
     settings->sftp_server_alive_interval =
         guac_user_parse_args_int(user, GUAC_RDP_CLIENT_ARGS, argv,
                 IDX_SFTP_SERVER_ALIVE_INTERVAL, 0);
+    
+    /* Whether or not to disable file download over SFTP. */
+    settings->sftp_disable_download =
+        guac_user_parse_args_boolean(user, GUAC_RDP_CLIENT_ARGS, argv,
+                IDX_SFTP_DISABLE_DOWNLOAD, 0);
+    
+    /* Whether or not to disable file upload over SFTP. */
+    settings->sftp_disable_upload =
+        guac_user_parse_args_boolean(user, GUAC_RDP_CLIENT_ARGS, argv,
+                IDX_SFTP_DISABLE_UPLOAD, 0);
 #endif
 
     /* Read recording path */
@@ -1019,6 +1108,37 @@ guac_rdp_settings* guac_rdp_parse_args(guac_user* user,
     settings->disable_paste =
         guac_user_parse_args_boolean(user, GUAC_RDP_CLIENT_ARGS, argv,
                 IDX_DISABLE_PASTE, 0);
+    
+    /* Parse Wake-on-LAN (WoL) settings */
+    settings->wol_send_packet =
+        guac_user_parse_args_boolean(user, GUAC_RDP_CLIENT_ARGS, argv,
+                IDX_WOL_SEND_PACKET, 0);
+    
+    if (settings->wol_send_packet) {
+        
+        /* If WoL has been requested but no MAC address given, log a warning. */
+        if(strcmp(argv[IDX_WOL_MAC_ADDR], "") == 0) {
+            guac_user_log(user, GUAC_LOG_WARNING, "WoL requested but no MAC ",
+                    "address specified.  WoL will not be sent.");
+            settings->wol_send_packet = 0;
+        }
+        
+        /* Parse the WoL MAC address. */
+        settings->wol_mac_addr = 
+            guac_user_parse_args_string(user, GUAC_RDP_CLIENT_ARGS, argv,
+                IDX_WOL_MAC_ADDR, NULL);
+        
+        /* Parse the WoL broadcast address. */
+        settings->wol_broadcast_addr =
+            guac_user_parse_args_string(user, GUAC_RDP_CLIENT_ARGS, argv,
+                IDX_WOL_BROADCAST_ADDR, GUAC_WOL_LOCAL_IPV4_BROADCAST);
+        
+        /* Parse the WoL wait time. */
+        settings->wol_wait_time =
+            guac_user_parse_args_int(user, GUAC_RDP_CLIENT_ARGS, argv,
+                IDX_WOL_WAIT_TIME, GUAC_WOL_DEFAULT_BOOT_WAIT_TIME);
+        
+    }
 
     /* Success */
     return settings;
@@ -1081,6 +1201,9 @@ void guac_rdp_settings_free(guac_rdp_settings* settings) {
 
     /* Free load balancer information string */
     free(settings->load_balance_info);
+    
+    free(settings->wol_mac_addr);
+    free(settings->wol_broadcast_addr);
 
     /* Free settings structure */
     free(settings);
@@ -1144,47 +1267,25 @@ static int guac_rdp_get_performance_flags(guac_rdp_settings* guac_settings) {
 
 }
 
-/**
- * Simple wrapper for strdup() which behaves identically to standard strdup(),
- * execpt that NULL will be returned if the provided string is NULL.
- *
- * @param str
- *     The string to duplicate as a newly-allocated string.
- *
- * @return
- *     A newly-allocated string containing identically the same content as the
- *     given string, or NULL if the given string was NULL.
- */
-static char* guac_rdp_strdup(const char* str) {
-
-    /* Return NULL if no string provided */
-    if (str == NULL)
-        return NULL;
-
-    /* Otherwise just invoke strdup() */
-    return strdup(str);
-
-}
-
 void guac_rdp_push_settings(guac_client* client,
         guac_rdp_settings* guac_settings, freerdp* rdp) {
 
     rdpSettings* rdp_settings = rdp->settings;
 
     /* Authentication */
-    rdp_settings->Domain = guac_rdp_strdup(guac_settings->domain);
-    rdp_settings->Username = guac_rdp_strdup(guac_settings->username);
-    rdp_settings->Password = guac_rdp_strdup(guac_settings->password);
+    rdp_settings->Domain = guac_strdup(guac_settings->domain);
+    rdp_settings->Username = guac_strdup(guac_settings->username);
+    rdp_settings->Password = guac_strdup(guac_settings->password);
 
     /* Connection */
-    rdp_settings->ServerHostname = guac_rdp_strdup(guac_settings->hostname);
+    rdp_settings->ServerHostname = guac_strdup(guac_settings->hostname);
     rdp_settings->ServerPort = guac_settings->port;
 
     /* Session */
     rdp_settings->ColorDepth = guac_settings->color_depth;
     rdp_settings->DesktopWidth = guac_settings->width;
     rdp_settings->DesktopHeight = guac_settings->height;
-    rdp_settings->AlternateShell = guac_rdp_strdup(guac_settings->initial_program);
+    rdp_settings->AlternateShell = guac_strdup(guac_settings->initial_program);
     rdp_settings->KeyboardLayout = guac_settings->server_layout->freerdp_keyboard_layout;
 
     /* Performance flags */
@@ -1302,9 +1403,9 @@ void guac_rdp_push_settings(guac_client* client,
         rdp_settings->Workarea = TRUE;
         rdp_settings->RemoteApplicationMode = TRUE;
         rdp_settings->RemoteAppLanguageBarSupported = TRUE;
-        rdp_settings->RemoteApplicationProgram = guac_rdp_strdup(guac_settings->remote_app);
-        rdp_settings->ShellWorkingDirectory = guac_rdp_strdup(guac_settings->remote_app_dir);
-        rdp_settings->RemoteApplicationCmdLine = guac_rdp_strdup(guac_settings->remote_app_args);
+        rdp_settings->RemoteApplicationProgram = guac_strdup(guac_settings->remote_app);
+        rdp_settings->ShellWorkingDirectory = guac_strdup(guac_settings->remote_app_dir);
+        rdp_settings->RemoteApplicationCmdLine = guac_strdup(guac_settings->remote_app_args);
     }
 
     /* Preconnection ID */
@@ -1318,7 +1419,7 @@ void guac_rdp_push_settings(guac_client* client,
     if (guac_settings->preconnection_blob != NULL) {
         rdp_settings->NegotiateSecurityLayer = FALSE;
         rdp_settings->SendPreconnectionPdu = TRUE;
-        rdp_settings->PreconnectionBlob = guac_rdp_strdup(guac_settings->preconnection_blob);
+        rdp_settings->PreconnectionBlob = guac_strdup(guac_settings->preconnection_blob);
     }
 
     /* Enable use of RD gateway if a gateway hostname is provided */
@@ -1328,20 +1429,20 @@ void guac_rdp_push_settings(guac_client* client,
         rdp_settings->GatewayEnabled = TRUE;
 
         /* RD gateway connection details */
-        rdp_settings->GatewayHostname = guac_rdp_strdup(guac_settings->gateway_hostname);
+        rdp_settings->GatewayHostname = guac_strdup(guac_settings->gateway_hostname);
         rdp_settings->GatewayPort = guac_settings->gateway_port;
 
         /* RD gateway credentials */
         rdp_settings->GatewayUseSameCredentials = FALSE;
-        rdp_settings->GatewayDomain = guac_rdp_strdup(guac_settings->gateway_domain);
-        rdp_settings->GatewayUsername = guac_rdp_strdup(guac_settings->gateway_username);
-        rdp_settings->GatewayPassword = guac_rdp_strdup(guac_settings->gateway_password);
+        rdp_settings->GatewayDomain = guac_strdup(guac_settings->gateway_domain);
+        rdp_settings->GatewayUsername = guac_strdup(guac_settings->gateway_username);
+        rdp_settings->GatewayPassword = guac_strdup(guac_settings->gateway_password);
 
     }
 
     /* Store load balance info (and calculate length) if provided */
     if (guac_settings->load_balance_info != NULL) {
-        rdp_settings->LoadBalanceInfo = (BYTE*) guac_rdp_strdup(guac_settings->load_balance_info);
+        rdp_settings->LoadBalanceInfo = (BYTE*) guac_strdup(guac_settings->load_balance_info);
         rdp_settings->LoadBalanceInfoLength = strlen(guac_settings->load_balance_info);
     }
 
