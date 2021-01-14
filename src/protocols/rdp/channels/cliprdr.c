@@ -348,7 +348,9 @@ static UINT guac_rdp_cliprdr_format_data_request(CliprdrClientContext* cliprdr,
         .msgFlags = CB_RESPONSE_OK
     };
 
-    return cliprdr->ClientFormatDataResponse(cliprdr, &data_response);
+    UINT result = cliprdr->ClientFormatDataResponse(cliprdr, &data_response);
+    free(start);
+    return result;
 
 }
 

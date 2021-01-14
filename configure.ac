@@ -497,7 +497,44 @@ then
 
 fi
 
-# Variation in memory internal allocation/free behavior
+# It is difficult or impossible to test for variations in FreeRDP behavior in
+# between releases, as the change in behavior may not (yet) be associated with
+# a corresponding change in version number and may not have any detectable
+# effect on the FreeRDP API
+
+AC_ARG_ENABLE(allow_freerdp_snapshots,
+              [AS_HELP_STRING([--enable-allow-freerdp-snapshots],
+                              [allow building against unknown development snapshots of FreeRDP])
+              ],allow_freerdp_snapshots=yes)
+
+if test "x${have_freerdp2}" = "xyes" -a "x${allow_freerdp_snapshots}" != "xyes"
+then
+
+    AC_MSG_CHECKING([whether FreeRDP appears to be a development version])
+    AC_EGREP_CPP([\"[0-9]+\\.[0-9]+\\.[0-9]+(-rc[0-9]+)?\"], [
+
+        #include <freerdp/version.h>
+        FREERDP_VERSION_FULL
+
+    ],
+    [AC_MSG_RESULT([no])],
+    [AC_MSG_RESULT([yes])]
+    [AC_MSG_ERROR([
+  --------------------------------------------
+   You are building against a development version of FreeRDP. Non-release
+   versions of FreeRDP may have differences in behavior that are impossible to
+   check for at build time. This may result in memory leaks or other strange
+   behavior.
+
+   *** PLEASE USE A RELEASED VERSION OF FREERDP IF POSSIBLE ***
+
+   If you are ABSOLUTELY CERTAIN that building against this version of FreeRDP
+   is OK, rerun configure with the --enable-allow-freerdp-snapshots
+  --------------------------------------------])])
+
+fi
+
+# Variation in memory internal allocation/free behavior for bitmaps
 if test "x${have_freerdp2}" = "xyes"
 then
 
@@ -520,6 +557,29 @@ then
     [AC_MSG_RESULT([no])])
 
 fi
+
+# Variation in memory internal allocation/free behavior for channel streams
+if test "x${have_freerdp2}" = "xyes"
+then
+
+    # FreeRDP 2.0.0-rc3 through 2.0.0-rc4 automatically free the wStream
+    # provided to pVirtualChannelWriteEx(). This changed in commit 1b78b59, and
+    # implementations must manually free the wStream after it is no longer
+    # needed (after the write is complete or cancelled).
+    AC_MSG_CHECKING([whether pVirtualChannelWriteEx() frees the wStream upon completion])
+    AC_EGREP_CPP([\"2\\.0\\.0-(rc|dev)[3-4]\"], [
+
+        #include <freerdp/version.h>
+        FREERDP_VERSION_FULL
+
+    ],
+    [AC_MSG_RESULT([yes])]
+    [AC_DEFINE([FREERDP_SVC_CORE_FREES_WSTREAM],,
+               [Whether pVirtualChannelWriteEx() frees the wStream upon completion])],
+    [AC_MSG_RESULT([no])])
+
+fi
+
 
 # Glyph callback variants
 if test "x${have_freerdp2}" = "xyes"
