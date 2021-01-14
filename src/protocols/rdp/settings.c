@@ -1156,7 +1156,6 @@ void guac_rdp_push_settings(guac_client* client,
 
     rdp_settings->BitmapCacheEnabled = TRUE;
     rdp_settings->OffscreenSupportLevel = TRUE;
-    rdp_settings->GlyphSupportLevel = GLYPH_SUPPORT_FULL;
     rdp_settings->OsMajorType = OSMAJORTYPE_UNSPECIFIED;
     rdp_settings->OsMinorType = OSMINORTYPE_UNSPECIFIED;
     rdp_settings->DesktopResize = TRUE;
@@ -1167,9 +1166,15 @@ void guac_rdp_push_settings(guac_client* client,
     rdp_settings->OrderSupport[NEG_SCRBLT_INDEX] = TRUE;
     rdp_settings->OrderSupport[NEG_MEMBLT_INDEX] = TRUE;
     rdp_settings->OrderSupport[NEG_MEMBLT_V2_INDEX] = TRUE;
-    rdp_settings->OrderSupport[NEG_GLYPH_INDEX_INDEX] = TRUE;
-    rdp_settings->OrderSupport[NEG_FAST_INDEX_INDEX] = TRUE;
-    rdp_settings->OrderSupport[NEG_FAST_GLYPH_INDEX] = TRUE;
+
+    /* FreeRDP does not consider the glyph cache implementation to be stable as
+     * of 2.0.0, and it MUST NOT be used. Usage of the glyph cache results in
+     * unexpected disconnects when using older versions of Windows and recent
+     * versions of FreeRDP. See: https://issues.apache.org/jira/browse/GUACAMOLE-1191 */
+    rdp_settings->GlyphSupportLevel = GLYPH_SUPPORT_NONE;
+    rdp_settings->OrderSupport[NEG_GLYPH_INDEX_INDEX] = FALSE;
+    rdp_settings->OrderSupport[NEG_FAST_INDEX_INDEX] = FALSE;
+    rdp_settings->OrderSupport[NEG_FAST_GLYPH_INDEX] = FALSE;
 
 #ifdef HAVE_RDPSETTINGS_ALLOWUNANOUNCEDORDERSFROMSERVER
     /* Do not consider server use of unannounced orders to be a fatal error */
