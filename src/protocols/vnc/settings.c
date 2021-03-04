@@ -90,6 +90,8 @@ const char* GUAC_VNC_CLIENT_ARGS[] = {
     "wol-mac-addr",
     "wol-broadcast-addr",
     "wol-wait-time",
+
+    "force-lossless",
     NULL
 };
 
@@ -367,6 +369,12 @@ enum VNC_ARGS_IDX {
      */
     IDX_WOL_WAIT_TIME,
 
+    /**
+     * "true" if all graphical updates for this connection should use lossless
+     * compresion only, "false" or blank otherwise.
+     */
+    IDX_FORCE_LOSSLESS,
+
     VNC_ARGS_COUNT
 };
 
@@ -425,6 +433,11 @@ guac_vnc_settings* guac_vnc_parse_args(guac_user* user,
     settings->color_depth =
         guac_user_parse_args_int(user, GUAC_VNC_CLIENT_ARGS, argv,
                 IDX_COLOR_DEPTH, 0);
+
+    /* Lossless compression */
+    settings->lossless =
+        guac_user_parse_args_boolean(user, GUAC_VNC_CLIENT_ARGS, argv,
+                IDX_FORCE_LOSSLESS, false);
 
 #ifdef ENABLE_VNC_REPEATER
     /* Set repeater parameters if specified */

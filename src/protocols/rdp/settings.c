@@ -127,6 +127,8 @@ const char* GUAC_RDP_CLIENT_ARGS[] = {
     "wol-mac-addr",
     "wol-broadcast-addr",
     "wol-wait-time",
+
+    "force-lossless",
     NULL
 };
 
@@ -633,6 +635,12 @@ enum RDP_ARGS_IDX {
      */
     IDX_WOL_WAIT_TIME,
 
+    /**
+     * "true" if all graphical updates for this connection should use lossless
+     * compresion only, "false" or blank otherwise.
+     */
+    IDX_FORCE_LOSSLESS,
+
     RDP_ARGS_COUNT
 };
 
@@ -772,6 +780,11 @@ guac_rdp_settings* guac_rdp_parse_args(guac_user* user,
             settings->width,
             settings->height,
             settings->resolution);
+
+    /* Lossless compression */
+    settings->lossless =
+        guac_user_parse_args_boolean(user, GUAC_RDP_CLIENT_ARGS, argv,
+                IDX_FORCE_LOSSLESS, 0);
 
     /* Domain */
     settings->domain =
