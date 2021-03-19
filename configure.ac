@@ -18,7 +18,7 @@
 #
 
 AC_PREREQ([2.61])
-AC_INIT([guacamole-server], [1.3.0-GLEN-2.2])
+AC_INIT([guacamole-server], [1.3.0-GLEN-2.4])
 AC_CONFIG_AUX_DIR([build-aux])
 AM_INIT_AUTOMAKE([-Wall -Werror foreign subdir-objects])
 AM_SILENT_RULES([yes])
